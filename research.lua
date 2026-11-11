@@ -1,4 +1,5 @@
 local G=require('genome');local EG=require('environment_genes');local Units=require('units');local DG=require('development_genes');local A=require('anatomy');local R=require('rendering');local K=require('cultivation')
+local Editor=require('genome_editor')
 local U={genomePage=1,operationIndex=1,view='Genome',source='cells',index=1,page=1,layer='External',component=1,locus=1,compare=nil,parentA=nil,parentB=nil,egg=nil,sperm=nil,experiment=1,naming=false,nameBuffer=''}
 local sources={'cells','organisms','materials','frozen'}
 local function count(t) return #t end
