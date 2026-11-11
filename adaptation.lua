@@ -1,4 +1,5 @@
-local EG=require('environment_genes');local E={}
+local EG=require('environment_genes');local Diet=require('diet')
+local E={}
 local function clamp(v) return math.max(0,math.min(1,v)) end
 function E.enrich(a,g,conditions)
  if a.ecology then return end
@@ -56,7 +57,7 @@ function E.capabilities(a,g,c)
  c.compatibility={land=clamp(airRatio)*landSupport,freshwater=clamp(waterRatio)*(.65+aquaticMotion*.35),saltwater=clamp(waterRatio)*(.65+aquaticMotion*.35)*(.15+q[13]*.85),flight=c.flight.powered and clamp(math.min(liftRatio/1.5,propulsion,control)) or c.flight.glide and clamp(liftRatio*.3) or 0}
  c.airRespiration=air;c.aquaticRespiration=water;c.oxygenDemand=demand;c.buoyancy=q[6]-.5*q[7];c.moistureRetention=q[4]*(.6+(hard/math.max(1,#a.skin))*.4);c.salinityTolerance=q[13];c.temperatureTolerance=12+q[12]*25;c.waterResistance=q[5];c.swimSpeed=(c.speed*2+.012*aquaticMotion)*(.8+c.buoyancy*.4);c.swimSpeed=c.swimSpeed/(1+(1-q[5])*.3);c.landSpeed=c.speed*5*landSupport/(1+rigid/math.max(1,#a.skin)*.35)
  local mouthCondition=1;if a.mouths and #a.mouths>0 then mouthCondition=0;for _,mouth in ipairs(a.mouths) do mouthCondition=mouthCondition+mouth.condition end;mouthCondition=mouthCondition/#a.mouths end
- c.diet={dissolved=clamp(c.digestion*.15)*(water>0 and .7 or .1),plant=clamp((teeth*.15+.25)*c.digestion*.3),debris=clamp(.35+c.digestion*.14),tissue=clamp(teeth*.2*c.force+.1*q[22])};for _,kind in ipairs({'plant','debris','tissue'}) do c.diet[kind]=c.diet[kind]*mouthCondition end;c.biteForce=c.force*(.3+q[22]*.7)*mouthCondition;c.coverHardness=hard/math.max(1,#a.skin)
+ c.biteForce=c.force*(.3+q[22]*.7)*mouthCondition;c.diet,c.feedingStrategy=Diet.capabilities(a,c,q,teeth,mouthCondition,water);c.coverHardness=hard/math.max(1,#a.skin)
  return c
 end
 return E
