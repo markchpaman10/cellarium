@@ -67,6 +67,11 @@ function E.draw(s,c)
   if ok and a then E.forecast=a;msg('Predicted body: '..#a.regions..' regions, '..(a.appendageCount or 0)..' appendages; '..(a.viable and 'viable' or 'nonviable')) else msg('Preview failed: '..tostring(a)) end
  end)
  button('Save DNA copy',1090,776,290,34,function() local ok,why=E.commit(s,c.B);msg(why) end)
+ button('Incubate exact edited genome',1090,816,290,30,function()
+  if not G.valid(E.draft) then msg('Invalid genome.');return end
+  local embryo,why=c.B.queue(s,G.copy(E.draft),'Direct genome engineering',0,{nutrition=1,minerals=1,oxygen=1,temperature=37,release='auto'})
+  msg(embryo and 'Exact edited genome sent to incubation.' or tostring(why))
+ end)
  if E.forecast then text('Forecast: '..#E.forecast.regions..' regions / '..(E.forecast.appendageCount or 0)..' appendages / '..(E.forecast.viable and 'viable' or 'nonviable'),960,740,12,C.mint) end
 end
 return E
