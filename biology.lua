@@ -35,15 +35,15 @@ function B.queue(s,g,parents,generation,conditions,record)
 end
 function B.combine(s,ids,options)
  options=options or {}
- if #ids~=3 then return false,'Select three cells.' end;local donors,seen={},{};for _,id in ipairs(ids) do if seen[id] then return false,'Donors must be distinct specimens.' end;seen[id]=true;for _,c in ipairs(s.cells) do if c.id==id then donors[#donors+1]=c end end end
- if #donors~=3 then return false,'A donor is unavailable.' end
+ if #ids<2 or #ids>12 then return false,'Select 2 to 12 distinct donor cells.' end;local donors,seen={},{};for _,id in ipairs(ids) do if seen[id] then return false,'Donors must be distinct specimens.' end;seen[id]=true;for _,c in ipairs(s.cells) do if c.id==id then donors[#donors+1]=c end end end
+ if #donors~=#ids then return false,'A donor is unavailable.' end
  local genomes,names={},{};for _,c in ipairs(donors) do if c.viability<.1 then return false,'Donor viability too low.' end;genomes[#genomes+1]=c.genome;names[#names+1]=c.id end
  local g,seed=G.fuse(genomes,options);local record={kind='fusion',inputs=G.copy(donors),conditions={nutrition=options.nutrition or 1,temperature=options.temperature or 37,minerals=options.minerals or 1,oxygen=options.oxygen or 1,release=options.release or 'auto',recombination=options.recombination or 'majority',exposure=options.exposure or 0},seed=seed,genome=G.copy(g),outcome='Developing',time=s.time};s.experiments[#s.experiments+1]=record
  B.queue(s,g,table.concat(names,' + '),0,record.conditions,#s.experiments)
- for i=#s.cells,1,-1 do if seen[s.cells[i].id] then table.remove(s.cells,i) end end;B.log(s,'Three-source fusion: 24 chromosome pairs assembled.');return true
+ for i=#s.cells,1,-1 do if seen[s.cells[i].id] then table.remove(s.cells,i) end end;B.log(s,#donors..'-source genome assembly: 24 chromosome pairs assembled.');return true
 end
 function B.repeatExperiment(s,index) local r=s.experiments[index];if not r then return false end;if r.kind~='fusion' then return false,'Select a fusion experiment.' end
- for _,c in ipairs(r.inputs) do local n=B.cell(s,c.type,c.genome,'Repeat of '..c.id,c.generation,c.strain);s.cells[#s.cells+1]=n end;B.log(s,'Restored three genetic templates from experiment record.');return true
+ for _,c in ipairs(r.inputs) do local n=B.cell(s,c.type,c.genome,'Repeat of '..c.id,c.generation,c.strain);s.cells[#s.cells+1]=n end;B.log(s,'Restored donor genetic templates from experiment record.');return true
 end
 function B.spawn(s,genome,parents,gen,x,y,anatomy)
  local g=genome.chromosomes and genome or G.legacy(genome);local a=anatomy or A.generate(g);if not a.viable then return nil,table.concat(a.failures,'; ') end
