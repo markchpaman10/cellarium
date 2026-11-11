@@ -1,5 +1,5 @@
 local B=require('biology');local Habi=require('habitat');local Units=require('units');local Library=require('cell_library');local Forge=require('forge_ui');local HabitatView=require('habitat_view')
-local G=require('genome');local R=require('rendering');local U=require('research');local S=require('persistence')
+local G=require('genome');local R=require('rendering');local U=require('research');local S=require('persistence');local V=require('vessels');local VesselUI=require('vessel_ui')
 local s,tab,selected,donors,medium,environment,speed,paused,notice,toastTime
 local buttons,fonts={},{}
 local W,H=1440,900
@@ -37,7 +37,7 @@ local function organism(o,x,y,scale,t,detail) local adjusted=scale*.65;if scale>
 local function save() local ok,why=S.save(s);msg(ok and 'Experiment saved with canonical genomes and anatomy.' or ('Save failed: '..tostring(why))) end
 local function loadSave()
  local raw=love.filesystem.read('experiment.lua');if not raw then return false end
- local data,why=S.decode(raw,B);if data then s=data;donors={};selected=nil;environment=s.habitat.environment;msg('Experiment restored.');return true end
+ local data,why=S.decode(raw,B);if data then s=data;V.ensure(s);donors={};selected=nil;environment=s.habitat.environment;msg('Experiment restored.');return true end
  msg('Save could not load: '..tostring(why));return false
 end
 function love.load()
@@ -45,7 +45,7 @@ function love.load()
  for _,a in ipairs(arg or {}) do if a=='--test' then local ok,result=pcall(require('tests'),B);local f=io.open(love.filesystem.getSource()..'/test-results.txt','w');if f then f:write(ok and result or tostring(result));f:close() end;love.event.quit(ok and 0 or 1);return end end
  for _,n in ipairs({11,12,13,14,16,18,20,24,28,32,40}) do fonts[n]=love.graphics.newFont(n) end
  R.init();love.graphics.setBackgroundColor(C.bg);s=B.new();B.collect(s);tab=1;donors={};medium=1;environment=1;speed=1;paused=false;toastTime=0
- B.log(s,'New experiment. Select a strain to begin cultivation. Load restores a manual save.')
+ V.ensure(s);B.log(s,'New experiment. Select a strain to begin cultivation. Load restores a manual save.')
  for _,a in ipairs(arg or {}) do
   if a=='--ui-test' then uiTest=true;developmentRun=true;s=B.new(34);B.collect(s);toastTime=0 end
   if a:find('smoke') then smoke=true;developmentRun=true;toastTime=0;s=B.new(42);B.collect(s)
@@ -88,8 +88,8 @@ local function header()
  text('C E L L A R I U M',32,23,24);text('L I V I N G   L A B O R A T O R Y',34,57,11,C.muted)
  text('EXPERIMENT  /  001',1030,26,12,C.muted);text(string.format('%.1f h',s.time),1030,47,20,C.mint)
  button('Save',1180,26,76,36,save);button('Load',1264,26,76,36,function() if not loadSave() then msg('No saved experiment yet.') end end)
- button('New',1348,26,60,36,function() s=B.new();B.collect(s);tab=1;selected=nil;donors={};Library.filter=0;Library.page=1;Library.favoritesOnly=false;medium=1;environment=1;speed=1;paused=false;U.index=1;U.compare=nil;msg('New experiment started. Manual save has not been overwritten.') end)
- local names={'01   Cultivation','02   Genome forge','03   Living habitat','04   Cryobank & records','05   Research'}
+ button('New',1348,26,60,36,function() s=B.new();B.collect(s);V.ensure(s);tab=1;selected=nil;donors={};Library.filter=0;Library.page=1;Library.favoritesOnly=false;medium=1;environment=1;speed=1;paused=false;U.index=1;U.compare=nil;msg('New experiment started. Manual save has not been overwritten.') end)
+ local names={'01   Cell workstations','02   Genome forge','03   Living habitat','04   Cryobank & records','05   Research'}
  for i,n in ipairs(names) do button(n,32+(i-1)*277,94,265,43,function() tab=i;selected=nil end,tab==i) end
  local alive=0;for _,o in ipairs(s.organisms) do if o.alive then alive=alive+1 end end
  text(#s.cells..' specimens    /    '..#s.frozen..' preserved    /    '..alive..' living    /    generation '..s.generation,34,158,13,C.muted)
@@ -101,28 +101,9 @@ local function library(x,y,w,h,forForge)
 end
 local function cultivation()
  library(32,202,260,650)
- text('A small beginning.',322,205,32);text('Grow a strain. Keep what makes it extraordinary.',324,248,14,C.muted)
- for i=1,3 do local x=322+(i-1)*247;panel(x,290,231,340);local d=s.dishes[i]
-  text('DISH  /  0'..i,x+17,307,12,C.muted)
-  local cx,cy=x+115,432;ring(cx,cy,82,{.35,.65,.65},.3);ring(cx,cy,77,{.35,.65,.65},.2);col({.1,.24,.25},.25);love.graphics.circle('fill',cx,cy,76)
-  for n=1,20 do local a=n*2.399;local r=math.sqrt(n/20)*68;col(C.mint,.08);love.graphics.circle('fill',cx+math.cos(a)*r,cy+math.sin(a)*r,1.3) end
-  if d then
-   for n=1,1+math.floor(d.progress*5) do local a=n*2.4;cell(cx+math.cos(a)*(n==1 and 0 or 38),cy+math.sin(a)*(n==1 and 0 or 38),n==1 and 25 or 15,d.cell.type,d.cell.genome,s.time) end
-   text(B.types[d.cell.type]..' / '..d.cell.id,x+17,531,16);text(({'Balanced agar','Rich nutrients','Mutagenic agar'})[d.medium],x+17,557,12,C.muted)
-   col(C.line);love.graphics.rectangle('fill',x+17,583,197,4);col(C.mint);love.graphics.rectangle('fill',x+17,583,197*d.progress,4)
-   button(d.failed and 'Culture failed: see Research' or (d.progress>=1 and ('Harvest +'..d.viable..' specimens') or 'Cultivating '..math.floor(d.progress*100)..'%'),x+17,596,197,26,function() B.harvest(s,i) end,d.progress>=1,d.progress<1 or d.failed)
-  else text('Ready for a new strain',x+27,543,14,C.muted);button('Seed selected cell',x+17,580,197,34,function() if selected and s.cells[selected] then local ok,why=B.cultivate(s,selected,medium);if ok then selected=nil else msg(why) end else msg('Select a cell in the library first.') end end) end
- end
- panel(322,649,725,203);text('CULTURE MEDIUM',343,668,12,C.mint)
- for i,n in ipairs({'Balanced','Nutrient rich','Mutagenic'}) do button(n,343+(i-1)*222,700,210,36,function() medium=i end,medium==i) end
- text(({'Balanced growth with stable replication. Inspect conditions in Research.','Rich nutrients accelerate replication; resource use still limits growth.','Mutagenic medium raises allele mutation risk, including harmful changes.'})[medium],343,755,13,C.muted)
- text('NEXT  >  Select three cells in the Genome forge to create life.',343,802,14,C.text)
- panel(1067,202,341,650)
- local c=selected and s.cells[selected]
- if c then text('STRAIN / '..string.format('%03d',c.id),1089,224,13,C.mint);cell(1238,350,65,c.type,c.genome,s.time);text(B.types[c.type]..' cell',1089,448,24);text('Origin: '..c.parent,1089,484,12,C.muted);genePanel(c,1089,526)
-  button('Freeze specimen',1089,772,297,42,function() B.freeze(s,selected);selected=nil;msg('Genome preserved in the cryobank.') end)
- else text('SPECIMEN INSPECTOR',1089,224,13,C.mint);cell(1238,380,65,1,{},s.time);text('Every cell holds a possibility.',1089,520,18);text('Select a strain to inspect its genes.\n\nBars show expressed inherited traits.\nEvery cell carries 24 chromosome pairs.\nInspect chromosomes and anatomy\nin the Research workspace.',1089,562,14,C.muted) end
+ VesselUI.draw(s,{text=text,button=button,panel=panel,msg=msg,C=C,B=B,selected=selected,clearSelection=function() selected=nil end})
 end
+
 local function forge()
  library(32,202,260,650,true)
  Forge.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B,selected=selected,donors=donors,cell=cell,organism=organism,finished=function() donors={};selected=nil end})
