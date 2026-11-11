@@ -1,3 +1,9 @@
+## browser-gippity experimental pass (unverified)
+
+This branch adds a **Research > Genome > Edit genome copy** action. Select a cell, creature, DNA template, or frozen specimen; edit either allele (0-3) at any of 72 loci; Undo or Reset; Preview a regenerated body; then **Save DNA copy**. Saved engineered DNA appears in Research > DNA. Select that template under Research > Engineering to recover a stem cell for the existing three-donor forge. The editor never changes a living organism in place.
+
+The branch also adjusts axial and appendage tapering to encourage more differentiated silhouettes, and derives dietary compatibility from functional stomach, mouth, teeth/crushing parts, digestion and absorption. The existing foraging system uses these derived efficiencies. **Active hunting, plant growth/consumption ecosystems, and a full browser runtime are not yet implemented.** This code has not been executed in a LÖVE2D runtime by the assistant; test before merging.
+
 # Cellarium v2 — Genetic Life Simulator
 
 A native LÖVE2D game revised around the new Genetic Life Simulator specification. Start with a simple laboratory loop, then inspect the chromosomes, connected anatomy and physiology behind your organisms. All art is generated in Lua. Creature silhouettes are pixel-rasterized continuous envelopes of actual grown anatomy, with regional coverings, exchange tissues, membranes and attached projections. Cells retain procedural microscope graphics.
