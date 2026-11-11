@@ -42,7 +42,7 @@ end
 function E.draw(s,c)
  local text,button,msg,C=c.text,c.button,c.msg,c.C
  if not E.draft then text('Select a source in Research > Genome and choose Edit copy.',340,280,19,C.muted);return end
- text('DIRECT GENOME EDITOR / draft from specimen '..tostring(E.origin),340,271,21)
+ text('DIRECT GENOME EDITOR / draft from specimen '..tostring(E.origin),340,271,20)
  text('Edits affect a COPY, not the living creature. Save DNA to archive the engineered genome.',340,306,13,C.muted)
  local pages={'Primary','Development','Ecology'}
  for j,name in ipairs(pages) do button(name,340+(j-1)*155,337,145,30,function() E.site=j end,E.site==j) end
@@ -55,10 +55,10 @@ function E.draw(s,c)
  local l=E.draft.chromosomes[E.selected].loci[E.site]
  text('Selected: '..pages[E.site]..' / chromosome '..E.selected..' / '..tostring(title(E.site,E.selected)),340,749,13,C.mint)
  button('A -',340,776,70,30,function() E.change('a',-1) end)
- text(tostring(l.a),419,782,17,C.mint)
+ text(tostring(l.a),419,782,18,C.mint)
  button('A +',447,776,70,30,function() E.change('a',1) end)
  button('B -',530,776,70,30,function() E.change('b',-1) end)
- text(tostring(l.b),608,782,17,C.mint)
+ text(tostring(l.b),608,782,18,C.mint)
  button('B +',635,776,70,30,function() E.change('b',1) end)
  button('Undo',725,776,95,30,function() if not E.undo() then msg('Nothing to undo.') end end)
  button('Reset draft',827,776,125,30,function() if c.source then E.begin(c.source) end end)
