@@ -47,7 +47,7 @@ function B.repeatExperiment(s,index) local r=s.experiments[index];if not r then 
 end
 function B.spawn(s,genome,parents,gen,x,y,anatomy)
  local g=genome.chromosomes and genome or G.legacy(genome);local a=anatomy or A.generate(g);if not a.viable then return nil,table.concat(a.failures,'; ') end
- H.ensure(s);local point=H.location(s.habitat,a.caps,(a.development or {}).release,{x=.1+B.rand(s)*.8,y=.15+B.rand(s)*.7});local o=P.new(B.id(s),g,parents,gen,x or point.x,y or point.y,B.rand(s)*6.28,a);s.organisms[#s.organisms+1]=o;s.generation=math.max(s.generation,o.generation)
+ H.ensure(s);local point,breathable=H.location(s.habitat,a.caps,(a.development or {}).release,{x=x or .1+B.rand(s)*.8,y=y or .15+B.rand(s)*.7});if not breathable then return nil,'No habitat provides sufficient oxygen for this organism.' end;local o=P.new(B.id(s),g,parents,gen,point.x,point.y,B.rand(s)*6.28,a);s.organisms[#s.organisms+1]=o;s.generation=math.max(s.generation,o.generation)
  s.lineages[o.id]={parents=o.parents,parentIds=G.copy(o.parentIds),generation=o.generation,children={}};local key=a.segments..'/'..a.limbPairs..'/'..math.floor(a.pigment*3);s.discoveries[key]=true;return o
 end
 function B.extract(s,index) local c=s.cells[index];if not c then return false,'Select a cell.' end;s.materials[#s.materials+1]={id=B.id(s),source='Cell '..c.id,genome=G.copy(c.genome),strain=c.strain,generation=c.generation};return true,'DNA template extracted; source cell retained.' end
@@ -75,9 +75,9 @@ local function step(s,dt,environment)
  for _,h in ipairs(s.gametes) do h.progress=math.min(1,h.progress+dt/8);h.stage=h.progress>=1 and h.kind or 'Gamete precursor' end
  for i=#s.eggs,1,-1 do local e=s.eggs[i];local viable,failures=D.update(e,dt);if viable~=nil then
   local record=e.record and s.experiments[e.record]
-  if viable then local o=B.spawn(s,e.genome,e.parents,e.generation,e.birthLocation and e.birthLocation.x,e.birthLocation and e.birthLocation.y,e.anatomy);o.parentIds=e.parentIds or {};o.ancestry=e.ancestry or {};o.inbreeding=e.inbreeding or 0;s.lineages[o.id].parentIds=G.copy(o.parentIds)
+  if viable then local o,spawnError=B.spawn(s,e.genome,e.parents,e.generation,e.birthLocation and e.birthLocation.x,e.birthLocation and e.birthLocation.y,e.anatomy);if not o then if record then record.outcome='No breathable habitat';record.failures={spawnError} end;B.log(s,'Juvenile could not be released: '..tostring(spawnError));table.remove(s.eggs,i) else o.parentIds=e.parentIds or {};o.ancestry=e.ancestry or {};o.inbreeding=e.inbreeding or 0;s.lineages[o.id].parentIds=G.copy(o.parentIds)
    for _,id in ipairs(o.parentIds) do for _,parent in ipairs(s.organisms) do if parent.id==id then parent.children[#parent.children+1]=o.id;if s.lineages[id] then s.lineages[id].children[#s.lineages[id].children+1]=o.id end end end end
-   if record then record.outcome='Viable juvenile';record.organism=o.id;record.anatomy=G.copy(o.anatomy) end;B.log(s,'Viable juvenile '..o.id..' released after tissue differentiation.')
+   if record then record.outcome='Viable juvenile';record.organism=o.id;record.anatomy=G.copy(o.anatomy) end;B.log(s,'Viable juvenile '..o.id..' released after tissue differentiation.') end
   else if record then record.outcome='Failed';record.failures=failures end;B.log(s,'Development failed: '..table.concat(failures,'; ')) end;table.remove(s.eggs,i)
  end end
  if #s.food<60 and B.rand(s)<dt*.7*s.habitat.foodRate then s.food[#s.food+1]=H.resource(s,function() return B.rand(s) end) end
