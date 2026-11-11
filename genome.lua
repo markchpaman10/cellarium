@@ -62,7 +62,7 @@ function G.fuse(genomes,options)
  local seed=1;for _,g in ipairs(genomes) do seed=(seed+G.hash(g))%2147483647 end
  local rand=G.rng(seed);local out=G.copy(genomes[1]);out.mutations={};out.lineage={#genomes..'-source laboratory recombination'}
  for i,c in ipairs(out.chromosomes) do for j,l in ipairs(c.loci) do for _,side in ipairs({'a','b'}) do
-  local values={},winner,bestCount
+  local values,winner,bestCount={},nil,nil
   for k,g in ipairs(genomes) do values[k]=g.chromosomes[i].loci[j][side] end
   local value
   if options.recombination=='mosaic' then value=values[1+((i+j+(side=='a' and 0 or 1))%#values)]
