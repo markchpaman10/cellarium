@@ -58,8 +58,22 @@ function G.mutate(g,rand,rate,stage)
 end
 function G.fuse(genomes,options)
  options=options or {}
- local seed=1;for _,g in ipairs(genomes) do seed=(seed+G.hash(g))%2147483647 end;local rand=G.rng(seed);local out=G.copy(genomes[1]);out.mutations={};out.lineage={'Three-source laboratory recombination'}
- for i,c in ipairs(out.chromosomes) do for j,l in ipairs(c.loci) do for _,side in ipairs({'a','b'}) do local a,b,d=genomes[1].chromosomes[i].loci[j][side],genomes[2].chromosomes[i].loci[j][side],genomes[3].chromosomes[i].loci[j][side];local v=(a==b or a==d) and a or (b==d and b or ({a,b,d})[math.floor(rand()*3)+1]);if options.recombination=='mosaic' then local donor=1+((i+j+(side=='a' and 0 or 1))%3);v=genomes[donor].chromosomes[i].loci[j][side] end;l[side]=v;l[side=='a' and 'sourceA' or 'sourceB']='Lab majority' end end end
+ assert(#genomes>=2,'At least two genome donors required')
+ local seed=1;for _,g in ipairs(genomes) do seed=(seed+G.hash(g))%2147483647 end
+ local rand=G.rng(seed);local out=G.copy(genomes[1]);out.mutations={};out.lineage={#genomes..'-source laboratory recombination'}
+ for i,c in ipairs(out.chromosomes) do for j,l in ipairs(c.loci) do for _,side in ipairs({'a','b'}) do
+  local values={},winner,bestCount
+  for k,g in ipairs(genomes) do values[k]=g.chromosomes[i].loci[j][side] end
+  local value
+  if options.recombination=='mosaic' then value=values[1+((i+j+(side=='a' and 0 or 1))%#values)]
+  else
+   local counts={};for _,v in ipairs(values) do counts[v]=(counts[v] or 0)+1 end
+   bestCount=0;for v,n in pairs(counts) do if n>bestCount then bestCount=n;winner=v end end
+   local ties={};for v,n in pairs(counts) do if n==bestCount then ties[#ties+1]=v end end
+   table.sort(ties);value=ties[math.floor(rand()*#ties)+1]
+  end
+  l[side]=value;l[side=='a' and 'sourceA' or 'sourceB']='Lab '..#genomes..'-donor recombination'
+ end end end
  for _,parent in ipairs(genomes) do for _,m in ipairs(parent.mutations or {}) do local l=out.chromosomes[m.locus] and out.chromosomes[m.locus].loci[m.site or 1];if l and (l.a==m.to or l.b==m.to) then local inherited=G.copy(m);inherited.inheritedFrom=G.hash(parent);out.mutations[#out.mutations+1]=inherited end end end
  if (options.exposure or 0)>0 then G.mutate(out,rand,options.exposure,'Forge exposure') end
  return out,seed
