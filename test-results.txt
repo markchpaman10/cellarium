@@ -1,0 +1,34 @@
+PASS Canonical genome / marker / dominance / numeric legacy import
+PASS Deterministic development and connected anatomy
+PASS Two-parent inheritance uses recognizable parental alleles
+PASS Muscle, skeleton, lung and heart condition determine performance
+PASS Developmental failure produces useful reasons
+PASS Mutation is bounded, recorded and heritable
+PASS Selective inheritance retains selected strength for several generations
+PASS Full beginner loop / cultivation / freezing / fusion / incubation
+PASS Fusion reproducibility and experiment template replay
+PASS Stem gamete pathway / extraction / fertilization
+PASS Fixed-step frame independence / autonomous life and corpses
+PASS Two-parent breeding / generation / child lineage
+PASS Culture stress, failure, mutation pressure and frozen suspension
+PASS Body width, power costs and tissue-specific growth have consequences
+PASS Versioned save round trip / anatomy references / v1 migration
+PASS Version 2 migration preserves every existing allele, marker and living body
+PASS Additional loci segregate, recombine and survive fusion
+PASS Pigment mutation does not reroll the developmental graph
+PASS Grown tissue envelopes are connected across all locomotion poses
+PASS Legacy fallback remains usable; approved growth records all operations
+PASS Ecology loci preserve existing alleles and are inherited through all paths
+PASS Suitable air and aquatic respiration sustain organisms; mismatch causes stress
+PASS Amphibious organisms cross habitat boundaries by continuous movement
+PASS Flight requires generated surfaces, lift, coordination and force
+PASS Regional coverings cost mass, metabolism, flexibility and exchange
+PASS Projections have valid attachments and mechanism-specific protection
+PASS Feeding structures determine access without making predators
+PASS Habitat generation is seeded, mixed and reproduces resource placement
+PASS Forge settings change genetic outcomes and developmental phenotype
+PASS Save round trip preserves ecological anatomy, habitat and defenses
+PASS Library filtering/sorting/favorites and Fahrenheit conversion work
+PASS Navigation routes around physical obstacles and births retain local positions
+PASS Airway and mouth injuries affect actual respiration and feeding
+33 test groups passed.

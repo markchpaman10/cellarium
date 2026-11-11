@@ -1,0 +1,97 @@
+local G=require('genome');local A=require('anatomy');local P=require('physiology');local S=require('persistence')
+return function(B)
+ local passed={};local function test(name,fn) fn();passed[#passed+1]='PASS '..name end
+ local function genome(value) local g=G.new(G.rng(7));for _,c in ipairs(g.chromosomes) do c.loci[1].a=value;c.loci[1].b=value;c.loci[3].a=2;c.loci[3].b=2 end;g.chromosomes[20].loci[3].a=0;g.chromosomes[20].loci[3].b=0;return g end
+ test('Canonical genome / marker / dominance / numeric legacy import',function()
+  local g=genome(1);assert(G.valid(g));assert(#g.chromosomes==24);local dna,bits=G.marker(g);assert(dna=='CCCCCCCC' and bits==21845)
+  g.chromosomes[18].loci[1].a=3;assert(G.value(g,18)==1);g.chromosomes[24].loci[1].a=3;assert(G.value(g,24)==1/3)
+  assert(G.valid(G.importNumeric('9999999999999999')));assert(not G.importNumeric('invalid'))
+ end)
+ test('Deterministic development and connected anatomy',function()
+  local g=G.new(G.rng(99));local a,b=A.generate(g),A.generate(g);assert(S.encode(a)==S.encode(b));assert(a.viable)
+  for _,bone in ipairs(a.bones) do if bone.id~=1 then assert(bone.parent and a.components[bone.parent]) end end
+  local occupied={};for _,o in ipairs(a.organs) do local k=o.x..':'..o.y;assert(not occupied[k]);occupied[k]=true end
+ end)
+ test('Two-parent inheritance uses recognizable parental alleles',function()
+  local a,b=genome(0),genome(3);local x=G.gamete(a,G.rng(1),'A',false);local y=G.gamete(b,G.rng(2),'B',false);local child=G.fertilize(x,y)
+  for _,c in ipairs(child.chromosomes) do assert(c.loci[1].a==0 and c.loci[1].b==3);assert(c.loci[1].sourceA=='A' and c.loci[1].sourceB=='B') end
+ end)
+ test('Muscle, skeleton, lung and heart condition determine performance',function()
+  local g=genome(2);local a=A.generate(g);local before=A.capabilities(a,g);A.damage(a,'Muscle',.8);local after=A.capabilities(a,g);assert(after.force<before.force and after.speed<before.speed)
+  A.damage(a,'Bone',1);assert(A.capabilities(a,g).support<before.support)
+  local b=A.generate(g);A.damage(b,'Lung',1);A.damage(b,'Heart',1);local damaged=A.capabilities(b,g);assert(damaged.supply<before.supply);b.caps=damaged;local ok,reasons=A.validate(b);assert(not ok and #reasons>=1)
+ end)
+ test('Developmental failure produces useful reasons',function()
+  local D=require('development');local e=D.new(1,genome(2),'test',0);D.update(e,12);A.damage(e.anatomy,'Heart',1);e.anatomy.caps=A.capabilities(e.anatomy,e.genome);e.anatomy.viable,e.anatomy.failures=A.validate(e.anatomy);local viable,why=D.update(e,60);assert(viable==false and #why>0)
+  local overloaded=genome(3);for _,i in ipairs({19,20}) do overloaded.chromosomes[i].loci[1].a=0;overloaded.chromosomes[i].loci[1].b=0 end;for _,i in ipairs({5,6,8,11}) do overloaded.chromosomes[i].loci[2].a=3;overloaded.chromosomes[i].loci[2].b=3 end;overloaded.chromosomes[22].loci[2].a=0;overloaded.chromosomes[22].loci[2].b=0;local failed=A.generate(overloaded);assert(not failed.viable and failed.caps.supply<.22,'Genetic tissue/supply incompatibility must fail naturally')
+ end)
+ test('Mutation is bounded, recorded and heritable',function()
+  local g=genome(1);local original=G.copy(g);assert(G.mutate(g,G.rng(66),1,'Test')>0);local up,down=false,false
+  for _,m in ipairs(g.mutations) do assert(math.abs(m.to-m.from)==1);up=up or m.to>m.from;down=down or m.to<m.from end;assert(up and down);assert(G.hash(g)~=G.hash(original));assert(A.generate(g).caps.force~=A.generate(original).caps.force)
+  local h=G.gamete(g,G.rng(8),'mutant',false);local c=G.fertilize(h,h);for i,l in ipairs(c.chromosomes) do assert(l.loci[1].a==h.alleles[i][1]) end
+ end)
+ test('Selective inheritance retains selected strength for several generations',function()
+  local elite=genome(2);elite.chromosomes[2].loci[1].a=3;elite.chromosomes[2].loci[1].b=3;local selected=G.copy(elite)
+  for generation=1,5 do local a=G.gamete(selected,G.rng(generation+1),'selected',false);local b=G.gamete(elite,G.rng(generation+100),'elite',false);selected=G.fertilize(a,b);assert(G.value(selected,2)==1);assert(G.valid(selected)) end
+ end)
+ test('Full beginner loop / cultivation / freezing / fusion / incubation',function()
+  local s=B.new(42);B.collect(s);assert(#s.cells==7 and B.types[7]=='Adipose');local cell=s.cells[1];local hash=G.hash(cell.genome);assert(B.cultivate(s,1,1));B.update(s,90,1);assert(s.dishes[1].progress==1);assert(B.harvest(s,1));assert(#s.cells==11)
+  local found=false;for _,c in ipairs(s.cells) do if c.id==cell.id then assert(G.hash(c.genome)==hash);found=true end end;assert(found)
+  assert(B.freeze(s,1));local frozen=s.frozen[1];local age=frozen.age;local frozenHash=G.hash(frozen.genome);B.update(s,5,1);assert(frozen.age==age);assert(B.thaw(s,1));assert(G.hash(s.cells[#s.cells].genome)==frozenHash)
+  local ids={s.cells[1].id,s.cells[2].id,s.cells[3].id};assert(not B.combine(s,{ids[1],ids[1],ids[2]}));assert(B.combine(s,ids));local g=G.copy(s.eggs[1].genome);B.update(s,60,1);assert(#s.organisms==1 and #s.eggs==0);assert(G.hash(s.organisms[1].genome)==G.hash(g));assert(s.experiments[#s.experiments].outcome=='Viable juvenile')
+ end)
+ test('Fusion reproducibility and experiment template replay',function()
+  local a,b,c=genome(0),genome(1),genome(3);local x,seed=G.fuse({a,b,c});local y,other=G.fuse({a,b,c});assert(seed==other and G.hash(x)==G.hash(y))
+  local s=B.new(3);B.collect(s);B.combine(s,{1,2,3});local expected=G.hash(s.eggs[1].genome);B.repeatExperiment(s,1);local n=#s.cells;B.combine(s,{s.cells[n-2].id,s.cells[n-1].id,s.cells[n].id});assert(G.hash(s.eggs[2].genome)==expected)
+ end)
+ test('Stem gamete pathway / extraction / fertilization',function()
+  local s=B.new(44);B.collect(s);assert(B.extract(s,1));assert(#s.materials==1);assert(not B.precursor(s,2,'Egg'));assert(B.precursor(s,1,'Egg'));assert(B.precursor(s,1,'Sperm'));assert(not B.fertilize(s,s.gametes[1].id,s.gametes[2].id));B.update(s,9,1);assert(B.fertilize(s,s.gametes[1].id,s.gametes[2].id));assert(#s.gametes==0 and G.valid(s.eggs[1].genome))
+ end)
+ test('Fixed-step frame independence / autonomous life and corpses',function()
+  local a,b=B.new(5),B.new(5);B.collect(a);B.collect(b);local g=genome(2);local x=assert(B.spawn(a,g,'test',0));local y=assert(B.spawn(b,g,'test',0))
+  B.update(a,10,1);for i=1,100 do B.update(b,.1,1) end;assert(a.seed==b.seed and math.abs(x.x-y.x)<1e-9 and #a.food==#b.food)
+  x.energy=0;x.fatMass=0;x.hydration=0;x.health=.001;a.food={};P.update(x,a,.1,2);assert(not x.alive and x.deathCause);P.update(x,a,1,2);assert(x.corpse==1)
+ end)
+ test('Two-parent breeding / generation / child lineage',function()
+  local s=B.new(6);local a=B.spawn(s,genome(2),'founder A',0);local b=B.spawn(s,genome(3),'founder B',0);a.maturity=1;b.maturity=1;assert(not B.breed(s,a,a));assert(B.breed(s,a,b));B.update(s,60,1);local child=s.organisms[3];assert(child.generation==1 and child.parentIds[1]==a.id and #a.children==1 and #s.lineages[a.id].children==1)
+ end)
+ test('Culture stress, failure, mutation pressure and frozen suspension',function()
+  local K=require('cultivation');local s=B.new(8);B.collect(s);B.cultivate(s,1,3);local d=s.dishes[1];local rate=K.mutationRate(d);d.temperature=60;d.sterility=0;B.update(s,100,1);assert(d.contamination>0 and d.health<1 and K.mutationRate(d)>rate);assert(d.failed)
+ end)
+ test('Body width, power costs and tissue-specific growth have consequences',function()
+  local K=require('cultivation');local a,b=genome(1),genome(1);b.chromosomes[13].loci[1].a=3;b.chromosomes[13].loci[1].b=3;assert(A.generate(a).width<A.generate(b).width)
+  local low=A.generate(a).caps;b.chromosomes[1].loci[1].a=3;b.chromosomes[1].loci[1].b=3;local high=A.generate(b).caps;assert(high.metabolicDemand>low.metabolicDemand)
+  local stem=K.dish(K.cell(1,1,a),1);local nerve=K.dish(K.cell(2,3,a),1);K.update(stem,1);K.update(nerve,1);assert(stem.progress>nerve.progress)
+  local s=B.new(5);B.collect(s);B.cultivate(s,1,1);B.update(s,90,1);B.harvest(s,1);local strain=s.cells[#s.cells].strain;B.renameStrain(s,strain,'Selected line');for _,c in ipairs(s.cells) do if c.strain==strain then assert(c.name=='Selected line') end end
+ end)
+ test('Versioned save round trip / anatomy references / v1 migration',function()
+  local s=B.new(10);B.collect(s);B.spawn(s,s.cells[1].genome,'save test',0);B.cultivate(s,2,1);B.precursor(s,1,'Egg');local raw='return '..S.encode(s);local r,why=S.decode(raw,B);assert(r,why);assert(r.version==4 and #r.gametes==1);local a=r.organisms[1].anatomy;assert(a.structures[1]==a.components[a.structures[1].id]);assert(S.encode(r.cells)==S.encode(s.cells));assert(G.hash(r.organisms[1].genome)==G.hash(s.organisms[1].genome))
+  local old={cells={{id=1,type=6,g={1,1,1,1,1,1,1},parent='old'}},frozen={},organisms={},dishes={},eggs={},seed=2,nextId=2};local m=S.migrate(old,B);assert(m.version==4 and m.cells[1].type==4 and m.cells[1].subtype=='Digestive' and G.valid(m.cells[1].genome));assert(not S.decode('return os.execute("bad")',B))
+ end)
+ test('Version 2 migration preserves every existing allele, marker and living body',function()
+  local g=G.new(G.rng(31));for _,c in ipairs(g.chromosomes) do c.loci[2]=nil;c.loci[3]=nil end;g.version=2;local before=G.copy(g);local marker=G.marker(g);G.upgrade(g);assert(g.version==4 and G.marker(g)==marker)
+  for i=1,24 do assert(S.encode(g.chromosomes[i].loci[1])==S.encode(before.chromosomes[i].loci[1])) end
+  local s=B.new(123);s.version=2;B.collect(s);local legacy=A.generate(g,{generator='legacy',temperature=37,nutrition=1});local o=P.new(100,g,'old saved organism',0,.5,.5,0,legacy);s.organisms={o};local body=S.encode(legacy.components);local restored=assert(S.decode('return '..S.encode(s),B));assert(restored.version==4);assert(S.encode(restored.organisms[1].anatomy.components)==body);assert(restored.organisms[1].anatomy.version==2)
+ end)
+ test('Additional loci segregate, recombine and survive fusion',function()
+  local g=G.new(G.rng(62));for _,chr in ipairs(g.chromosomes) do for _,l in ipairs(chr.loci) do l.a=0;l.b=3 end end
+  local events=0;local rand=G.rng(5);for i=1,100 do local h=G.gamete(g,rand,'parent',false);events=events+#h.events;local child=G.fertilize(h,h);assert(G.valid(child));for j=1,24 do assert(child.chromosomes[j].loci[2].a==h.alleles[j][2]) end end;assert(events>0)
+  local fused=G.fuse({g,g,g});for i=1,24 do assert(fused.chromosomes[i].loci[2].a==0 and fused.chromosomes[i].loci[2].b==3) end
+ end)
+ test('Pigment mutation does not reroll the developmental graph',function()
+  local g=G.new(G.rng(53));local a=A.procedural(g);local b=G.copy(g);b.chromosomes[23].loci[1].a=(b.chromosomes[23].loci[1].a+1)%4;local other=A.procedural(b);assert(S.encode(a.regions)==S.encode(other.regions))
+ end)
+ test('Grown tissue envelopes are connected across all locomotion poses',function()
+  local M=require('silhouette');local examples=require('audit_examples');local checked=0
+  for _,key in ipairs({'compact','elongatedLimbless','multilegged','radial','asymmetric','branched'}) do local a=A.procedural(examples[key].genome);assert(a.viable);for frame=0,3 do
+   local raster=M.raster(a,M.pose(a,frame/4*math.pi*2,a.caps.locomotion));local start,total=nil,0;for index in pairs(raster.pixels) do start=start or index;total=total+1 end
+   local seen={[start]=true};local q={start};local head=1;while head<=#q do local index=q[head];head=head+1;for _,delta in ipairs({-1,1,-raster.width,raster.width}) do local nextIndex=index+delta;if raster.pixels[nextIndex] and not seen[nextIndex] then seen[nextIndex]=true;q[#q+1]=nextIndex end end end;assert(#q==total,'Disconnected rendered tissue envelope');checked=checked+1
+  end end;assert(checked==24)
+ end)
+ test('Legacy fallback remains usable; approved growth records all operations',function()
+  local g=genome(2);local old=A.generate(g,{generator='legacy'});assert(old.version==2 and old.generator=='legacy-fallback');local grown=A.procedural(g);local operations={};for _,op in ipairs(grown.operations) do operations[op.operation]=true end;assert(operations.GROW and operations.DIVIDE and operations.DIFFERENTIATE and operations.CONNECT and operations.TERMINATE)
+  local fixture=require('audit_examples').branched;local branching=A.procedural(fixture.genome);for _,op in ipairs(branching.operations) do operations[op.operation]=true end;assert(operations.BRANCH and operations.MIRROR)
+ end)
+ require('ecology_tests')(B,test)
+ return table.concat(passed,'\n')..'\n'..#passed..' test groups passed.'
+end
