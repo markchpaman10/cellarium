@@ -1,3 +1,9 @@
+## Vessel workstations update (experimental)
+
+The first tab is now **Cell Workstations** with six reusable starting containers: Petri dishes, a culture flask, a culture plate, a storage vial and a cryovial. Select a loose cell in the left library, select a vessel and choose **Add selected cell**. Cultivation works in dishes, flasks and plates with vessel-specific capacity and growth. Withdraw cells back into the library, buy empty vessels, clean/reuse them, sell individual cells or entire cultures, and freeze/thaw whole filled cryovials. Cultures with different genomes are kept separate instead of being silently merged. Containers and their cell populations persist in saves.
+
+The second tab now supports **2 to 12 distinct genome donors**; this is multi-source synthetic recombination, not biological sexual reproduction. Research > Genome > Edit genome copy additionally offers **Incubate exact edited genome** to avoid recombination. Existing older three-donor UI smoke tests need updating. This pass has not been verified in a running LÖVE2D instance. The real-world clock/offline catch-up overhaul remains separate work.
+
 ## browser-gippity experimental pass (unverified)
 
 This branch adds a **Research > Genome > Edit genome copy** action. Select a cell, creature, DNA template, or frozen specimen; edit either allele (0-3) at any of 72 loci; Undo or Reset; Preview a regenerated body; then **Save DNA copy**. Saved engineered DNA appears in Research > DNA. Select that template under Research > Engineering to recover a stem cell for the existing three-donor forge. The editor never changes a living organism in place.
