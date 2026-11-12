@@ -1,6 +1,6 @@
 # Using the desktop laboratory
 
-This guide describes the current **desktop-laboratory-dev** branch, including the simplified individual containers. The classic UI is optional and is not needed for the workflow below.
+This guide describes the current **desktop laboratory** on main (also retained on desktop-laboratory-dev), including the simplified individual containers. The classic UI is optional and is not needed for the workflow below.
 
 ## Start the game
 
@@ -39,13 +39,13 @@ There are no global inventory or vial selectors inside a container's panel. Brow
 | **Open cap / lid** or **Close cap / lid** | Change access to this container. Transfers require an open, unfrozen container. |
 | **Take sample** | Move one cell-equivalent sample from this container into the dropper. The container's quantity decreases. |
 | **Add held sample** | Dispense the dropper's loaded sample into this container. It does not select material from elsewhere. |
-| **Grow culture / Pause growth** | Start or pause growth in a Petri dish, culture flask or plate. Storage vials do not grow cultures. |
+| **Add food** | Replenish nutrients in this Petri dish, flask or plate. Growth runs automatically while food, viability and space permit. Storage vials do not grow cultures. |
 | **Freeze this vial / Thaw this vial** | Preserve or thaw the contents of a cryovial. This is not shown on ordinary vials. |
 | **Details / Less detail** | Show or hide this container's temperature, nutrients, health and contamination. Cultivation containers also offer medium refresh. |
 
 The quantity is measured in simulated **cell equivalents**: counted sample units, not a claim that individual microscopic cells are visible on the desktop. The dish artwork represents colony patterns.
 
-**Empty** means this particular container has no cells. **Not growing** is normal for a storage vial. Cultivation containers need cells and suitable conditions before they can grow.
+**Empty** means this particular container has no cells. **Stored sample** is normal for a storage vial. Cultivation containers show Food and an estimated **Next cell ~MM:SS** countdown. Empty, Needs food, Full and Frozen explain why there is no growth countdown.
 
 Right-clicking a container offers **Show contents**, the applicable sample action, position locking and **Put away this container**. Putting it away hides/stores the object; it does not discard its contents. Restore it with the tray's **Restore Objects from Storage** action.
 
@@ -58,7 +58,7 @@ In a fresh experiment, a storage vial contains the starting cell suspension and 
 3. Click **Take sample**. The dropper now holds one sample, and the source count decreases by one.
 4. Click an empty Petri dish and open its lid if needed.
 5. Click **Add held sample**. A short droplet animation completes the transfer.
-6. Check the dish's increased count. Click **Grow culture** if you want it to cultivate.
+6. Check the dish's increased count. Growth starts automatically; use **Add food** when nutrients run low.
 
 You can also right-click a source and choose **Take sample from this container**, or drag the dropper so its tip is inside the source and choose **Collect sample beneath tip** from the dropper's menu. To dispense by dragging, release the loaded dropper with its tip over the destination.
 
@@ -93,7 +93,7 @@ Other existing workstation actions include:
 - **Send to Forge**: load the selected cell's genome copy into the desktop Forge.
 - **Install into blank cell**: install the selected archived DNA into one blank developmental cell. The new cell appears in loose stock.
 - **Buy 6 blanks / 8 credits**: replenish the finite blank-cell stock.
-- **Start cultivation**, **Withdraw cultured cell**, and **Preserve selected cell**: act on the displayed destination or loose specimen, as their labels indicate.
+- **Feed selected culture**, **Withdraw cultured cell**, and **Preserve selected cell**: act on the displayed destination or loose specimen, as their labels indicate.
 - **Egg precursor / Sperm precursor**: prepare reproductive material from a suitable stem cell. Precursors need time to mature.
 
 Always check the displayed specimen and container IDs before pressing an action. Clicking **Collapse** only closes these expanded controls.
@@ -118,6 +118,14 @@ For a basic edit:
 
 Advanced controls modify the real genome: **duplicate**, **delete**, **restore**, **regulate**, and **splice**. Regulation cycles a D12-based link through activation, suppression and off. Splicing uses the selected source. **Assemble 2 sources** combines the current draft with the selected source. These are central Forge operations, which is why the Forge has source selectors while individual vials do not.
 
+## PC time and cultivation timers
+
+There is no accelerated game-hour clock. One elapsed PC second is counted once. Age, culture growth, embryonic development, gamete maturation, physiology and lifespan use the same elapsed-time source. Existing balance durations are expressed in real minutes: a gamete precursor takes eight actual minutes; embryo development generally takes about 24–36 actual minutes depending on anatomy. The PC clock is shown in the records header, and durations use MM:SS or HH:MM:SS.
+
+A culture's Next cell countdown is an estimate from its actual population, nutrients, temperature, health and genome. Nutrient use and stress can change that estimate. Cells divide repeatedly without harvesting or restarting a batch, while food and space remain. At capacity the container shows Full; removing a sample makes space and fed growth resumes. Refill food using Add food. Freezing is biological preservation, not a pause button for the laboratory.
+
+Life continues while equipment is hidden. When the application is closed, its save timestamp and pending elapsed-time ledger are used to apply time away on the next launch. Long absences can naturally exhaust food or harm organisms; no short offline cap silently discards the elapsed time.
+
 ## Development, habitats and records
 
 Incubation must complete before a viable organism is released. A forecast does not guarantee survival: anatomy, resources and environmental compatibility still matter.
@@ -139,7 +147,7 @@ Right-click the real Cellarium tray icon:
 
 Closing the separate records window returns it to the tray; it does not exit the game. **Ctrl+Q** exits when that window is focused. **Ctrl+Shift+L** is the recovery shortcut: it hides all desktop groups and opens Settings. Re-enable the groups from the tray afterward.
 
-This desktop edition saves on exit and restores on launch in its own save identity, `cellarium-desktop-laboratory-dev`. It does not overwrite the earlier ecology/engineering editions' saves. Offline advancement is bounded and can be shortened or disabled in Settings.
+This desktop edition saves on exit and restores on launch in its own save identity, `cellarium-desktop-laboratory-dev`. It does not overwrite the earlier ecology/engineering editions' saves. The life simulation follows elapsed PC time, including hiding, sleep and later restarts. There are no pause, speed or offline-cap controls. The full time away is queued and synchronized in responsive batches; the status area shows synchronization when necessary. Backward clock changes never reverse life. On first upgrade from an older abstract-time save, existing progress is retained and PC tracking begins from that launch.
 
 The **Classic interface** switch is optional in Settings. Leave it off to use the new desktop system. If enabled, **New UI** in its header returns to the new interface.
 
@@ -153,6 +161,6 @@ The **Classic interface** switch is optional in Settings. Leave it off to use th
 | New build will not start | Exit the existing desktop build from its tray menu first. |
 | No new organism appears immediately | Check Incubation and Research for progress or a recorded developmental failure. |
 | Blank-cell installation is unavailable | Restock blank cells at the workstation and select valid DNA. |
-| A storage vial says Not growing | It stores material. Move a sample to a cultivation-capable dish, flask or plate to grow it. |
+| A storage vial says Stored sample | It stores material. Move a sample to a cultivation-capable dish, flask or plate to grow it. |
 
 See the [implementation and verification report](../DESKTOP-IMPLEMENTATION.md) for automated results and the remaining manual Windows compatibility checks. Automated checks do not establish that the game has no bugs.

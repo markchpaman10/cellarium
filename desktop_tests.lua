@@ -38,6 +38,7 @@ function Tests.run(B,native)
  end)
  require('desktop_app_tests')(B,test)
  require('desktop_container_tests')(B,test)
+ require('realtime_tests')(B,test)
  if native then
   local N=require('native_windows');local Host=require('desktop_host');local s=seeded();local initialized=false
   test('Native tray and independent layered windows initialize',function() Host.monitors=N.init({test=true});initialized=true;Host.testing=true;Host.context={B=B,getState=function() return s end,msg=function() end,open=function() end};Host.sync();assert(N.control and N.tray and #s.desktop.objects>5);Host.render(true) end)

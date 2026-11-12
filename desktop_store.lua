@@ -1,6 +1,6 @@
 local S=require('persistence');local G=require('genome');local M=require('desktop_model');local Store={version=1}
 function Store.payload(s,now)
- local snapshot=G.copy(s);local d=M.ensure(snapshot);d.animation=nil;for _,o in ipairs(d.objects) do o.drag=nil end
+ local snapshot=G.copy(s);if snapshot.clock then snapshot.clock.integrationStepSeconds=nil end;local d=M.ensure(snapshot);d.animation=nil;for _,o in ipairs(d.objects) do o.drag=nil end
  local E=require('genome_editor');d.editor={draft=G.copy(E.draft),origin=E.origin,selected=E.selected,site=E.site,history=G.copy(E.history)}
  local app=require('desktop_app');d.app={draftName=app.name,page=app.page,sourceType=app.sourceType,source=app.source}
  return 'return '..S.encode({desktopSchema=1,savedAt=now or os.time(),simulation=snapshot})
@@ -32,10 +32,7 @@ function Store.load(B,name)
  if not state then return nil,why end
  local E=require('genome_editor');local editor=state.desktop.editor;if editor then E.draft=editor.draft;E.origin=editor.origin;E.selected=editor.selected or 1;E.site=editor.site or 2;E.history=editor.history or {};E.forecast=nil end
  local app=require('desktop_app');local savedApp=state.desktop.app;if savedApp then app.name=savedApp.draftName or 'Untitled genome';app.page=savedApp.page or 'Lab';app.sourceType=savedApp.sourceType or 'materials';app.source=savedApp.source or 1 end
- local elapsed=math.max(0,os.time()-(stamp or os.time()));local cap=state.desktop.settings.offlineCap or 300
- -- 5 minutes maximum, at 0.01 simulation hours per real second, not the old 1h/s.
- local advance=math.min(elapsed,cap)*.01
- if advance>0 then B.update(state,advance);state.desktop.offlineApplied={elapsed=elapsed,advanced=advance,cap=cap} end
+ require('realtime').start(state,stamp)
  return state
 end
 return Store

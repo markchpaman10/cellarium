@@ -1,6 +1,6 @@
 # Cellarium — Windows Desktop Laboratory
 
-Separate development revision based on the Gippity/engineering merge. Native Windows equipment is the default; the classic interface is available only through **Settings → Classic interface**.
+The main branch now contains the desktop laboratory, including PC-linked life timing and continuous fed cultures. Experimental anatomy changes are developed separately on anatomy-dev. Native Windows equipment is the default; the classic interface is available only through **Settings → Classic interface**.
 
 ## How to use the new system
 
@@ -20,7 +20,7 @@ The laboratory launches as individual transparent equipment windows and a real s
 2. Left-click and hold the dropper to drag it. Its whole visible body is a drag handle.
 3. Right-click the source vial and choose Take sample from this container. Alternatively, position the tip inside the source, right-click the dropper, and choose Collect sample beneath tip. Right-click always opens a context menu.
 4. Move the loaded tip into a Petri dish and release the left button. A droplet animation finishes the transfer; the source, sample and destination share real quantities. A failed transfer keeps the loaded sample.
-5. Click the dish without moving to expand its culture controls in its own desktop window. Each container shows only its own contents. Use Open/Close cap, Take sample and Add held sample. Growth or freezing appears only for suitable container types. Extra readings are under Details. There is no cell or vial browsing inside a container; use the workstation for preparing and introducing loose cells. Left-drag any visible part of a dish or vial to move it. Clicks on expanded buttons operate the controls. Containers reject closed/frozen/full/incompatible transfers. Sterilize the dropper from Lab before sampling another strain.
+5. Click the dish without moving to expand its culture controls in its own desktop window. Each container shows only its own contents. Use Open/Close cap, Take sample and Add held sample. Food and a next-cell countdown appear for cultivation containers; freezing appears only on cryovials. Extra readings are under Details. There is no cell or vial browsing inside a container; use the workstation for preparing and introducing loose cells. Left-drag any visible part of a dish or vial to move it. Clicks on expanded buttons operate the controls. Containers reject closed/frozen/full/incompatible transfers. Sterilize the dropper from Lab before sampling another strain.
 
 Normal-scale dish dots represent culture colonies / cell equivalents. Records offers an explicitly magnified cell schematic.
 
@@ -36,7 +36,7 @@ Terrestrial, freshwater and saltwater containers have separate environments. Org
 
 ## Persistence
 
-This desktop revision follows the overhaul's explicit exit-save / launch-restore requirement. It uses the separate identity `cellarium-desktop-laboratory-dev`. It does not overwrite the original ecology or engineering saves. Save Laboratory also writes explicitly. Saves are staged, validated, backed up and atomically replaced. Offline catch-up is capped at 300 real seconds and advances at 0.01 simulation hours per real second, at most three simulation hours. It can be shortened or disabled in Settings.
+This desktop revision follows the overhaul's explicit exit-save / launch-restore requirement. It uses the separate identity `cellarium-desktop-laboratory-dev`. It does not overwrite the original ecology or engineering saves. Save Laboratory also writes explicitly. Saves are staged, validated, backed up and atomically replaced. Life uses elapsed PC time with no pause, speed or offline-cap controls. Cultures grow continuously while fed, viable and below capacity, with an estimated countdown to the next cell. The full time away is preserved and synchronized in background batches after restart. Frozen samples remain preserved. Older saves keep their existing progress and begin PC-time tracking on upgrade.
 
 Drop a previous `experiment.lua` onto the detail window to import through the existing migration path. Unsupported saves are rejected; an unreadable desktop save is retained and automatic overwrite is disabled. Genome exports are written to this edition's LÖVE save directory.
 

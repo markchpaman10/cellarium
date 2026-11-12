@@ -27,9 +27,9 @@ function P.draw(s,c)
   button('Reset layout...',1043,381,290,37,function() if require('native_windows').confirm('Reset equipment positions? Biological contents will be retained.') then M.reset(s,Host.monitors) end end)
   button('Always on top: '..tostring(d.settings.alwaysOnTop),423,443,290,37,function() d.settings.alwaysOnTop=not d.settings.alwaysOnTop end,d.settings.alwaysOnTop)
   button('Restore all stored objects',733,443,290,37,function() for _,o in ipairs(d.objects) do if not o.archivedEntity then o.stored=false;o.visible=true end end end)
-  button('Offline cap: '..d.settings.offlineCap..' sec',1043,443,290,37,function() d.settings.offlineCap=d.settings.offlineCap==300 and 60 or d.settings.offlineCap==60 and 0 or 300 end)
+  text('PC clock / real time',1043,455,15,C.mint)
   text('PERSISTENCE / desktop schema 1',423,515,14,C.mint)
-  text('This desktop revision saves on exit and restores on launch in its own save folder.\nOffline catch-up is bounded to at most 3 simulation hours (5 real minutes).\nBiology continues while equipment or the detailed window is hidden.\nCtrl+Shift+L hides all objects and opens this recovery panel.\nClosing this window returns to the tray. Use Exit in the tray or Ctrl+Q to quit.',423,550,15,C.muted)
+  text('This desktop revision saves on exit and restores on launch in its own save folder.\nPC elapsed time is preserved while hidden or closed.\nBiology continues while equipment or the detailed window is hidden.\nCtrl+Shift+L hides all objects and opens this recovery panel.\nClosing this window returns to the tray. Use Exit in the tray or Ctrl+Q to quit.',423,550,15,C.muted)
   text('Monitors detected: '..#Host.monitors,423,696,15,C.mint)
   for i,m in ipairs(Host.monitors) do text(m.id..'  '..m.w..'x'..m.h..'  ('..m.x..', '..m.y..')  '..m.dpi..' DPI',423,724+(i-1)*23,12,C.muted) end
   return
@@ -46,14 +46,14 @@ function P.draw(s,c)
  if v then
   local n=V.count(v);local b=v.contents[1]
   text((v.label or V.types[v.kind].name)..' / persistent container #'..v.id,423,361,20)
-  text(string.format('Population %d / %d cell equivalents\nNutrients %.0f%% / health %.0f%% / contamination %.1f%%\nTemperature %s / age %.1f simulation hours\n%s / %s / cultivation %s',n,V.types[v.kind].capacity,v.nutrients*100,(v.health or 1)*100,v.contamination*100,require('units').temperature(v.temperature or 37),v.cultureAge or 0,v.closed and 'Closed' or 'Open',v.frozen and 'Frozen' or 'Living',v.cultivating and 'active' or 'idle'),423,402,15,C.muted)
+  text(string.format('Population %d / %d cell equivalents\nNutrients %.0f%% / health %.0f%% / contamination %.1f%%\nTemperature %s / age %s\n%s / %s / cultivation %s',n,V.types[v.kind].capacity,v.nutrients*100,(v.health or 1)*100,v.contamination*100,require('units').temperature(v.temperature or 37),require('realtime').biologyDuration(v.cultureAge or 0),v.closed and 'Closed' or 'Open',v.frozen and 'Frozen' or 'Living',v.cultivating and 'active' or 'idle'),423,402,15,C.muted)
   if b then text('Strain '..b.cell.strain..' / '..c.B.types[b.cell.type]..' / genome '..G.hash(b.cell.genome),423,517,14,C.mint) end
   local source=s.cells[P.cell];button('Loose cell: '..(source and source.id..' '..c.B.types[source.type] or 'none')..' >',423,552,360,33,function() P.cell=P.cell%math.max(1,#s.cells)+1 end)
   button('Introduce selected cell',800,552,260,33,function() result(T.seed(s,v.id,P.cell)) end)
   button(v.closed and 'Open lid' or 'Close lid',1075,552,295,33,function() v.closed=not v.closed end)
   button('Collect 1 cell eq.',423,603,210,33,function() result(T.collect(s,v.id)) end)
   button('Dispense sample',645,603,210,33,function() Host.beginDispense(o) end)
-  button('Start cultivation',868,603,230,33,function() result(V.cultivate(s,vi,v.medium)) end)
+  button('Add food',868,603,230,33,function() result(V.feed(s,vi)) end)
   button('Withdraw cell',1110,603,260,33,function() result(V.withdraw(s,vi)) end)
   button('Refresh medium',423,654,210,33,function() v.nutrients=1;v.waste=0;v.medium=v.medium==1 and 2 or 1;msg('Medium replenished; culture retained.') end)
   button('- 4 F',645,654,100,33,function() v.temperature=math.max(15,v.temperature-4/1.8) end);button('+ 4 F',755,654,100,33,function() v.temperature=math.min(60,v.temperature+4/1.8) end)

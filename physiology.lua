@@ -6,6 +6,7 @@ function P.new(id,g,parents,gen,x,y,angle,anatomy)
 end
 function P.update(o,s,dt,env)
  if not o.alive then o.corpse=o.corpse+dt;return end
+ local motionDt=s.clock and dt*60 or dt
  H.ensure(s);o.altitude=o.altitude or 0;o.oxygen=o.oxygen or 1;local e=o.traits;o.caps=A.capabilities(o.anatomy,o.genome);local c=o.caps;o.locomotion=c.locomotion or 'jointed';o.age=o.age+dt;o.breed=o.breed+dt
  if o.energy>25 then o.maturity=math.min(1,o.maturity+dt*c.growthRate);o.bodyCondition=.4+.6*o.maturity end
  o.lifeStage=o.age>c.lifespan*.8 and 'Elderly' or o.maturity<1 and 'Juvenile' or 'Mature'
@@ -35,8 +36,8 @@ function P.update(o,s,dt,env)
  if targetAltitude>o.altitude then o.altitude=math.min(targetAltitude,o.altitude+dt*.035) else o.altitude=math.max(0,o.altitude-dt*(c.flight.glide and .008 or .09)) end
  o.locomotion=o.altitude>.08 and (c.flight.powered and 'powered flight' or 'gliding') or inWater and 'swimming' or c.locomotion or 'jointed'
  local speed=(o.altitude>.08 and (c.landSpeed+.018)*(c.flight.glide and 1.2 or 1) or inWater and c.swimSpeed or c.landSpeed)*condition*(.45+o.maturity*.55)*(.35+o.oxygen*.65)
- local nextX=o.x+math.cos(o.angle)*speed*dt;local nextY=o.y+math.sin(o.angle)*speed*dt;local nextEnv=H.sample(s.habitat,nextX,nextY,o.altitude);if nextEnv.obstacle or (H.oxygenRatio(c,nextEnv)<.85 and H.oxygenRatio(c,localEnv)>.95 and e.perception>.25) then o.angle=o.angle+2;moving=false end
- if moving then o.x=clamp(o.x+math.cos(o.angle)*speed*dt,.06,.94);o.y=clamp(o.y+math.sin(o.angle)*speed*dt,.09,.91);o.stamina=clamp(o.stamina+dt*(c.supply*1.4-.65-c.force*.02),0,100) else o.stamina=clamp(o.stamina+dt*(2+c.supply*3),0,100) end
+ local nextX=o.x+math.cos(o.angle)*speed*motionDt;local nextY=o.y+math.sin(o.angle)*speed*motionDt;local nextEnv=H.sample(s.habitat,nextX,nextY,o.altitude);if nextEnv.obstacle or (H.oxygenRatio(c,nextEnv)<.85 and H.oxygenRatio(c,localEnv)>.95 and e.perception>.25) then o.angle=o.angle+2;moving=false end
+ if moving then o.x=clamp(o.x+math.cos(o.angle)*speed*motionDt,.06,.94);o.y=clamp(o.y+math.sin(o.angle)*speed*motionDt,.09,.91);o.stamina=clamp(o.stamina+dt*(c.supply*1.4-.65-c.force*.02),0,100) else o.stamina=clamp(o.stamina+dt*(2+c.supply*3),0,100) end
  if o.x<=.061 or o.x>=.939 or o.y<=.091 or o.y>=.909 then o.angle=o.angle+2 end
  if food and dist<.0017 and o.energy<98 and o.altitude<.08 then local meal=table.remove(s.food,food);o.energy=math.min(100,o.energy+(20+c.digestion*6)*(c.diet[meal.kind or 'debris'] or .5));o.fatMass=math.min(c.fatCapacity*.1,o.fatMass+.02);Cog.remember(o,{kind='food',x=meal.x,y=meal.y,outcome=1},s.time) end
  local drain=c.metabolicDemand*(moving and 1 or .6)*(o.altitude>.08 and (c.flight.powered and 1.9 or 1.12) or 1);o.energy=o.energy-dt*drain

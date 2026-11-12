@@ -32,7 +32,7 @@ local function dish(s,o)
  if dirty>.01 then for i=1,math.ceil(dirty*12) do color(.62,.40,.21,.45);love.graphics.circle('fill',48+(i*43%130),48+(i*29%100),5+i%5) end end
  color(1,1,1,.7);love.graphics.setLineWidth(2);love.graphics.arc('line','open',cx-1,cy-1,r-2,3.55,4.75)
  if v.closed then color(.67,.9,1,.08);love.graphics.circle('fill',cx,cy,r-3);color(1,1,1,.22);love.graphics.line(64,44,157,158) end
- tag(o,v.label or ('CULTURE '..v.id),pop..' cell eq. / '..(v.closed and 'lid closed' or 'open'),40,175,156)
+ tag(o,v.label or ('CULTURE '..v.id),pop..' cell eq. / '..V.timerText(v),40,175,156)
 end
 local function tube(s,o)
  local v=T.vessel(s,o.entityId);local dna
@@ -94,7 +94,7 @@ local function habitat(s,o)
  for _,p in ipairs(world.habitat.plants or {}) do color(.25,.41,.21);love.graphics.ellipse('fill',x+p.x*w,y+p.y*h,5,3);love.graphics.ellipse('fill',x+p.x*w-2,y+p.y*h-2,2,5) end
  if wet then for i=1,14 do color(.55,.75,.54,.7);love.graphics.circle('fill',x+15+i*31%(w-30),y+h-12-i*7%25,2+i%3) end;for i=1,5 do color(.23,.56,.4,.65);love.graphics.line(x+20+i*11,y+h-6,x+18+i*12,y+h-42-i*4) end end
  for _,f in ipairs(world.food) do color(.71,.76,.37,.8);love.graphics.circle('fill',x+f.x*w,y+f.y*h,1.5) end
- for _,organism in ipairs(s.organisms) do if organism.worldId==world.id then local scale=R.fitScale(organism.anatomy,65,55,.8);R.drawTopDown(organism,x+organism.x*w,y+organism.y*h,scale,s.time);if organism.id==s.desktop.selectedOrganism then color(.65,1,.83,.8);love.graphics.circle('line',x+organism.x*w,y+organism.y*h,23) end end end
+ for _,organism in ipairs(s.organisms) do if organism.worldId==world.id then local scale=R.fitScale(organism.anatomy,65,55,.8);R.drawTopDown(organism,x+organism.x*w,y+organism.y*h,scale,require('realtime').visual(s));if organism.id==s.desktop.selectedOrganism then color(.65,1,.83,.8);love.graphics.circle('line',x+organism.x*w,y+organism.y*h,23) end end end
  if wet then color(.66,.88,.96,.10);for i=1,5 do love.graphics.arc('line','open',x+w*.5,y+h*.6,20+i*27,3.6,4.6) end end
  love.graphics.setStencilTest();glass(x-2,y-2,w+4,h+4,9)
  if o.kind=='terrarium' then for i=1,18 do color(.04,.09,.09);rect('fill',31+i*19,17,10,3,1) end end
@@ -103,7 +103,7 @@ local function habitat(s,o)
 end
 function A.draw(s,o)
  if require('desktop_controls').draw(s,o) then return end
- love.graphics.setLineWidth(1);if o.kind=='dish' then dish(s,o) elseif o.kind=='vial' or o.kind=='cryovial' or o.kind=='dna' then tube(s,o) elseif o.kind=='flask' then flask(s,o) elseif o.kind=='plate' then plate(s,o) elseif o.kind=='dropper' then dropper(s,o) elseif o.kind=='rack' then rack(o) elseif o.kind=='forge' or o.kind=='workstation' then instrument(s,o) elseif o.kind=='organism' then local organism;for _,v in ipairs(s.organisms) do if v.id==o.entityId then organism=v end end;if organism then R.drawTopDown(organism,o.w/2,o.h/2,R.fitScale(organism.anatomy,125,120,1),s.time) end else habitat(s,o) end
+ love.graphics.setLineWidth(1);if o.kind=='dish' then dish(s,o) elseif o.kind=='vial' or o.kind=='cryovial' or o.kind=='dna' then tube(s,o) elseif o.kind=='flask' then flask(s,o) elseif o.kind=='plate' then plate(s,o) elseif o.kind=='dropper' then dropper(s,o) elseif o.kind=='rack' then rack(o) elseif o.kind=='forge' or o.kind=='workstation' then instrument(s,o) elseif o.kind=='organism' then local organism;for _,v in ipairs(s.organisms) do if v.id==o.entityId then organism=v end end;if organism then R.drawTopDown(organism,o.w/2,o.h/2,R.fitScale(organism.anatomy,125,120,1),require('realtime').visual(s)) end else habitat(s,o) end
  if s.desktop.animation and s.desktop.animation.target==o.id then local p=s.desktop.animation.progress;local x,y=o.w/2,20+p*p*(o.h*.45-20);color(.49,.95,.73,.9);love.graphics.ellipse('fill',x,y,4,6);love.graphics.polygon('fill',x-3,y-3,x+3,y-3,x,y-11);color(.91,1,.94,.8);love.graphics.circle('fill',x-1,y-2,1.2) end
  if s.desktop.selectedObject==o.id then color(.52,1,.79,.7);love.graphics.setLineWidth(1);love.graphics.arc('line','open',o.w/2,o.h/2,math.min(o.w,o.h)*.46,4.3,5.1) end
 end

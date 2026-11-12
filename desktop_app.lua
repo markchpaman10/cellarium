@@ -1,6 +1,7 @@
 -- Default detailed UI for the desktop edition. The classic five-workspace UI
 -- is retained elsewhere and is rendered only after an explicit Settings choice.
 local Host=require('desktop_host');local M=require('desktop_model');local T=require('desktop_samples');local V=require('vessels');local G=require('genome');local E=require('genome_editor');local Worlds=require('desktop_worlds');local R=require('rendering');local Units=require('units')
+local Clock=require('realtime')
 local A={page='Lab',vessel=1,cell=1,world=1,record=1,recordType='organisms',recordPage=1,sourceType='materials',source=1,query='',editing=nil,name='Untitled genome',site=2,donors={},layer=1,gameteA=1,gameteB=2}
 local palette={bg={.94,.955,.96},paper={1,1,1},ink={.11,.18,.21},muted={.38,.47,.50},line={.81,.85,.87},teal={.05,.41,.37},tint={.88,.94,.93},danger={.67,.23,.22}}
 local fonts={}
@@ -63,10 +64,11 @@ local function cultures(s)
  card(580,177,810,270);text(v.label or V.types[v.kind].name,602,198,24);local b=v.contents[1]
  button(A.editing=='vessel' and (A.name..'_') or 'Label container',1170,197,196,31,function() A.name=v.label or 'Culture '..v.id;A.editing='vessel';A.labelVessel=v.id end)
  text(string.format('%d / %d cell equivalents   |   %s   |   %s',V.count(v),V.types[v.kind].capacity,v.closed and 'closed' or 'open',v.frozen and 'frozen' or v.cultivating and 'cultivating' or 'idle'),602,239,16,palette.teal)
- text(string.format('Nutrients %.0f%%   Health %.0f%%   Contamination %.1f%%\nTemperature %s   Age %.1f h   Waste %.0f%%',v.nutrients*100,(v.health or 1)*100,v.contamination*100,Units.temperature(v.temperature or 37),v.cultureAge or 0,(v.waste or 0)*100),602,275,15,palette.muted)
- if b then text('Cell category: '..require('biology').types[b.cell.type]..' / strain '..b.cell.strain..' / genome '..G.hash(b.cell.genome),602,330,13,palette.muted) end
+ text(string.format('Nutrients %.0f%%   Health %.0f%%   Contamination %.1f%%\nTemperature %s   Age %s   Waste %.0f%%',v.nutrients*100,(v.health or 1)*100,v.contamination*100,Units.temperature(v.temperature or 37),Clock.biologyDuration(v.cultureAge or 0),(v.waste or 0)*100),602,275,15,palette.muted)
+ text(V.timerText(v),602,342,12,palette.teal)
+ if b then text('Cell category: '..require('biology').types[b.cell.type]..' / strain '..b.cell.strain..' / genome '..G.hash(b.cell.genome),602,322,12,palette.muted) end
  button(v.closed and 'Open container' or 'Close container',602,367,173,32,function() v.closed=not v.closed end)
- button('Cultivate',786,367,173,32,function() result(V.cultivate(s,A.vessel,v.medium)) end)
+ button('Add food',786,367,173,32,function() result(V.feed(s,A.vessel)) end)
  button('Refresh medium',970,367,173,32,function() v.nutrients=1;v.waste=0;Host.message('Medium refreshed; contents retained.') end)
  button('Withdraw cell',1154,367,212,32,function() result(V.withdraw(s,A.vessel)) end)
  button('- 4 F',602,407,87,27,function() v.temperature=math.max(15,v.temperature-4/1.8) end);button('+ 4 F',698,407,87,27,function() v.temperature=math.min(60,v.temperature+4/1.8) end)
@@ -131,14 +133,14 @@ local function assembly(s)
 end
 local function incubation(s)
  heading('Development & reproduction','Embryos differentiate using their own inherited genome. Biological failure remains possible.')
- for i=1,math.min(5,#s.eggs) do local e=s.eggs[i];local y=180+(i-1)*85;card(250,y,1140,70);text('#'..e.id..' / '..e.stage,270,y+13,18);text(math.floor(e.progress*100)..'% / '..e.parents,270,y+41,13,palette.muted);set(palette.tint);love.graphics.rectangle('fill',960,y+27,400,9,4);set(palette.teal);love.graphics.rectangle('fill',960,y+27,400*e.progress,9,4) end
+ for i=1,math.min(5,#s.eggs) do local e=s.eggs[i];local remaining=(1-e.progress)*24/(e.anatomy and e.anatomy.growthFactor or 1);local y=180+(i-1)*85;card(250,y,1140,70);text('#'..e.id..' / '..e.stage,270,y+13,18);text(math.floor(e.progress*100)..'% / remaining ~'..Clock.biologyDuration(remaining)..' / '..e.parents,270,y+41,13,palette.muted);set(palette.tint);love.graphics.rectangle('fill',960,y+27,400,9,4);set(palette.teal);love.graphics.rectangle('fill',960,y+27,400*e.progress,9,4) end
  if #s.eggs==0 then text('No embryos developing. Incubate an edited genome or assemble donor cells in the Forge.',250,195,18,palette.muted) end
  card(250,640,1140,182);text('Gamete bank',273,659,21)
  local egg,sperm=s.gametes[A.gameteA],s.gametes[A.gameteB]
- button(egg and (egg.kind..' #'..egg.id..' / '..math.floor(egg.progress*100)..'% >') or 'No gametes',273,704,360,35,function() A.gameteA=A.gameteA%math.max(1,#s.gametes)+1 end)
- button(sperm and (sperm.kind..' #'..sperm.id..' / '..math.floor(sperm.progress*100)..'% >') or 'No gametes',648,704,360,35,function() A.gameteB=A.gameteB%math.max(1,#s.gametes)+1 end)
+ button(egg and (egg.kind..' #'..egg.id..' / '..Clock.biologyDuration((1-egg.progress)*8)..' remaining >') or 'No gametes',273,704,360,35,function() A.gameteA=A.gameteA%math.max(1,#s.gametes)+1 end)
+ button(sperm and (sperm.kind..' #'..sperm.id..' / '..Clock.biologyDuration((1-sperm.progress)*8)..' remaining >') or 'No gametes',648,704,360,35,function() A.gameteB=A.gameteB%math.max(1,#s.gametes)+1 end)
  button('Fertilize selected egg + sperm',1023,704,343,35,function() result(require('biology').fertilize(s,egg and egg.id,sperm and sperm.id)) end)
- text('Prepare egg and sperm precursors from stem cells in Cultures. Maturation takes eight simulation hours.',273,770,14,palette.muted)
+ text('Prepare egg and sperm precursors from stem cells in Cultures. Maturation takes 08:00 of real time.',273,770,14,palette.muted)
 end
 local function habitats(s)
  heading('Habitats','These are the same environments and organisms displayed in the desktop containers.')
@@ -153,7 +155,7 @@ local function habitats(s)
  button('Humidity >',1158,387,208,34,function() h.humidity=(h.humidity or .65)>.8 and .35 or math.min(1,(h.humidity or .65)+.2) end)
  local organism=s.organisms[A.record];button(organism and (organism.name..' / '..organism.worldId..' >') or 'No living specimens yet',273,455,700,35,function() A.record=A.record%math.max(1,#s.organisms)+1 end)
  button('Move selected here',988,455,378,35,function() if organism then result(Worlds.move(s,organism.id,world.id));Host.sync() end end)
- if organism then text(organism.behavior..' / health '..math.floor(organism.health)..'% / oxygen '..math.floor((organism.oxygen or 1)*100)..'%',273,518,17,palette.teal);R.draw(organism,470,650,R.fitScale(organism.anatomy,250,170,3),s.time,'External');button('Open this organism record',670,596,344,36,function() A.page='Records';A.recordType='organisms' end);button('Recall to terrarium',1030,596,336,36,function() result(Worlds.move(s,organism.id,'terrarium'));Host.sync() end) end
+ if organism then text(organism.behavior..' / health '..math.floor(organism.health)..'% / oxygen '..math.floor((organism.oxygen or 1)*100)..'%',273,518,17,palette.teal);R.draw(organism,470,650,R.fitScale(organism.anatomy,250,170,3),Clock.visual(s),'External');button('Open this organism record',670,596,344,36,function() A.page='Records';A.recordType='organisms' end);button('Recall to terrarium',1030,596,336,36,function() result(Worlds.move(s,organism.id,'terrarium'));Host.sync() end) end
  button('Develop audited reference genome',273,750,420,35,function() local e=require('biology').queue(s,G.copy(require('audit_examples').compact.genome),'Audited reference genotype',0);e.worldId='terrarium';Host.message('Reference genome is developing in incubation.');A.page='Incubation' end)
  button('Open desktop container',710,750,656,35,function() for _,o in ipairs(s.desktop.objects) do if o.entityId==world.id then o.stored=false;o.visible=true;M.setGroup(s,'habitats',true);Host.hidePanel();break end end end)
 end
@@ -172,14 +174,14 @@ local function records(s,cryobank,research)
  card(601,230,789,589);local v=list[A.record];if not v then text('No record selected.',625,260,20,palette.muted);return end
  text(v.name or v.kind or 'DNA #'..v.id,625,254,24)
  if kind=='experiments' then
-  text('Outcome: '..tostring(v.outcome)..' / time '..string.format('%.1f',v.time or 0)..' h',625,303,16,palette.teal);local y=352;for k,value in pairs(v.conditions or {}) do text(k..': '..(k=='temperature' and Units.temperature(value) or tostring(value)),625,y,14,palette.muted);y=y+27 end
+  text('Outcome: '..tostring(v.outcome)..' / elapsed '..Clock.biologyDuration(v.time or 0),625,303,16,palette.teal);local y=352;for k,value in pairs(v.conditions or {}) do text(k..': '..(k=='temperature' and Units.temperature(value) or tostring(value)),625,y,14,palette.muted);y=y+27 end
   if v.failures then text(table.concat(v.failures,'\n'),1000,350,13,palette.danger) end
   button('Restore recorded donor templates',625,752,735,35,function() result(require('biology').repeatExperiment(s,A.record)) end)
  elseif kind=='organisms' then
-  local caps=v.caps;local stats=v.stats or require('living_stats').calculate(v);text(string.format('Age %.1f h / %s / %s',v.age,v.lifeStage or 'Juvenile',v.worldId or 'terrarium'),625,299,14,palette.muted)
+  local caps=v.caps;local stats=v.stats or require('living_stats').calculate(v);text(string.format('Age %s / %s / %s',Clock.biologyDuration(v.age),v.lifeStage or 'Juvenile',v.worldId or 'terrarium'),625,299,14,palette.muted)
   text(string.format('Health %.0f%% / oxygen %.0f%% / energy %.0f%%',v.health,(v.oxygen or 1)*100,v.energy),625,331,15,palette.teal)
   text(string.format('STR %.2f   DEF %.2f   DEX %.2f\nINT %.2f   VIT %.2f   END %.2f',stats.STR,stats.DEF,stats.DEX,stats.INT,stats.VIT,stats.END),625,374,16)
-  R.draw(v,1150,422,R.fitScale(v.anatomy,340,200,3),s.time,R.layers[A.layer])
+  R.draw(v,1150,422,R.fitScale(v.anatomy,340,200,3),Clock.visual(s),R.layers[A.layer])
   button('Anatomy: '..R.layers[A.layer]..' >',1004,548,356,33,function() A.layer=A.layer%#R.layers+1 end)
   local cognition=require('cognition').ensure(v);local cap=require('cognition').capabilities(v);local relationships=0;for _ in pairs(cognition.relationships) do relationships=relationships+1 end
   text(v.behavior..' / '..caps.locomotion..'\nMemories '..#cognition.memories..' / neural capacity '..cap.capacity..' / relationships '..relationships..'\nParents '..tostring(v.parents)..' / generation '..v.generation..' / offspring '..#v.children,625,472,14,palette.muted)
@@ -219,13 +221,13 @@ local function settings(s)
  button('Classic interface: OFF',275,207,520,44,function() d.settings.classicUI=true;Host.context.classic() end)
  text('Optional compatibility interface. The default desktop edition never opens the classic UI.',820,220,12,palette.muted)
  button('Always on top: '..tostring(d.settings.alwaysOnTop),275,273,520,40,function() d.settings.alwaysOnTop=not d.settings.alwaysOnTop end)
- button('Offline catch-up cap: '..d.settings.offlineCap..' sec',820,273,544,40,function() d.settings.offlineCap=d.settings.offlineCap==300 and 60 or d.settings.offlineCap==60 and 0 or 300 end)
+ text('PC-linked time / no speed or pause controls',820,286,14,palette.teal)
  button('Save experiment + layout',275,335,340,40,function() d.savedLayout=M.layout(s);Host.save() end)
  button('Restore saved layout',630,335,340,40,function() if d.savedLayout then M.applyLayout(s,d.savedLayout,Host.monitors) else Host.message('No saved layout yet.') end end)
  button('Reset positions...',985,335,379,40,function() if require('native_windows').confirm('Reset equipment positions? All cultures will remain intact.') then M.reset(s,Host.monitors) end end)
  button('Start a new experiment...',275,398,520,40,function() if require('native_windows').confirm('Start a new desktop experiment? The next desktop save will replace the current session. Other versions are unaffected.') then Host.context.newExperiment() end end,false,true)
  button('Restore all stored objects',820,398,544,40,function() for _,o in ipairs(d.objects) do if not o.archivedEntity then o.stored=false;o.visible=true end end end)
- text('PERSISTENCE',275,485,14,palette.teal);text('The desktop revision saves on exit and restores on launch.\nDrop a previous experiment.lua file onto this window to migrate it.\nOffline advancement is bounded; hidden cultures and organisms remain simulated.\nClosing this window returns to the real Windows tray. Exit from the tray or press Ctrl+Q.',275,523,15,palette.muted)
+ text('PERSISTENCE',275,485,14,palette.teal);text('The desktop revision saves on exit and restores on launch.\nDrop a previous experiment.lua file onto this window to migrate it.\nPC elapsed time is preserved, including while hidden or closed.\nClosing this window returns to the real Windows tray. Exit from the tray or press Ctrl+Q.',275,523,15,palette.muted)
  text('Connected monitors: '..#Host.monitors,275,641,15,palette.teal)
  for i,m in ipairs(Host.monitors) do text(m.id..' / '..m.w..'x'..m.h..' / '..m.x..', '..m.y..' / '..m.dpi..' DPI',275,674+(i-1)*25,13,palette.muted) end
  text('Recovery shortcut: Ctrl+Shift+L hides desktop objects and opens this window.',275,778,14,palette.teal)
@@ -249,7 +251,7 @@ local function observations(s)
 end
 function A.draw(s,context)
  A.context=context;set(palette.bg);love.graphics.rectangle('fill',0,0,1440,900)
- set({.095,.16,.19});love.graphics.rectangle('fill',0,0,1440,55);text('CELLARIUM',24,17,17,{.9,.98,.96});text('local laboratory  /  '..A.page:lower(),252,19,13,{.69,.81,.82});text('OFFLINE  /  '..string.format('%.1f h',s.time),1110,19,12,{.67,.84,.79});button('Return to desktop',1254,10,167,34,function() Host.hidePanel() end)
+ set({.095,.16,.19});love.graphics.rectangle('fill',0,0,1440,55);text('CELLARIUM',24,17,17,{.9,.98,.96});text('local laboratory  /  '..A.page:lower(),252,19,13,{.69,.81,.82});text(Clock.wallTime(),1110,19,12,{.67,.84,.79});button('Return to desktop',1254,10,167,34,function() Host.hidePanel() end)
  set({.89,.92,.93});love.graphics.rectangle('fill',0,55,220,845);text('LABORATORY',24,88,11,palette.muted)
  for i,page in ipairs({'Lab','Cultures','Genome Forge','Incubation','Habitats','Records','Research','Cryobank','Settings'}) do button(page,16,119+(i-1)*51,188,42,function() A.page=page;A.editing=nil end,A.page==page) end
  text('Desktop edition\nNative equipment & tray\nLocal biological records',25,737,12,palette.muted)
@@ -265,6 +267,6 @@ function A.draw(s,context)
   local c=require('biology').colors[cell.type];local points={};for i=0,63 do local angle=i/64*math.pi*2;local radius=116*(1+.04*math.sin(angle*5+G.hash(cell.genome)%11));points[#points+1]=800+math.cos(angle)*radius;points[#points+1]=442+math.sin(angle)*radius end;set({c[1],c[2],c[3],.3});love.graphics.polygon('fill',points);set(palette.teal);love.graphics.polygon('line',points);set({.2,.42,.48,.5});love.graphics.ellipse('fill',781,448,35,30);for i=1,11 do local angle=i*2.4;set({c[1]*.6,c[2]*.7,c[3]*.7,.7});love.graphics.ellipse('fill',800+math.cos(angle)*(55+i*3),442+math.sin(angle)*(55+i*3),7,4) end
   text('A category-based magnified illustration; colonies in dishes are shown at normal desktop scale.',475,633,13,palette.muted);button('Close magnification',475,677,650,34,function() A.microscope=nil end)
  end
- set({.86,.9,.91});love.graphics.rectangle('fill',220,861,1220,39);text(Host.notice or 'Left-drag the dropper. Right-click opens actions. Release its loaded tip over a destination to dispense.',244,874,12,palette.muted)
+ set({.86,.9,.91});love.graphics.rectangle('fill',220,861,1220,39);text(Clock.busy(s) and Clock.status(s) or Host.notice or 'Left-drag the dropper. Right-click opens actions. Release its loaded tip over a destination to dispense.',244,874,12,palette.muted)
 end
 return A

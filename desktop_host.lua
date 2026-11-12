@@ -27,7 +27,7 @@ function Host.init(context)
  Host.context=context;Host.monitors=Native.init();if not Host.monitors then Host.context=nil;context.setState(nil);love.event.quit();return false end;assert(#Host.monitors>0,'No usable Windows monitor.')
  local restored,why=Store.load(context.B)
  if restored then context.setState(restored);Host.message(restored.desktop.recovery or 'Desktop laboratory restored.') elseif love.filesystem.getInfo('desktop-laboratory.lua') then Host.message('Saved laboratory could not load: '..tostring(why)..'. Original retained; automatic overwrites disabled.');Host.saveBlocked=true end
- local s=Host.state();M.ensure(s);s.desktop.tool=nil;Worlds.ensure(s);V.ensure(s)
+ local s=Host.state();M.ensure(s);require('realtime').start(s);s.desktop.tool=nil;Worlds.ensure(s);V.ensure(s)
  if not s.desktop.starterPrepared then
   local emptyVial=s.vessels[5];if emptyVial and #s.cells>0 then T.seed(s,emptyVial.id,1) end
   if #s.materials==0 and #s.cells>0 then context.B.extract(s,1) end
@@ -45,6 +45,7 @@ function Host.open(mode,id)
 end
 function Host.hidePanel() Host.panelVisible=false;Native.panel(false) end
 function Host.save()
+ if Host.context and require('realtime').hasSession(Host.state()) then require('realtime').observe(Host.state()) end
  if Host.saveBlocked then Host.message('Automatic saving is disabled after load failure. Use New or import a valid experiment first.');return false end
  local ok,why=Store.save(Host.state());Host.message(ok and 'Desktop laboratory saved atomically.' or 'Save failed: '..tostring(why));return ok
 end
@@ -52,7 +53,7 @@ function Host.toggle(group)
  local s=Host.state();local d=M.ensure(s);M.setGroup(s,group,not d.groups[group]);Host.render(true)
 end
 function Host.beginDispense(o)
- local s=Host.state();if Host.droplet then Host.message('A sample is already being dispensed.');return false end
+ local s=Host.state();if require('realtime').busy(s) then Host.message('Synchronizing elapsed PC time. Please wait.');return false end;if Host.droplet then Host.message('A sample is already being dispensed.');return false end
  local ok,why=T.canDispense(s,o.entityId);if not ok then Host.message(why);return false end
  Host.droplet={target=o.id,entity=o.entityId,time=0,duration=.45};s.desktop.animation={target=o.id,progress=0};return true
 end
@@ -77,7 +78,7 @@ function Host.objectMenu(o)
   if T.vessel(s,o.entityId) then items[#items+1]={label=s.desktop.pipette.sample and 'Add held sample here' or 'Take sample from this container',action=function() if s.desktop.pipette.sample then Host.beginDispense(o) else local _,why=T.collect(s,o.entityId);Host.message(why) end end} end
   items[#items+1]={label=o.locked and 'Unlock position' or 'Lock position',checked=o.locked,action=function() o.locked=not o.locked end}
   items[#items+1]={label='Put away this container',action=function() o.stored=true end}
-  local action=Native.menu(items);if action then action() end;return
+  local action=Native.menu(items);if action then if not require('realtime').sync(s,require('biology').update) then Host.message('Synchronizing elapsed PC time. Please wait.') else action() end end;return
  end
  local s=Host.state();local v=T.vessel(s,o.entityId);local items={{label='Inspect / Open',action=function() if o.kind=='forge' or o.kind=='workstation' or v then require('desktop_controls').expand(s,o);Host.render(true) else Host.open('inspect',o.id) end end},
   {label=o.locked and 'Unlock position' or 'Lock position',checked=o.locked,action=function() o.locked=not o.locked end},
@@ -91,7 +92,7 @@ function Host.objectMenu(o)
   items[#items+1]={label='Collect sample beneath tip',action=function() local target=Host.targetAtTip(o);if target then local _,why=T.collect(s,target.entityId);Host.message(why) else Host.message('Position the tip inside an open cell container first.') end end}
   items[#items+1]={label='Sterilize dropper',action=function() local _,why=T.clean(s);Host.message(why) end};items[#items+1]={label='Discard loaded sample...',action=function() if Native.confirm('Dispose of the loaded biological sample?') then s.desktop.pipette.sample=nil;Host.message('Sample discarded. Sterilize before reuse.') end end}
  end
- local action=Native.menu(items);if action then action() end
+ local action=Native.menu(items);if action then if not require('realtime').sync(s,require('biology').update) then Host.message('Synchronizing elapsed PC time. Please wait.') else action() end end
 end
 function Host.targetAtTip(o)
  local s=Host.state();local mon=M.monitorAt(Host.monitors,o.x,o.y);local factor=o.scale*mon.dpi/96;local tipx,tipy=o.x+44*factor,o.y+214*factor;local target
@@ -117,7 +118,7 @@ function Host.event(e)
   elseif e.type=='move' and Host.pressed and Host.pressed.id==o.id then if math.abs(e.cursor.x-Host.pressed.x)+math.abs(e.cursor.y-Host.pressed.y)>5 then Host.pressed.moved=true end;if o.drag and Host.pressed.moved then M.drag(o,e.cursor);Native.move(Host.windows[o.id],o.x,o.y) end
   elseif e.type=='up' then
    local pressed=Host.pressed;Host.pressed=nil;M.endDrag(o,Host.monitors)
-   if pressed and pressed.control then local current=require('desktop_controls').hit(o,x,y);if not pressed.moved and current and current.id==pressed.control.id then pressed.control.fn();Host.render(true) end
+   if pressed and pressed.control then local current=require('desktop_controls').hit(o,x,y);if not pressed.moved and current and current.id==pressed.control.id then if not require('realtime').sync(s,require('biology').update) then Host.message('Synchronizing elapsed PC time. Please wait before changing biology.') else pressed.control.fn() end;Host.render(true) end
    elseif pressed and not pressed.moved then Host.click(o,x,y)
    elseif o.kind=='dropper' and s.desktop.pipette.sample then
     local target=Host.targetAtTip(o)
@@ -159,6 +160,7 @@ function Host.update(dt)
 end
 function Host.shutdown()
  if not Host.context then return end
+ if require('realtime').hasSession(Host.state()) then require('realtime').observe(Host.state()) end
  if not Host.saveBlocked then local ok,why=Store.save(Host.state());if not ok then Native.alert('Cellarium could not save: '..tostring(why)..'\nThe previous save has been retained.') end end
  Native.shutdown();Host.context=nil
 end

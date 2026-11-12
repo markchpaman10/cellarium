@@ -26,4 +26,6 @@ try {
  }
 } finally { $output.Dispose() }
 foreach($name in @('README.md','DESKTOP-IMPLEMENTATION.md','desktop-test-results.txt')) { $path=Join-Path $PSScriptRoot $name;if(Test-Path -LiteralPath $path) { Copy-Item -LiteralPath $path -Destination $Destination } }
+$docs=Join-Path $PSScriptRoot 'docs'
+if(Test-Path -LiteralPath $docs) { Copy-Item -LiteralPath $docs -Destination $Destination -Recurse -Force }
 Get-FileHash -Algorithm SHA256 $executable,$archive | Format-Table -AutoSize

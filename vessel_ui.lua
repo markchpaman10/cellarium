@@ -39,8 +39,8 @@ function UI.draw(s,c)
  end,nil,not c.selected or v.frozen)
  button('Withdraw one cell',1116,468,268,34,function() local ok,why=V.withdraw(s,UI.selected);msg(why) end,nil,v.frozen or not bucket)
  button('Culture medium: '..({'Balanced','Rich','Mutagenic'})[UI.medium],1116,509,268,34,function() UI.medium=UI.medium%3+1 end)
- button(v.cultivating and 'Stop cultivation' or 'Start cultivation',1116,550,268,34,function()
-  if v.cultivating then v.cultivating=false;msg('Cultivation paused.') else local ok,why=V.cultivate(s,UI.selected,UI.medium);msg(why) end
+ button('Add food',1116,550,268,34,function()
+  local ok,why=V.feed(s,UI.selected);msg(why)
  end,nil,v.frozen or def.growth==0 or not bucket)
  button(v.frozen and 'Thaw entire cryovial' or 'Freeze entire cryovial',1116,591,268,34,function()
   local ok,why;if v.frozen then ok,why=V.thaw(s,UI.selected) else ok,why=V.freeze(s,UI.selected) end;msg(why)
@@ -50,6 +50,7 @@ function UI.draw(s,c)
  button('Sell selected loose cell',1116,728,268,34,function()
   local ok,why=V.sellCell(s,c.selected);if ok then c.clearSelection() end;msg(why)
  end,nil,not c.selected)
- text('Vials hold populations, not fused genomes.',1116,798,12,C.muted)
+ text(V.timerText(v),1116,798,12,C.muted)
 end
 return UI
+

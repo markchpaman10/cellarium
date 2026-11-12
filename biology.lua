@@ -54,7 +54,7 @@ function B.extract(s,index) local c=s.cells[index];if not c then return false,'S
 function B.precursor(s,index,kind)
  local c=s.cells[index];if not c or c.type~=1 then return false,'Only stem cells can form gamete precursors.' end
  if c.viability<.5 then return false,'Stem cell viability must exceed 50%.' end
- local h=G.gamete(c.genome,function() return B.rand(s) end,'Cell '..c.id,true);h.id=B.id(s);h.kind=kind;h.progress=0;h.stage='Gamete precursor';h.generation=c.generation;h.genomeSource=G.copy(c.genome);s.gametes[#s.gametes+1]=h;return true,'Stem-cell precursor created; maturation takes 8 hours.'
+ local h=G.gamete(c.genome,function() return B.rand(s) end,'Cell '..c.id,true);h.id=B.id(s);h.kind=kind;h.progress=0;h.stage='Gamete precursor';h.generation=c.generation;h.genomeSource=G.copy(c.genome);s.gametes[#s.gametes+1]=h;return true,'Stem-cell precursor created; maturation takes 08:00 of real time.'
 end
 function B.fertilize(s,eggId,spermId)
  local egg,sperm,ei,si;for i,h in ipairs(s.gametes) do if h.id==eggId then egg=h;ei=i end;if h.id==spermId then sperm=h;si=i end end
@@ -84,7 +84,7 @@ local function step(s,dt,environment)
  local living=0;for _,o in ipairs(s.organisms) do if o.alive then living=living+1 end;local was=o.alive;P.update(o,s,dt,s.habitat.environment);if was and not o.alive then B.log(s,o.name..' died: '..o.deathCause..'.');s.food[#s.food+1]={x=o.x,y=o.y,kind='tissue',amount=1} end end
  if living+#s.eggs<(s.activeHabitatCapacity or 30) then for _,a in ipairs(s.organisms) do if a.alive and a.breed>60 and a.maturity>=1 and a.energy>65 then for _,b in ipairs(s.organisms) do if b~=a and b.breed>60 and (a.x-b.x)^2+(a.y-b.y)^2<.008 and R.compatible(a,b) and B.rand(s)<dt*.03*a.caps.fitness then B.breed(s,a,b);return end end end end end
 end
-function B.updateWorld(s,dt,environment) s.accumulator=(s.accumulator or 0)+dt;while s.accumulator>=.05-1e-9 do step(s,.05,environment);s.accumulator=s.accumulator-.05 end end
+function B.updateWorld(s,dt,environment) local quantum=s.clock and (s.clock.integrationStepSeconds or .05)/60 or .05;s.accumulator=(s.accumulator or 0)+dt;while s.accumulator>=quantum-1e-9 do step(s,quantum,environment);s.accumulator=math.max(0,s.accumulator-quantum) end end
 function B.update(s,dt,environment) if s.desktop then return require('desktop_worlds').update(s,dt,B.updateWorld) end;return B.updateWorld(s,dt,environment) end
 return B
 

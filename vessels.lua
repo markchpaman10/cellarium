@@ -63,29 +63,57 @@ function V.cultivate(s,index,medium)
  local v=s.vessels[index];if not v or v.frozen or V.types[v.kind].growth==0 then return false,'This vessel cannot cultivate cells.' end
  if count(v)==0 then return false,'Transfer cells into the vessel first.' end
  if count(v)>=V.types[v.kind].capacity then return false,'Vessel is full.' end
- v.medium=medium or v.medium;v.cultivating=true;return true,'Cultivation started.'
+ v.medium=medium or v.medium;v.cultivating=true;return true,'Fed cultures grow automatically in real time.'
+end
+function V.growthInfo(v)
+ local def=V.types[v.kind];local n=count(v);local b=v.contents[1]
+ if v.frozen then return {status='Frozen'} end
+ if not b or n<=0 then return {status='Empty'} end
+ if def.growth==0 then return {status='Stored sample'} end
+ if n>=def.capacity then return {status='Full'} end
+ if (v.nutrients or 0)<.025 then return {status='Needs food'} end
+ if (v.health or 1)<=.05 or (b.cell.viability or 1)<=.05 then return {status='Culture not viable'} end
+ local suitability=math.max(0,1-math.abs((v.temperature or 37)-37)/20)
+ if suitability<=0 then return {status='Unsuitable temperature'} end
+ local e=G.express(b.cell.genome)
+ local doublingMinutes=12/(K.rates[b.cell.type]*def.growth*(.65+e[6]*.3+e[1]*.05))
+ local rate=math.log(2)/doublingMinutes*suitability*math.max(0,v.nutrients)*(v.health or 1)*(1-(v.contamination or 0))*(v.medium==2 and 1.4 or 1)
+ if rate<=0 then return {status='Culture stressed'} end
+ local fraction=math.max(0,math.min(.999999,v.progress or 0));local seconds=math.log((n+1)/(n+fraction))/rate*60
+ return {status='Growing',rate=rate,nextCellSeconds=seconds,doublingSeconds=math.log(2)/rate*60}
+end
+function V.timerText(v)
+ local info=V.growthInfo(v);return info.nextCellSeconds and ('Next cell ~'..require('realtime').duration(info.nextCellSeconds)) or info.status
+end
+function V.feed(s,index)
+ local v=s.vessels[index];if not v then return false,'Container unavailable.' end
+ if v.frozen then return false,'Thaw this container before adding food.' end
+ if V.types[v.kind].growth==0 then return false,'This is a storage container, not a cultivation dish.' end
+ v.nutrients=1;return true,'Food replenished. Growth resumes automatically when conditions allow.'
 end
 function V.update(s,dt)
  for _,v in ipairs(s.vessels or {}) do
   if not v.frozen then
-   v.cultureAge=(v.cultureAge or 0)+dt;v.temperature=v.temperature or 37;v.waste=v.waste or 0;v.health=v.health or 1
-   v.contamination=math.min(1,(v.contamination or 0)+dt*(1-(v.sterility or 1))*.003*(1+v.waste))
-   local stress=math.abs(v.temperature-37)/35*.02+v.contamination*.01
-   v.health=math.max(0,v.health-dt*stress)
-   for _,b in ipairs(v.contents) do b.cell.viability=math.min(b.cell.viability,v.health);b.cell.age=b.cell.age+dt end
-  end
-  if v.cultivating and not v.frozen and #v.contents>0 then
-   local b=v.contents[1];local def=V.types[v.kind]
-   local room=def.capacity-count(v)
-   if room<=0 then v.cultivating=false else
-    local e=G.express(b.cell.genome)
-    local suitability=math.max(0,1-math.abs(v.temperature-37)/20)
-    local rate=K.rates[b.cell.type]*def.growth*(.65+e[6]*.3+e[1]*.05)*(v.medium==2 and 1.4 or 1)*(1-v.contamination)*math.max(0,v.nutrients)*suitability*v.health/15
-    v.progress=v.progress+dt*rate
-    local born=math.min(room,math.floor(v.progress))
-    if born>0 then local remaining=b.cell.replicationCapacity or 0;if remaining<=0 then v.cultivating=false;born=0 else b.cell.replicationCapacity=remaining-1 end;b.count=b.count+born;v.progress=v.progress-born;v.nutrients=math.max(0,v.nutrients-born*.025);v.waste=math.min(1,v.waste+born*.02) end
-    if count(v)>=def.capacity or v.nutrients<=.02 then v.cultivating=false end
+   local remaining=dt
+   while remaining>1e-10 do
+    local step=math.min(.25,remaining);remaining=remaining-step
+    v.cultureAge=(v.cultureAge or 0)+step;v.temperature=v.temperature or 37;v.waste=v.waste or 0;v.health=v.health or 1;v.progress=v.progress or 0
+    local population=count(v);local cultivation=V.types[v.kind].growth>0
+    if cultivation and population>0 then v.nutrients=math.max(0,v.nutrients-step*population*.0005) end
+    v.contamination=math.min(1,(v.contamination or 0)+step*(1-(v.sterility or 1))*.003*(1+v.waste))
+    local stress=math.abs(v.temperature-37)/35*.02+v.contamination*.01+(cultivation and v.nutrients<=0 and .003 or 0)
+    v.health=math.max(0,v.health-step*stress)
+    for _,b in ipairs(v.contents) do b.cell.viability=math.min(b.cell.viability,v.health);b.cell.age=b.cell.age+step end
+    local info=V.growthInfo(v);v.cultivating=info.status=='Growing'
+    if v.cultivating then
+     local b=v.contents[1];local room=V.types[v.kind].capacity-population
+     local growth=(population+v.progress)*math.exp(info.rate*step)-population
+     local births=math.min(room,math.floor(growth+1e-10),math.floor(v.nutrients/.025))
+     b.count=b.count+births;v.totalBirths=(v.totalBirths or 0)+births;v.nutrients=math.max(0,v.nutrients-births*.025);v.waste=math.min(1,v.waste+births*.02)
+     v.progress=births>=room and 0 or math.min(.999999,math.max(0,growth-births))
+    end
    end
+   v.cultivating=V.growthInfo(v).status=='Growing'
   end
  end
 end

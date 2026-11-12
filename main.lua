@@ -1,7 +1,8 @@
 local B=require('biology');local Habi=require('habitat');local Units=require('units');local Library=require('cell_library');local Forge=require('forge_ui');local HabitatView=require('habitat_view')
 local G=require('genome');local R=require('rendering');local U=require('research');local S=require('persistence');local V=require('vessels');local VesselUI=require('vessel_ui')
 local Host=require('desktop_host');local DesktopPanel=require('desktop_panel');local DesktopApp=require('desktop_app');local desktopActive=false
-local s,tab,selected,donors,medium,environment,speed,paused,notice,toastTime
+local RealClock=require('realtime')
+local s,tab,selected,donors,medium,environment,notice,toastTime
 local buttons,fonts={},{}
 local W,H=1440,900
 local smoke=false
@@ -47,7 +48,7 @@ function love.load()
  for _,a in ipairs(arg or {}) do if a=='--audit' or a=='--ecology-audit' then local ok,result=pcall(function() return require(a=='--ecology-audit' and 'ecology_audit' or 'audit').run(B) end);if not ok then local f=io.open(love.filesystem.getSource()..'/audit-error.txt','w');if f then f:write(tostring(result));f:close() end end;love.event.quit(ok and result and 0 or 1);return end end
  for _,a in ipairs(arg or {}) do if a=='--test' then local ok,result=pcall(require('tests'),B);local f=io.open(love.filesystem.getSource()..'/test-results.txt','w');if f then f:write(ok and result or tostring(result));f:close() end;love.event.quit(ok and 0 or 1);return end end
  for _,n in ipairs({11,12,13,14,16,18,20,24,28,32,40}) do fonts[n]=love.graphics.newFont(n) end
- R.init();love.graphics.setBackgroundColor(C.bg);s=B.new();B.collect(s);tab=1;donors={};medium=1;environment=1;speed=1;paused=false;toastTime=0
+ R.init();love.graphics.setBackgroundColor(C.bg);s=B.new();B.collect(s);tab=1;donors={};medium=1;environment=1;toastTime=0
  V.ensure(s);B.log(s,'New experiment. Select a strain to begin cultivation. Load restores a manual save.')
  for _,a in ipairs(arg or {}) do
   if a=='--ui-test' then uiTest=true;developmentRun=true;s=B.new(34);B.collect(s);toastTime=0 end
@@ -60,7 +61,7 @@ function love.load()
  if enable then
   Host.init({B=B,getState=function() return s end,setState=function(value) s=value end,msg=msg,setDesktopActive=function(v) desktopActive=v end,
    classic=function() tab=6;Host.inspector=nil;Host.mode='settings' end,
-   newExperiment=function() s=B.new();B.collect(s);V.ensure(s);require('desktop_model').ensure(s);require('desktop_worlds').ensure(s);Host.saveBlocked=false;donors={};selected=nil;Host.sync();DesktopApp.page='Lab';msg('New desktop experiment started.') end,
+   newExperiment=function() s=B.new();B.collect(s);V.ensure(s);require('desktop_model').ensure(s);require('desktop_worlds').ensure(s);RealClock.start(s);Host.saveBlocked=false;donors={};selected=nil;Host.sync();DesktopApp.page='Lab';msg('New desktop experiment started.') end,
    openGenome=function(value) if not s.desktop.settings.classicUI then DesktopApp.openGenome(value) else require('genome_editor').begin(value);U.view='Genome Edit';tab=5 end;Host.panelVisible=true;require('native_windows').panel(true) end,
    open=function(mode,id)
     selected=nil
@@ -92,7 +93,7 @@ function love.update(dt)
   local f=io.open(love.filesystem.getSource()..'/ui-test-results.txt','w');if f then f:write(ok and 'PASS: real mouse/key callbacks for seeding, harvesting, freezing, thawing, donor selection, fusion, development, inspection, naming, extraction, gamete formation, fertilization, selective breeding.' or tostring(why));f:close() end
   love.event.quit(ok and 0 or 1);return
  end
- dt=math.min(dt,.1);if desktopActive then Host.update(dt) end;if not paused then B.update(s,dt*speed) end;toastTime=math.max(0,toastTime-dt)
+ local visualDt=math.min(dt,.1);if not developmentRun then RealClock.update(s,B.update) else B.update(s,dt) end;if desktopActive then Host.update(visualDt) end;toastTime=math.max(0,toastTime-visualDt)
 end
 local function genePanel(c,x,y)
  local e=G.express(c.genome)
@@ -103,15 +104,13 @@ local function genePanel(c,x,y)
 end
 local function header()
  text('C E L L A R I U M',32,23,24);text('L I V I N G   L A B O R A T O R Y',34,57,11,C.muted)
- text('EXPERIMENT  /  001',1030,26,12,C.muted);text(string.format('%.1f h',s.time),1030,47,20,C.mint)
+ text('EXPERIMENT  /  001',1030,26,12,C.muted);text(RealClock.wallTime(),1030,47,20,C.mint)
  button('Save',1180,26,76,36,save);button('Load',1264,26,76,36,function() if not loadSave() then msg('No saved experiment yet.') end end)
- button('New',1348,26,60,36,function() s=B.new();B.collect(s);V.ensure(s);tab=1;selected=nil;donors={};Library.filter=0;Library.page=1;Library.favoritesOnly=false;medium=1;environment=1;speed=1;paused=false;U.index=1;U.compare=nil;msg('New experiment started. Manual save has not been overwritten.') end)
+ button('New',1348,26,60,36,function() s=B.new();B.collect(s);V.ensure(s);tab=1;selected=nil;donors={};Library.filter=0;Library.page=1;Library.favoritesOnly=false;medium=1;environment=1;U.index=1;U.compare=nil;msg('New experiment started. Manual save has not been overwritten.') end)
  local names={'01   Cell workstations','02   Genome forge','03   Living habitat','04   Cryobank & records','05   Research'}
  for i,n in ipairs(names) do button(n,32+(i-1)*277,94,265,43,function() tab=i;selected=nil end,tab==i) end
  local alive=0;for _,o in ipairs(s.organisms) do if o.alive then alive=alive+1 end end
  text(#s.cells..' specimens    /    '..#s.frozen..' preserved    /    '..alive..' living    /    generation '..s.generation,34,158,13,C.muted)
- button(paused and 'Resume' or 'Pause',1160,148,85,32,function() paused=not paused end,paused)
- button(speed..'×',1254,148,86,32,function() speed=speed==1 and 3 or (speed==3 and 8 or 1) end)
  if desktopActive then button('New UI',1348,148,60,32,function() s.desktop.settings.classicUI=false;Host.open('settings') end) end
 end
 local function library(x,y,w,h,forForge)
@@ -132,7 +131,7 @@ local function habitat()
  local o=selected and s.organisms[selected]
  if o then organism(o,1235,355,2.2,s.time);text(o.name,1089,454,24);text('Generation '..o.generation..'  /  '..o.behavior,1089,493,14,C.mint);text('Parents: '..o.parents,1089,522,12,C.muted)
   for i,v in ipairs({{'Energy',o.energy},{'Health',o.health}}) do text(v[1],1089,556+(i-1)*35,12,C.muted);col(C.line);love.graphics.rectangle('fill',1160,561+(i-1)*35,220,6);col(i==1 and {.93,.76,.41} or C.mint);love.graphics.rectangle('fill',1160,561+(i-1)*35,220*v[2]/100,6) end
-  text('Age '..math.floor(o.age)..' h / '..(o.lifeStage or 'Juvenile'),1089,635,13,C.muted)
+  text('Age '..RealClock.biologyDuration(o.age)..' / '..(o.lifeStage or 'Juvenile'),1089,635,13,C.muted)
   text(string.format('%s / O2 %.0f%%',o.environment or 'land',(o.oxygen or 1)*100),1089,675,13);button('Inspect anatomy & chromosomes',1089,704,297,32,function() U.openOrganism(s,selected);tab=5 end)
   button('Sample living tissue',1089,770,297,42,function() if o.alive then for typ=1,7 do s.cells[#s.cells+1]=B.cell(s,typ,o.genome,'Organism '..o.id,o.generation) end;msg('Seven tissue samples collected with the inherited genome.') else msg('This organism is no longer alive.') end end)
  else text('Click a creature to inspect it.',1089,292,18);text('Creatures seek food and fresh water,\nrest when tired, mature and age.\n\nBones, muscles, nerves and organs\nshape their actual capabilities.\n\nCompatible mature pairs can breed\nautomatically when well nourished.\nOffspring inherit chromosomes from\nboth parents.\n\nClick a creature, then inspect its\nanatomy and chromosomes to\nunderstand its strengths and costs.',1089,342,14,C.muted) end
@@ -163,14 +162,14 @@ function love.draw()
  if desktopActive and not s.desktop.settings.classicUI then DesktopApp.draw(s,{register=function(x,y,w,h,fn,label) buttons[#buttons+1]={x=x,y=y,w=w,h=h,fn=fn,label=label} end});love.graphics.pop();return end
  if not gallery then header() end
  if gallery then drawGallery() elseif tab==1 then cultivation() elseif tab==2 then forge() elseif tab==3 then habitat() elseif tab==4 then records() elseif tab==6 then DesktopPanel.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B}) else U.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B}) end
- if not gallery then text('SPACE pause   ·   1–5 workspaces   ·   S save   ·   Click creatures to inspect',34,875,11,C.muted);text('PROCEDURAL LIFE / SEEDED GENETICS',1110,875,11,C.muted) end
+ if not gallery then text('PC real time   ·   1–5 workspaces   ·   S save   ·   Click creatures to inspect',34,875,11,C.muted);text('PROCEDURAL LIFE / SEEDED GENETICS',1110,875,11,C.muted) end
  if toastTime>0 and notice then col({.12,.25,.23},.98);love.graphics.rectangle('fill',320,822,760,45,8);text(notice,338,836,14,C.mint) end
  love.graphics.pop()
  if smoke then smoke=false;love.graphics.captureScreenshot(function(data) local bytes=data:encode('png');local f=io.open(love.filesystem.getSource()..'/preview.png','wb');if f then f:write(bytes:getString());f:close() end;love.event.quit() end) end
 end
 function love.mousepressed(mx,my,b)
  if b~=1 then return end;local x,y=mx/love.graphics.getWidth()*W,my/love.graphics.getHeight()*H
- for i=#buttons,1,-1 do local v=buttons[i];if x>=v.x and x<=v.x+v.w and y>=v.y and y<=v.y+v.h then v.fn();return end end
+ for i=#buttons,1,-1 do local v=buttons[i];if x>=v.x and x<=v.x+v.w and y>=v.y and y<=v.y+v.h then if not RealClock.sync(s,B.update) then msg('Synchronizing elapsed PC time. Please wait.') else v.fn() end;return end end
  if desktopActive and not s.desktop.settings.classicUI then return end
  if tab==5 then U.mousepressed(x,y) end
  if tab==3 then local dist=50^2;selected=nil;for i,o in ipairs(s.organisms) do local d=(x-(49+o.x*981))^2+(y-(256+o.y*576-(o.altitude or 0)*65))^2;if d<dist then selected=i;dist=d end end end
@@ -181,7 +180,7 @@ function love.keypressed(k)
  elseif tab==6 and DesktopPanel.keypressed(k,s) then return elseif tab==5 and U.keypressed(k,s) then return end
  if k=='q' and love.keyboard.isDown('lctrl','rctrl') then Host.exiting=true;love.event.quit();return end
  if k=='escape' and desktopActive then Host.hidePanel();return end
- if k=='space' then paused=not paused elseif k=='s' then save() elseif (not desktopActive or s.desktop.settings.classicUI) and tonumber(k) and tonumber(k)>=1 and tonumber(k)<=6 then tab=tonumber(k);selected=nil end
+ if k=='s' then save() elseif (not desktopActive or s.desktop.settings.classicUI) and tonumber(k) and tonumber(k)>=1 and tonumber(k)<=6 then tab=tonumber(k);selected=nil end
 end
 function love.quit() if desktopActive then if not Host.exiting then Host.hidePanel();return true end;Host.shutdown() end end
 function love.filedropped(file)

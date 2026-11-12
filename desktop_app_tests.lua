@@ -20,7 +20,7 @@ return function(B,test)
   local s=fixture();local cleanup=bind(s);assert(not s.desktop.settings.classicUI);App.openGenome(s.cells[1]);App.preview=false;App.record=1;App.vessel=1;App.source=1
   for _,page in ipairs({'Lab','Cultures','Genome Forge','Assembly','Incubation','Habitats','Records','Research','Cryobank','Behavior','Settings'}) do local buttons=draw(s,page);assert(#buttons>8,page) end
   for _,kind in ipairs({'cells','materials','organisms'}) do App.recordType=kind;App.record=1;draw(s,'Records') end
-  local buttons,canvas=draw(s,'Settings');local found=false;for _,b in ipairs(buttons) do if b.label=='Classic interface: OFF' then found=true end end;assert(found and not s.desktop.settings.classicUI)
+  local buttons,canvas=draw(s,'Settings');local found=false;for _,b in ipairs(buttons) do if b.label=='Classic interface: OFF' then found=true end;local label=b.label:lower();assert(not label:find('pause') and not label:find('speed') and not label:find('offline catch'),'Time control exposed in Settings') end;assert(found and not s.desktop.settings.classicUI)
   App.page='Genome Forge';E.begin({id=99,name='Audited reference',genome=G.copy(require('audit_examples').compact.genome)});App.name='Edited reference';local _,image=draw(s,'Genome Forge')
   local base=love.filesystem.isFused() and love.filesystem.getSourceBaseDirectory() or love.filesystem.getSource();local file=assert(io.open(base..'/desktop-forge-preview.png','wb'));file:write(image:newImageData():encode('png'):getString());file:close();cleanup()
  end)
