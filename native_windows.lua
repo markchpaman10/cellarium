@@ -56,10 +56,13 @@ callback=ffi.cast('WNDPROC',function(hwnd,msg,wp,lp)
  if msg==0x7e or msg==0x2e0 then push{type='displays'};return 0 end
  if msg==0x10 then if win then push{type='hide',id=win.id} else push{type='exit'} end;return 0 end
  if win then
+  -- Isolate scripted test HWNDs from ambient physical mouse input. Test runs
+  -- must not capture the user's mouse or let their movement corrupt a gesture.
+  if W.testing and not W.testDispatch and msg>=0x200 and msg<=0x20e then return user.DefWindowProcA(hwnd,msg,wp,lp) end
   if msg==0x21 then return 3 end -- MA_NOACTIVATE: objects do not steal typing focus.
-  if msg==0x201 then local x,y=xy(lp);W.pointerOwner=win.id;user.SetCapture(hwnd);push{type='down',id=win.id,x=x,y=y,cursor=eventCursor(hwnd,x,y)};return 0 end
+  if msg==0x201 then local x,y=xy(lp);W.pointerOwner=win.id;if not W.testing then user.SetCapture(hwnd) end;push{type='down',id=win.id,x=x,y=y,cursor=eventCursor(hwnd,x,y)};return 0 end
   if msg==0x200 then if W.pointerOwner==win.id then local x,y=xy(lp);push{type='move',id=win.id,x=x,y=y,cursor=eventCursor(hwnd,x,y)} end;return 0 end
-  if msg==0x202 then W.pointerOwner=nil;user.ReleaseCapture();local x,y=xy(lp);push{type='up',id=win.id,x=x,y=y,cursor=eventCursor(hwnd,x,y)};return 0 end
+  if msg==0x202 then W.pointerOwner=nil;if not W.testing then user.ReleaseCapture() end;local x,y=xy(lp);push{type='up',id=win.id,x=x,y=y,cursor=eventCursor(hwnd,x,y)};return 0 end
   if msg==0x215 then push{type='cancelDrag',id=win.id};return 0 end
   if msg==0x205 then push{type='objectMenu',id=win.id};return 0 end
   if msg==0x20a then local delta=bit.arshift(tonumber(wp),16);push{type='wheel',id=win.id,delta=delta};return 0 end
@@ -68,6 +71,7 @@ callback=ffi.cast('WNDPROC',function(hwnd,msg,wp,lp)
  return user.DefWindowProcA(hwnd,msg,wp,lp)
 end)
 function W.init(options)
+ W.testing=options and options.test==true
  -- SDL may have initialized first. Thread context covers all native HWNDs and cursor coordinates.
  pcall(function() user.SetProcessDpiAwarenessContext(ffi.cast('HANDLE',-4));user.SetThreadDpiAwarenessContext(ffi.cast('HANDLE',-4)) end)
  W.instance=kernel.GetModuleHandleA(nil);W.className=options and options.test and 'CellariumDesktopObjectsTestV1' or 'CellariumDesktopObjectsV1';W.callback=callback
@@ -118,7 +122,7 @@ function W.present(win,data,x,y,topmost,layer)
 end
 function W.move(win,x,y) user.SetWindowPos(win.hwnd,nil,math.floor(x),math.floor(y),0,0,bit.bor(1,4,0x10)) end
 function W.pointer() return cursor(),bit.band(tonumber(user.GetAsyncKeyState(1)),0x8000)~=0 end
-function W.endPointer() W.pointerOwner=nil;user.ReleaseCapture() end
+function W.endPointer() W.pointerOwner=nil;if not W.testing then user.ReleaseCapture() end end
 function W.hide(win) if win.visible then user.ShowWindow(win.hwnd,0);win.visible=false end end
 function W.destroy(win) releaseBitmap(win);W.windows[key(win.hwnd)]=nil;user.DestroyWindow(win.hwnd) end
 function W.pump()
@@ -145,7 +149,7 @@ function W.panel(visible)
  if W.sdlWindow then if visible then sdl.SDL_ShowWindow(W.sdlWindow);sdl.SDL_RaiseWindow(W.sdlWindow) else sdl.SDL_HideWindow(W.sdlWindow) end end
 end
 function W.atomicReplace(source,target) return kernel.MoveFileExA(source,target,bit.bor(1,8))~=0 end
-function W.testMessage(win,msg,wp,lp) return user.SendMessageA(win.hwnd,msg,wp or 0,lp or 0) end
+function W.testMessage(win,msg,wp,lp) W.testDispatch=true;local result=user.SendMessageA(win.hwnd,msg,wp or 0,lp or 0);W.testDispatch=false;return result end
 function W.bounds(win) local r=ffi.new('RECT[1]');user.GetWindowRect(win.hwnd,r);return {x=tonumber(r[0].left),y=tonumber(r[0].top),w=tonumber(r[0].right-r[0].left),h=tonumber(r[0].bottom-r[0].top)} end
 function W.windowAt(x,y) local p=ffi.new('POINT');p.x=x;p.y=y;return user.WindowFromPoint(p) end
 function W.isVisible(win) return user.IsWindowVisible(win.hwnd)~=0 end

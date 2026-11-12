@@ -31,6 +31,13 @@ PASS New Cultures UI introduces a counted cell through its real callback
 PASS New Forge UI previews, archives, installs and incubates without the old editor
 PASS Classic interface can only be enabled through its explicit Settings action
 PASS Genome dosage and regulation survive two-parent inheritance
+PASS Each container panel is fixed to its own ID, with no inventory or vial selectors
+PASS Changing one vial through its buttons leaves another vial unchanged
+PASS ID-bound vial operations survive vessel list reordering
+PASS Deleted container actions fail safely instead of falling through to another vial
+PASS DNA vials show one fixed record and send that exact DNA to the Forge
+PASS Container isolation, labels and contents persist through save restoration
+PASS Old container browser settings migrate without changing biological records
 PASS Native tray and independent layered windows initialize
 INFO Native move targeted actual second monitor.
 PASS Native Petri dish moves using signed Windows screen coordinates
@@ -43,4 +50,4 @@ PASS Right-click menus remain available on every item after a saved dropper sele
 PASS Workstation, Forge and culture controls operate in their own desktop windows
 PASS Atomic desktop save and restart decode preserve real state
 PASS Native cleanup removes every equipment HWND and tray icon
-45 result lines; 0 failures.
+52 result lines; 0 failures.

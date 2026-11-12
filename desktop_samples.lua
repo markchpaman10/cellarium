@@ -1,6 +1,11 @@
 -- One sample is one counted cell equivalent, never a free copy of a live cell.
 local G=require('genome');local V=require('vessels');local M=require('desktop_model');local T={}
 function T.vessel(s,id) for i,v in ipairs(s.vessels or {}) do if v.id==id then return v,i end end end
+function T.action(s,id,operation,...)
+ local vessel,index=T.vessel(s,id);if not vessel then return false,'This container is no longer available.' end
+ local fn=V[operation];if not fn then return false,'Unknown container action.' end
+ return fn(s,index,...)
+end
 function T.equal(a,b) return a.type==b.type and require('persistence').encode(a.genome)==require('persistence').encode(b.genome) end
 function T.collect(s,id,quantity)
  local pip=M.ensure(s).pipette;if pip.sample then return false,'Dispense or discard the loaded sample first.' end

@@ -12,11 +12,15 @@ The laboratory launches as individual transparent equipment windows and a real s
 
 1. A starting cell suspension is in the storage vial. Dishes start empty.
 2. Left-click and hold the dropper to drag it. Its whole visible body is a drag handle.
-3. Right-click the source vial and choose Use dropper: collect 1 cell eq. Alternatively, position the tip inside the source, right-click the dropper, and choose Collect sample beneath tip. Right-click always opens a context menu.
+3. Right-click the source vial and choose Take sample from this container. Alternatively, position the tip inside the source, right-click the dropper, and choose Collect sample beneath tip. Right-click always opens a context menu.
 4. Move the loaded tip into a Petri dish and release the left button. A droplet animation finishes the transfer; the source, sample and destination share real quantities. A failed transfer keeps the loaded sample.
-5. Click the dish without moving to expand its culture controls in its own desktop window. Start cultivation, refresh medium, adjust temperature, label it, withdraw cells or inspect its genome. Left-drag any visible part of a dish or vial to move it. Clicks on expanded buttons operate the controls. Containers reject closed/frozen/full/incompatible transfers. Sterilize the dropper from Lab before sampling another strain.
+5. Click the dish without moving to expand its culture controls in its own desktop window. Each container shows only its own contents. Use Open/Close cap, Take sample and Add held sample. Growth or freezing appears only for suitable container types. Extra readings are under Details. There is no cell or vial browsing inside a container; use the workstation for preparing and introducing loose cells. Left-drag any visible part of a dish or vial to move it. Clicks on expanded buttons operate the controls. Containers reject closed/frozen/full/incompatible transfers. Sterilize the dropper from Lab before sampling another strain.
 
 Normal-scale dish dots represent culture colonies / cell equivalents. Records offers an explicitly magnified cell schematic.
+
+## Individual containers
+
+Every physical vial, dish, flask and plate is bound to its own persistent ID. Opening it never switches to a different vial or browses global stock. A DNA vial shows only its own archived genome; Use this DNA in the Forge explicitly sends a copy of that record. Existing cultures, labels and quantities are preserved when upgrading.
 
 ## Forge and habitats
 

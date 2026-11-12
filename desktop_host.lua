@@ -16,6 +16,7 @@ function Host.sync()
  local existing={};for _,o in ipairs(d.objects) do existing[o.id]=true end;for id,win in pairs(Host.windows) do if not existing[id] then Native.destroy(win);Host.windows[id]=nil;Host.canvases[id]=nil end end
  local live={};for _,v in ipairs(s.vessels) do live[vesselKind(v)..'/'..v.id]=true end;for _,v in ipairs(s.materials) do live['dna/'..v.id]=true end
  for _,o in ipairs(d.objects) do
+  require('desktop_controls').prepare(o)
   local stale=(o.kind=='dish' or o.kind=='flask' or o.kind=='plate' or o.kind=='vial' or o.kind=='cryovial' or o.kind=='dna') and not live[o.kind..'/'..o.entityId]
   if o.kind=='organism' then stale=true;for _,v in ipairs(s.organisms) do if v.id==o.entityId and v.worldId=='desktop' then stale=false end end end
   if stale then o.visible=false;o.archivedEntity=true end
@@ -70,6 +71,14 @@ function Host.tray()
  local action=Native.menu(items);if action then action() end
 end
 function Host.objectMenu(o)
+ local Controls=require('desktop_controls')
+ if Controls.isContainer(o) then
+  local s=Host.state();local items={{label='Show contents',action=function() Controls.expand(s,o);Host.render(true) end}}
+  if T.vessel(s,o.entityId) then items[#items+1]={label=s.desktop.pipette.sample and 'Add held sample here' or 'Take sample from this container',action=function() if s.desktop.pipette.sample then Host.beginDispense(o) else local _,why=T.collect(s,o.entityId);Host.message(why) end end} end
+  items[#items+1]={label=o.locked and 'Unlock position' or 'Lock position',checked=o.locked,action=function() o.locked=not o.locked end}
+  items[#items+1]={label='Put away this container',action=function() o.stored=true end}
+  local action=Native.menu(items);if action then action() end;return
+ end
  local s=Host.state();local v=T.vessel(s,o.entityId);local items={{label='Inspect / Open',action=function() if o.kind=='forge' or o.kind=='workstation' or v then require('desktop_controls').expand(s,o);Host.render(true) else Host.open('inspect',o.id) end end},
   {label=o.locked and 'Unlock position' or 'Lock position',checked=o.locked,action=function() o.locked=not o.locked end},
   {label='Scale +',action=function() o.scale=math.min(1.8,o.scale+.1);M.restore(o,Host.monitors) end},{label='Scale -',action=function() o.scale=math.max(.5,o.scale-.1) end},
@@ -86,13 +95,13 @@ function Host.objectMenu(o)
 end
 function Host.targetAtTip(o)
  local s=Host.state();local mon=M.monitorAt(Host.monitors,o.x,o.y);local factor=o.scale*mon.dpi/96;local tipx,tipy=o.x+44*factor,o.y+214*factor;local target
- for _,candidate in ipairs(s.desktop.objects) do if candidate.id~=o.id and T.vessel(s,candidate.entityId) and M.isVisible(s.desktop,candidate) then local m=M.monitorAt(Host.monitors,candidate.x,candidate.y);local lx,ly=M.localPoint(candidate,m,tipx,tipy);local inside=lx>=0 and ly>=0 and lx<candidate.w and ly<candidate.h;if candidate.kind=='dish' then inside=(lx-118)^2+(ly-112)^2<91^2 end;if inside then target=candidate end end end
+ for _,candidate in ipairs(s.desktop.objects) do if candidate.id~=o.id and T.vessel(s,candidate.entityId) and M.isVisible(s.desktop,candidate) then local m=M.monitorAt(Host.monitors,candidate.x,candidate.y);local lx,ly=M.localPoint(candidate,m,tipx,tipy);local inside=lx>=0 and ly>=0 and lx<candidate.w and ly<candidate.h;if candidate.kind=='dish' and not candidate.config.expanded then inside=(lx-118)^2+(ly-112)^2<91^2 end;if inside then target=candidate end end end
  return target
 end
 function Host.click(o,x,y)
  local s=Host.state();s.desktop.selectedObject=o.id
  if o.kind=='dropper' then Host.open('inspect',o.id);return end
- if o.kind=='forge' or o.kind=='workstation' or T.vessel(s,o.entityId) then require('desktop_controls').expand(s,o);Host.render(true)
+ if o.kind=='forge' or o.kind=='workstation' or require('desktop_controls').isContainer(o) then require('desktop_controls').expand(s,o);Host.render(true)
  elseif o.group=='habitats' then local best,bd;for _,organism in ipairs(s.organisms) do if organism.worldId==o.entityId then local px,py=18+organism.x*(o.w-36),29+organism.y*(o.h-64);local dist=(px-x)^2+(py-y)^2;if not bd or dist<bd then best=organism;bd=dist end end end;if best and bd<35^2 then s.desktop.selectedOrganism=best.id end;Host.open('inspect',o.id)
  elseif o.kind=='organism' then s.desktop.selectedOrganism=o.entityId;Host.open('organism',o.entityId)
  else Host.open('inspect',o.id) end
@@ -101,7 +110,7 @@ function Host.event(e)
  local s=Host.state();local o=e.id and M.find(s,e.id)
  if e.type=='trayMenu' then Host.tray() elseif e.type=='openPanel' then Host.open('research') elseif e.type=='exit' then Host.exiting=true;love.event.quit()
  elseif e.type=='recovery' then M.setGroup(s,'laboratory',false);M.setGroup(s,'habitats',false);M.setGroup(s,'organisms',false);Host.open('settings')
- elseif e.type=='displays' then Host.monitors=Native.monitors();for _,v in ipairs(s.desktop.objects) do M.restore(v,Host.monitors) end
+ elseif e.type=='displays' then Host.monitors=Native.monitors();for _,v in ipairs(s.desktop.objects) do if not v.drag then M.restore(v,Host.monitors) end end
  elseif o then
   local monitor=M.monitorAt(Host.monitors,o.x,o.y);local factor=o.scale*monitor.dpi/96;local x,y=(e.x or 0)/factor,(e.y or 0)/factor
   if e.type=='down' then local control=require('desktop_controls').hit(o,x,y);Host.pressed={id=o.id,x=e.cursor.x,y=e.cursor.y,moved=false,control=control};s.desktop.selectedObject=o.id;s.desktop.tool=nil;if not control and not M.beginDrag(o,e.cursor) then Host.message('Position is locked. Right-click and choose Unlock position.') end
@@ -145,7 +154,7 @@ function Host.update(dt)
  for _,o in ipairs(d.objects) do if o.kind=='organism' and not o.drag then for _,v in ipairs(s.organisms) do if v.id==o.entityId and v.alive then local last=o.config.lastPosition or {x=v.x,y=v.y};o.x=o.x+(v.x-last.x)*1000;o.y=o.y+(v.y-last.y)*700;o.config.lastPosition={x=v.x,y=v.y};M.restore(o,Host.monitors,true) end end end end
  if Host.droplet then Host.droplet.time=Host.droplet.time+dt;d.animation={target=Host.droplet.target,progress=math.min(1,Host.droplet.time/Host.droplet.duration)};if Host.droplet.time>=Host.droplet.duration then local _,why=T.dispense(s,Host.droplet.entity);Host.message(why);Host.droplet=nil;d.animation=nil end end
  Host.timer=Host.timer+dt;Host.monitorTimer=Host.monitorTimer+dt
- if Host.monitorTimer>3 then Host.monitorTimer=0;local monitors=Native.monitors();if require('persistence').encode(monitors)~=require('persistence').encode(Host.monitors) then Host.monitors=monitors;for _,o in ipairs(d.objects) do M.restore(o,monitors) end end;Host.sync() end
+ if Host.monitorTimer>3 then Host.monitorTimer=0;local monitors=Native.monitors();if require('persistence').encode(monitors)~=require('persistence').encode(Host.monitors) then Host.monitors=monitors;for _,o in ipairs(d.objects) do if not o.drag then M.restore(o,monitors) end end end;Host.sync() end
  if Host.timer>.1 then Host.timer=0;Host.render() end
 end
 function Host.shutdown()

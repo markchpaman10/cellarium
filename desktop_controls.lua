@@ -6,10 +6,17 @@ local function color(c) love.graphics.setColor(c[1],c[2],c[3],c[4] or 1) end
 local function text(value,x,y,size,shade) size=size or 14;C.fonts[size]=C.fonts[size] or love.graphics.newFont(size);love.graphics.setFont(C.fonts[size]);color(shade or {.8,.91,.91});love.graphics.print(tostring(value),x,y) end
 local function say(o,value) o.config.notice=value;require('desktop_host').message(value) end
 local function result(o,ok,why) say(o,why or (ok and 'Done.' or 'Unavailable.')) end
+function C.isContainer(o) return ({dish=true,flask=true,plate=true,vial=true,cryovial=true,dna=true})[o.kind]==true end
+function C.prepare(o)
+ if not C.isContainer(o) or o.config.containerUI==4 then return end
+ o.config.containerUI=4;o.config.cell=nil;o.config.source=nil;o.config.sourceType=nil;o.config.vessel=nil;o.config.details=false
+ if o.config.expanded then o.w=440;o.h=354 end
+end
 function C.expand(s,o)
+ C.prepare(o)
  if o.config.expanded then return end
  o.config.collapsed={w=o.w,h=o.h};o.config.expanded=true
- if o.kind=='forge' then o.w=970;o.h=700 elseif o.kind=='workstation' then o.w=720;o.h=470 else o.w=640;o.h=450 end
+ if o.kind=='forge' then o.w=970;o.h=700 elseif o.kind=='workstation' then o.w=720;o.h=470 else o.w=440;o.h=354 end
  M.restore(o,require('desktop_host').monitors,true);M.remember(o,require('desktop_host').monitors)
 end
 function C.collapse(s,o)
@@ -19,7 +26,10 @@ end
 function C.hit(o,x,y) if not o.config.expanded then return end;for i=#(C.hits[o.id] or {}),1,-1 do local h=C.hits[o.id][i];if x>=h.x and x<h.x+h.w and y>=h.y and y<h.y+h.h then return h end end end
 local function openForge(s,source)
  if not source then return end;E.begin(source)
- for _,o in ipairs(s.desktop.objects) do if o.kind=='forge' then o.stored=false;o.visible=true;C.expand(s,o);break end end
+ for _,o in ipairs(s.desktop.objects) do if o.kind=='forge' then
+  for _,key in ipairs({'materials','cells'}) do for i,record in ipairs(s[key] or {}) do if record.id==source.id then o.config.sourceType=key;o.config.source=i end end end
+  o.stored=false;o.visible=true;C.expand(s,o);break
+ end end
 end
 function C.draw(s,o)
  if not o.config.expanded then return false end
@@ -30,8 +40,10 @@ function C.draw(s,o)
   hits[#hits+1]={id=label,x=x,y=y,w=w,h=h,fn=fn}
  end
  color({.03,.055,.07,.98});love.graphics.rectangle('fill',4,4,o.w-8,o.h-8,16);color({.34,.49,.51});love.graphics.rectangle('line',5,5,o.w-10,o.h-10,16)
- color({.16,.25,.28});love.graphics.rectangle('fill',12,12,o.w-24,48,10);text((o.kind=='forge' and 'GENOME FORGE' or o.kind=='workstation' and 'CELL WORKSTATION' or 'CULTURE / '..o.entityId)..'  •  DESKTOP CONTROLS',28,27,17)
- button('Collapse',o.w-112,22,85,29,function() C.collapse(s,o) end)
+ color({.16,.25,.28});love.graphics.rectangle('fill',12,12,o.w-24,48,10)
+ local title=o.kind=='forge' and 'GENOME FORGE' or o.kind=='workstation' and 'CELL WORKSTATION' or o.kind=='dna' and ('DNA VIAL #'..o.entityId) or ('CONTAINER #'..o.entityId)
+ text(title,28,27,17)
+ button(C.isContainer(o) and 'Done' or 'Collapse',o.w-112,22,85,29,function() C.collapse(s,o) end)
  for _,point in ipairs({{17,17},{o.w-17,17},{17,o.h-17},{o.w-17,o.h-17}}) do color({.5,.65,.66});love.graphics.circle('line',point[1],point[2],2) end
  local footer=cfg.notice or 'Drag the frame to move. Right-click always opens the context menu.';text(tostring(footer):sub(1,math.floor((o.w-45)/6)),24,o.h-28,11,{.57,.78,.75})
  if o.kind=='forge' then
@@ -76,23 +88,34 @@ function C.draw(s,o)
   button('Sperm precursor',248,346,212,35,function() result(o,B.precursor(s,cfg.cell,'Sperm')) end)
   button('Buy Petri dish / 12',472,346,223,35,function() result(o,V.add(s,1));require('desktop_host').sync() end)
   text('Blank cells '..(s.desktop.blankCells or 6)..' / credits '..s.credits..' / loose specimens '..#s.cells,26,407,15,{.56,.77,.75})
+ elseif o.kind=='dna' then
+  local dna;for _,record in ipairs(s.materials) do if record.id==o.entityId then dna=record;break end end
+  if not dna then text('This vial is unavailable.',26,90,19);return true end
+  text((dna.name or 'DNA template'):sub(1,32),26,84,19)
+  text('One stored genome template',26,124,15,{.56,.77,.75})
+  text('Genome '..G.hash(dna.genome)..' / '..G.marker(dna.genome),26,163,13)
+  text('DNA material — not a living cell culture.',26,199,13,{.56,.77,.75})
+  button('Use this DNA in the Forge',24,245,392,36,function() openForge(s,dna);say(o,'This vial\'s DNA copy is loaded in the desktop Forge.') end)
  else
-  local vessel,index=T.vessel(s,o.entityId);if not vessel then return true end
-  local bucket=vessel.contents[1];text((vessel.label or V.types[vessel.kind].name)..' / '..V.count(vessel)..' of '..V.types[vessel.kind].capacity..' cell equivalents',26,83,20)
-  text(require('units').temperature(vessel.temperature or 37)..' / nutrients '..math.floor(vessel.nutrients*100)..'% / contamination '..string.format('%.1f%%',vessel.contamination*100),26,122,14,{.56,.77,.75})
-  cfg.cell=math.max(1,math.min(cfg.cell or 1,math.max(1,#s.cells)));local cell=s.cells[cfg.cell]
-  button(cell and ('Loose cell #'..cell.id..' / '..B.types[cell.type]..' >') or 'No loose cells',24,166,388,34,function() cfg.cell=cfg.cell%math.max(1,#s.cells)+1 end)
-  button('Introduce cell',426,166,188,34,function() result(o,T.seed(s,vessel.id,cfg.cell)) end)
-  button('Collect sample',24,218,185,34,function() result(o,T.collect(s,vessel.id)) end)
-  button('Dispense sample',222,218,185,34,function() require('desktop_host').beginDispense(o) end)
-  button(vessel.closed and 'Open container' or 'Close container',420,218,194,34,function() vessel.closed=not vessel.closed end)
-  button('Cultivate',24,270,185,34,function() result(o,V.cultivate(s,index,1)) end)
-  button('Fresh medium',222,270,185,34,function() vessel.nutrients=1;vessel.waste=0;say(o,'Medium refreshed; culture retained.') end)
-  button('Withdraw cell',420,270,194,34,function() result(o,V.withdraw(s,index)) end)
-  button('- 4 F',24,322,86,34,function() vessel.temperature=math.max(15,(vessel.temperature or 37)-4/1.8) end);button('+ 4 F',121,322,88,34,function() vessel.temperature=math.min(60,(vessel.temperature or 37)+4/1.8) end)
-  button(vessel.frozen and 'Thaw' or 'Freeze cryovial',222,322,185,34,function() if vessel.frozen then result(o,V.thaw(s,index)) else result(o,V.freeze(s,index)) end end)
-  button('Genome to Forge',420,322,194,34,function() if bucket then openForge(s,bucket.cell);say(o,'Culture genome opened in the desktop Forge.') else say(o,'The container is empty.') end end)
-  text(vessel.cultivating and 'Culture is growing. Contents stay attached to this container.' or 'Idle / '..(vessel.frozen and 'frozen' or 'living culture'),26,384,14,{.56,.77,.75})
+  local vessel=T.vessel(s,o.entityId);if not vessel then text('This container is unavailable.',26,90,19);return true end
+  local bucket=vessel.contents[1];local growing=V.types[vessel.kind].growth>0
+  text((vessel.label or V.types[vessel.kind].name):sub(1,30),26,82,19)
+  text(bucket and (V.count(vessel)..' / '..V.types[vessel.kind].capacity..' '..B.types[bucket.cell.type]..' cell equivalents') or 'Empty',26,118,17,{.56,.82,.75})
+  text(bucket and (bucket.cell.name or 'Strain '..bucket.cell.strain):sub(1,40) or 'Add a sample using the dropper.',26,152,13)
+  text(vessel.frozen and 'Frozen' or vessel.cultivating and 'Growing culture' or 'Not growing',26,176,12,{.56,.77,.75})
+  button(vessel.closed and 'Open cap / lid' or 'Close cap / lid',24,199,392,34,function() local own=T.vessel(s,o.entityId);if own then own.closed=not own.closed end end)
+  button('Take sample',24,245,190,34,function() result(o,T.collect(s,o.entityId)) end)
+  button('Add held sample',226,245,190,34,function() require('desktop_host').beginDispense(o) end)
+  if vessel.kind==5 then button(vessel.frozen and 'Thaw this vial' or 'Freeze this vial',24,293,190,32,function() local own=T.vessel(s,o.entityId);if own then result(o,T.action(s,o.entityId,own.frozen and 'thaw' or 'freeze')) end end)
+  elseif growing then button(vessel.cultivating and 'Pause growth' or 'Grow culture',24,293,190,32,function() local own=T.vessel(s,o.entityId);if own and own.cultivating then own.cultivating=false;say(o,'Growth paused in this container.') else result(o,T.action(s,o.entityId,'cultivate',1)) end end) end
+  button(cfg.details and 'Less detail' or 'Details',226,293,190,32,function() cfg.details=not cfg.details;o.h=cfg.details and 466 or 354;M.restore(o,require('desktop_host').monitors,true);M.remember(o,require('desktop_host').monitors) end)
+  if cfg.details then
+   text(require('units').temperature(vessel.temperature or 37)..' / nutrients '..math.floor(vessel.nutrients*100)..'%',26,342,13,{.56,.77,.75})
+   text('Health '..math.floor((vessel.health or 1)*100)..'% / contamination '..string.format('%.1f%%',vessel.contamination*100),26,370,13,{.56,.77,.75})
+   button('- 4 F',24,398,86,30,function() local own=T.vessel(s,o.entityId);if own then own.temperature=math.max(15,(own.temperature or 37)-4/1.8) end end)
+   button('+ 4 F',122,398,92,30,function() local own=T.vessel(s,o.entityId);if own then own.temperature=math.min(60,(own.temperature or 37)+4/1.8) end end)
+   if growing then button('Refresh medium',226,398,190,30,function() local own=T.vessel(s,o.entityId);if own then own.nutrients=1;own.waste=0;say(o,'Medium refreshed in this container.') end end) end
+  end
  end
  return true
 end

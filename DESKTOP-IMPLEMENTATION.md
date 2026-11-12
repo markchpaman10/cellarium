@@ -1,5 +1,13 @@
 # Desktop laboratory implementation and verification
 
+## Individual container simplification — revision 4
+
+Every physical container panel is fixed to its persistent entity ID. Global loose-cell, vessel and DNA selectors have been removed from individual container panels. Those selectors remain only in the central workstation/Forge/records interfaces. Clicking a DNA vial now opens its own small DNA record panel instead of the shared Forge browser. Use this DNA in the Forge selects that exact archive and edits a copy; the vial itself remains unchanged.
+
+Living container controls are reduced to contents, cap/lid, Take sample and Add held sample. Growth is shown only for cultivation containers, and freeze/thaw only for cryovials. Extra environment readings and adjustments are behind Details. Right-click container menus now have only Show contents, the applicable sample action, position lock and Put away; DNA has no living-cell sample action. Containers do not contain inventory cycling controls. Operations that use an indexed vessel API resolve the container ID again when invoked, preventing a stale index from targeting another container after reordering or deletion.
+
+Existing expanded panels migrate to the compact layout without changing culture contents, labels, identities or saved biological conditions. Seven added regression groups cover absence of inventory selectors, independent actions on two vials, list reordering, missing/deleted containers, distinct DNA vials and exact Forge assignment, persistence round trips and old-panel migration. Together with existing native tests, 51 groups pass. Native movement, context-menu availability and direct workstation/Forge/container controls remain covered. The rest of this document describes earlier revisions where not superseded by this section.
+
 ## Input repair and direct desktop controls — revision 3
 
 Right-click now always opens the object's context menu, including the dropper and containers. The persisted dropper-tool flag is cleared and no longer intercepts other object clicks. Collection requires an explicit menu or desktop button action. Left-drag any visible object body; a five-pixel threshold distinguishes moving from clicking. Embedded buttons consume their own clicks without dragging. Native mouse events retain their event-time screen coordinates. A pointer poll runs only during a gesture begun on this application's equipment, allowing dragging to continue if SDL or a nonactivating window loses capture. No global input hook is installed. Reset Layout now respects its new positions instead of immediately restoring old preferred coordinates.
