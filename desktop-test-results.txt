@@ -1,0 +1,44 @@
+PASS Desktop object identities and common properties
+PASS Petri drag across negative-coordinate and mixed-DPI monitors
+PASS Locked object rejects dragging
+PASS Monitor disconnection uses visible fallback without losing preferred position
+PASS Resolution and DPI changes preserve logical offsets and clamp on-screen
+PASS Layout restoration preserves dimensions, locks and identities
+PASS Hiding laboratory preserves equipment, samples and independent habitat visibility
+PASS Dropper withdraws counted sample, then adds it to the same persistent destination
+PASS No unlimited cells from repeated collection or arbitrary loose-cell quantity
+PASS Empty, closed and frozen sources reject sample collection
+PASS Incompatible destination rejects transfer without losing loaded sample
+PASS Full, closed, frozen and unsuitable targets reject without mutation
+PASS Cross-contamination follows reused dropper, sterilization removes residue
+PASS Cultures progress while laboratory is hidden; frozen cultures suspend
+PASS Vessel temperature and contamination change biological growth
+PASS Genome Undo restores both alleles and provenance
+PASS Forge dosage and regulation have real expression effects, support undo
+PASS Forge splice, archive and exact installation retain canonical genome
+PASS Genome editor callbacks still preview, archive and incubate viable edited organism
+PASS Habitat movement uses same organism identity, genome, anatomy and memories
+PASS Aquariums keep distinct water chemistry and physiological exposure
+PASS Partitioned worlds do not duplicate age increments or organisms
+PASS World queues retain embryos through development without ID duplication
+PASS Research records refer to the same organisms used by habitat simulation
+PASS Versioned envelope preserves layout, containers, loaded samples and editor draft
+PASS Version-4 manual saves migrate without discarding cells, embryos or old cultures
+PASS Invalid and future saves are rejected
+PASS Procedural equipment has transparent exteriors and visible culture interiors
+PASS New UI defaults to desktop mode and opens every equipment record without classic rendering
+PASS New Cultures UI introduces a counted cell through its real callback
+PASS New Forge UI previews, archives, installs and incubates without the old editor
+PASS Classic interface can only be enabled through its explicit Settings action
+PASS Genome dosage and regulation survive two-parent inheritance
+PASS Native tray and independent layered windows initialize
+INFO Native move targeted actual second monitor.
+PASS Native Petri dish moves using signed Windows screen coordinates
+PASS Native host routes counted dropper transfer to actual vessel records
+PASS Native hide and restore keeps all IDs, handles, locks, layouts and sample quantities
+PASS Native message pump receives input for our own objects only
+PASS Transparent Petri corners pass native hit testing while culture pixels receive input
+PASS Left-button drag and right-click aspiration work with actual native events
+PASS Atomic desktop save and restart decode preserve real state
+PASS Native cleanup removes every equipment HWND and tray icon
+43 result lines; 0 failures.

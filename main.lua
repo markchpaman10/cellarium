@@ -1,5 +1,6 @@
 local B=require('biology');local Habi=require('habitat');local Units=require('units');local Library=require('cell_library');local Forge=require('forge_ui');local HabitatView=require('habitat_view')
 local G=require('genome');local R=require('rendering');local U=require('research');local S=require('persistence');local V=require('vessels');local VesselUI=require('vessel_ui')
+local Host=require('desktop_host');local DesktopPanel=require('desktop_panel');local DesktopApp=require('desktop_app');local desktopActive=false
 local s,tab,selected,donors,medium,environment,speed,paused,notice,toastTime
 local buttons,fonts={},{}
 local W,H=1440,900
@@ -9,7 +10,7 @@ local uiTest=false
 local gallery=false
 local C={bg={.027,.047,.063},panel={.048,.077,.094},line={.12,.20,.23},text={.86,.92,.91},muted={.43,.58,.61},mint={.45,.95,.76}}
 local function col(c,a) love.graphics.setColor(c[1],c[2],c[3],a or 1) end
-local function text(t,x,y,size,c) love.graphics.setFont(fonts[size or 14]);col(c or C.text);love.graphics.print(t,x,y) end
+local function text(t,x,y,size,c) size=size or 14;fonts[size]=fonts[size] or love.graphics.newFont(size);love.graphics.setFont(fonts[size]);col(c or C.text);love.graphics.print(t,x,y) end
 local function panel(x,y,w,h) col(C.panel);love.graphics.rectangle('fill',x,y,w,h,12);col(C.line);love.graphics.rectangle('line',x,y,w,h,12) end
 local function msg(t) notice=t;toastTime=4 end
 local function button(label,x,y,w,h,fn,active,disabled)
@@ -34,13 +35,15 @@ local function cell(x,y,r,typ,g,t)
  if typ==3 then for i=1,6 do local a=i*math.pi/3;col(c,.4);love.graphics.line(x+math.cos(a)*r,y+math.sin(a)*r,x+math.cos(a+.16)*r*1.4,y+math.sin(a+.16)*r*1.4) end end
 end
 local function organism(o,x,y,scale,t,detail) local adjusted=scale*.65;if scale>1 then adjusted=R.fitScale(o.anatomy,270,185,adjusted) end;R.draw(o,x,y,adjusted,t,'External') end
-local function save() local ok,why=S.save(s);msg(ok and 'Experiment saved with canonical genomes and anatomy.' or ('Save failed: '..tostring(why))) end
+local function save() if desktopActive then Host.save();return end;local ok,why=S.save(s);msg(ok and 'Experiment saved with canonical genomes and anatomy.' or ('Save failed: '..tostring(why))) end
 local function loadSave()
+ if desktopActive then local restored,why=require('desktop_store').load(B);if restored then s=restored;donors={};selected=nil;Host.saveBlocked=false;Host.sync();msg('Desktop experiment restored.');return true end;msg(tostring(why));return false end
  local raw=love.filesystem.read('experiment.lua');if not raw then return false end
  local data,why=S.decode(raw,B);if data then s=data;V.ensure(s);donors={};selected=nil;environment=s.habitat.environment;msg('Experiment restored.');return true end
  msg('Save could not load: '..tostring(why));return false
 end
 function love.load()
+ for _,a in ipairs(arg or {}) do if a=='--desktop-test' or a=='--desktop-native-test' then local ok,result=xpcall(function() return require('desktop_tests').run(B,a=='--desktop-native-test') end,debug.traceback);local f=assert(io.open((love.filesystem.isFused() and love.filesystem.getSourceBaseDirectory() or love.filesystem.getSource())..'/desktop-test-results.txt','w'));f:write(result);f:close();love.event.quit(ok and 0 or 1);return end end
  for _,a in ipairs(arg or {}) do if a=='--audit' or a=='--ecology-audit' then local ok,result=pcall(function() return require(a=='--ecology-audit' and 'ecology_audit' or 'audit').run(B) end);if not ok then local f=io.open(love.filesystem.getSource()..'/audit-error.txt','w');if f then f:write(tostring(result));f:close() end end;love.event.quit(ok and result and 0 or 1);return end end
  for _,a in ipairs(arg or {}) do if a=='--test' then local ok,result=pcall(require('tests'),B);local f=io.open(love.filesystem.getSource()..'/test-results.txt','w');if f then f:write(ok and result or tostring(result));f:close() end;love.event.quit(ok and 0 or 1);return end end
  for _,n in ipairs({11,12,13,14,16,18,20,24,28,32,40}) do fonts[n]=love.graphics.newFont(n) end
@@ -52,6 +55,20 @@ function love.load()
    if a~='--smoke' then for i=1,7 do local o=B.spawn(s,s.cells[i].genome,'Render check',0);if o then o.maturity=1;o.bodyCondition=1 end end;for i=1,40 do B.update(s,.05,1) end;tab=3;selected=1 end
    if a=='--habitat-smoke' then for i=1,180 do B.update(s,.1) end elseif a=='--diversity-smoke' then gallery=true;local fixtures=require('audit_examples');s=B.new(42);for _,key in ipairs({'compact','elongatedLimbless','multilegged','radial','asymmetric','branched'}) do local specimen=fixtures[key];local o=assert(B.spawn(s,G.copy(specimen.genome),'Audit sample '..specimen.sample,0));o.name=key;o.sample=specimen.sample;o.maturity=1;o.behavior='Exploring' end elseif a=='--development-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Development' elseif a=='--development-genome-smoke' then tab=5;U.source='cells';U.index=1;U.view='Genome';U.genomePage=2 elseif a=='--ecology-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Environment' elseif a=='--defenses-smoke' then tab=5;U.openOrganism(s,1);U.layer='Defenses' elseif a=='--ecology-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Environment' elseif a=='--defenses-smoke' then tab=5;U.openOrganism(s,1);U.layer='Defenses' elseif a=='--genome-smoke' then tab=5;U.view='Genome' elseif a=='--anatomy-smoke' then tab=5;U.openOrganism(s,1);U.layer='Organs' elseif a=='--engineering-smoke' then tab=5;U.view='Engineering';B.precursor(s,1,'Egg');B.precursor(s,1,'Sperm') elseif a=='--physiology-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Physiology' elseif a=='--incubation-smoke' then B.combine(s,{s.cells[1].id,s.cells[2].id,s.cells[3].id});B.update(s,12,1);tab=2 elseif a=='--culture-smoke' then B.cultivate(s,1,1);tab=5;U.view='Cultures' elseif a=='--forge-smoke' then tab=2;donors={s.cells[1].id,s.cells[2].id,s.cells[3].id} end
   end
+ end
+ local enable=true;for _,a in ipairs(arg or {}) do if a=='--no-desktop' or a:find('smoke') or a=='--ui-test' then enable=false end end
+ if enable then
+  Host.init({B=B,getState=function() return s end,setState=function(value) s=value end,msg=msg,setDesktopActive=function(v) desktopActive=v end,
+   classic=function() tab=6;Host.inspector=nil;Host.mode='settings' end,
+   newExperiment=function() s=B.new();B.collect(s);V.ensure(s);require('desktop_model').ensure(s);require('desktop_worlds').ensure(s);Host.saveBlocked=false;donors={};selected=nil;Host.sync();DesktopApp.page='Lab';msg('New desktop experiment started.') end,
+   openGenome=function(value) if not s.desktop.settings.classicUI then DesktopApp.openGenome(value) else require('genome_editor').begin(value);U.view='Genome Edit';tab=5 end;Host.panelVisible=true;require('native_windows').panel(true) end,
+   open=function(mode,id)
+    selected=nil
+    if not s.desktop.settings.classicUI then DesktopApp.open(mode,id,s);return end
+    if mode=='workstation' then tab=1 elseif mode=='forge' then tab=2 elseif mode=='research' then tab=4 elseif mode=='genomes' then tab=5;U.view='Genome';U.source='materials';U.index=1
+    elseif mode=='organisms' or mode=='organism' then tab=5;U.view='Physiology';U.source='organisms';U.index=1;for i,v in ipairs(s.organisms) do if v.id==id then U.index=i end end
+    else tab=6 end
+   end})
  end
 end
 function love.update(dt)
@@ -75,7 +92,7 @@ function love.update(dt)
   local f=io.open(love.filesystem.getSource()..'/ui-test-results.txt','w');if f then f:write(ok and 'PASS: real mouse/key callbacks for seeding, harvesting, freezing, thawing, donor selection, fusion, development, inspection, naming, extraction, gamete formation, fertilization, selective breeding.' or tostring(why));f:close() end
   love.event.quit(ok and 0 or 1);return
  end
- dt=math.min(dt,.1);if not paused then B.update(s,dt*speed) end;toastTime=math.max(0,toastTime-dt)
+ dt=math.min(dt,.1);if desktopActive then Host.update(dt) end;if not paused then B.update(s,dt*speed) end;toastTime=math.max(0,toastTime-dt)
 end
 local function genePanel(c,x,y)
  local e=G.express(c.genome)
@@ -95,6 +112,7 @@ local function header()
  text(#s.cells..' specimens    /    '..#s.frozen..' preserved    /    '..alive..' living    /    generation '..s.generation,34,158,13,C.muted)
  button(paused and 'Resume' or 'Pause',1160,148,85,32,function() paused=not paused end,paused)
  button(speed..'×',1254,148,86,32,function() speed=speed==1 and 3 or (speed==3 and 8 or 1) end)
+ if desktopActive then button('New UI',1348,148,60,32,function() s.desktop.settings.classicUI=false;Host.open('settings') end) end
 end
 local function library(x,y,w,h,forForge)
  Library.draw(s,x,y,w,h,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B,selected=selected,donors=donors,select=function(i) selected=i end})
@@ -141,8 +159,10 @@ local function drawGallery()
 end
 function love.draw()
  if not s then return end
- love.graphics.push();love.graphics.scale(love.graphics.getWidth()/W,love.graphics.getHeight()/H);buttons={};if not gallery then header() end
- if gallery then drawGallery() elseif tab==1 then cultivation() elseif tab==2 then forge() elseif tab==3 then habitat() elseif tab==4 then records() else U.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B}) end
+ love.graphics.push();love.graphics.scale(love.graphics.getWidth()/W,love.graphics.getHeight()/H);buttons={}
+ if desktopActive and not s.desktop.settings.classicUI then DesktopApp.draw(s,{register=function(x,y,w,h,fn,label) buttons[#buttons+1]={x=x,y=y,w=w,h=h,fn=fn,label=label} end});love.graphics.pop();return end
+ if not gallery then header() end
+ if gallery then drawGallery() elseif tab==1 then cultivation() elseif tab==2 then forge() elseif tab==3 then habitat() elseif tab==4 then records() elseif tab==6 then DesktopPanel.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B}) else U.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B}) end
  if not gallery then text('SPACE pause   ·   1–5 workspaces   ·   S save   ·   Click creatures to inspect',34,875,11,C.muted);text('PROCEDURAL LIFE / SEEDED GENETICS',1110,875,11,C.muted) end
  if toastTime>0 and notice then col({.12,.25,.23},.98);love.graphics.rectangle('fill',320,822,760,45,8);text(notice,338,836,14,C.mint) end
  love.graphics.pop()
@@ -151,10 +171,45 @@ end
 function love.mousepressed(mx,my,b)
  if b~=1 then return end;local x,y=mx/love.graphics.getWidth()*W,my/love.graphics.getHeight()*H
  for i=#buttons,1,-1 do local v=buttons[i];if x>=v.x and x<=v.x+v.w and y>=v.y and y<=v.y+v.h then v.fn();return end end
+ if desktopActive and not s.desktop.settings.classicUI then return end
  if tab==5 then U.mousepressed(x,y) end
  if tab==3 then local dist=50^2;selected=nil;for i,o in ipairs(s.organisms) do local d=(x-(49+o.x*981))^2+(y-(256+o.y*576-(o.altitude or 0)*65))^2;if d<dist then selected=i;dist=d end end end
 end
-function love.textinput(t) if tab==5 then U.textinput(t) end end
-function love.keypressed(k) if tab==5 and U.keypressed(k,s) then return end;if k=='space' then paused=not paused elseif k=='s' then save() elseif tonumber(k) and tonumber(k)>=1 and tonumber(k)<=5 then tab=tonumber(k);selected=nil end end
--- Early development: persistence is explicit only (Save button or S).
-function love.quit() end
+function love.textinput(t) if desktopActive and not s.desktop.settings.classicUI then DesktopApp.textinput(t) elseif tab==6 then DesktopPanel.textinput(t) elseif tab==5 then U.textinput(t) end end
+function love.keypressed(k)
+ if desktopActive and not s.desktop.settings.classicUI then if DesktopApp.keypressed(k) then return end
+ elseif tab==6 and DesktopPanel.keypressed(k,s) then return elseif tab==5 and U.keypressed(k,s) then return end
+ if k=='q' and love.keyboard.isDown('lctrl','rctrl') then Host.exiting=true;love.event.quit();return end
+ if k=='escape' and desktopActive then Host.hidePanel();return end
+ if k=='space' then paused=not paused elseif k=='s' then save() elseif (not desktopActive or s.desktop.settings.classicUI) and tonumber(k) and tonumber(k)>=1 and tonumber(k)<=6 then tab=tonumber(k);selected=nil end
+end
+function love.quit() if desktopActive then if not Host.exiting then Host.hidePanel();return true end;Host.shutdown() end end
+function love.filedropped(file)
+ file:open('r');local raw=file:read();file:close();local restored,why=require('desktop_store').decode(raw,B)
+ if not restored then msg('Import rejected: '..tostring(why));return end
+ if desktopActive and not require('native_windows').confirm('Import this experiment into the desktop revision? The current in-memory laboratory will be replaced. Other versions are unaffected.') then return end
+ s=restored;donors={};selected=nil;if desktopActive then Host.saveBlocked=false;Host.sync();Host.open('settings') end;msg('Experiment imported through the versioned migration path.')
+end
+function love.errorhandler(errorMessage)
+ local log=io.open((love.filesystem.isFused() and love.filesystem.getSourceBaseDirectory() or love.filesystem.getSource())..'/desktop-error.txt','w');if log then log:write(tostring(errorMessage)..'\n'..debug.traceback());log:close() end
+ pcall(function() require('native_windows').panel(true);Host.exiting=true;require('native_windows').shutdown() end);desktopActive=false
+ if not love.graphics then return function() return 1 end end
+ pcall(function() love.graphics.setCanvas();love.graphics.reset() end)
+ local errorFont=love.graphics.newFont(15)
+ return function()
+  love.event.pump();for name,a in love.event.poll() do if name=='quit' or (name=='keypressed' and a=='escape') then return 1 end end
+  love.graphics.clear(.04,.07,.09,1);love.graphics.setFont(errorFont);love.graphics.setColor(.95,.86,.76,1);love.graphics.printf('Cellarium stopped safely. Native equipment and the tray icon have been removed.\n\n'..tostring(errorMessage)..'\n\nClose this window to exit. A diagnostic was written beside the application. The previous desktop save was retained.',35,45,love.graphics.getWidth()-70);love.graphics.present();love.timer.sleep(.05)
+ end
+end
+-- Keep event processing alive with SDL's detail window hidden, without spinning at full CPU.
+function love.run()
+ if love.load then love.load(love.arg.parseGameArguments(arg),arg) end
+ if love.timer then love.timer.step() end
+ return function()
+  if love.event then love.event.pump();for name,a,b,c,d,e,f in love.event.poll() do if name=='quit' then if not love.quit or not love.quit() then return a or 0 end end;love.handlers[name](a,b,c,d,e,f) end end
+  local dt=love.timer and love.timer.step() or .016;if love.update then love.update(dt) end
+  if love.graphics and love.graphics.isActive() then love.graphics.origin();love.graphics.clear(love.graphics.getBackgroundColor());if love.draw then love.draw() end;love.graphics.present() end
+  if love.timer then love.timer.sleep(desktopActive and not Host.panelVisible and .02 or .005) end
+ end
+end
+

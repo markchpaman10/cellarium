@@ -82,7 +82,9 @@ local function step(s,dt,environment)
  end end
  if #s.food<60 and B.rand(s)<dt*.7*s.habitat.foodRate then s.food[#s.food+1]=H.resource(s,function() return B.rand(s) end) end
  local living=0;for _,o in ipairs(s.organisms) do if o.alive then living=living+1 end;local was=o.alive;P.update(o,s,dt,s.habitat.environment);if was and not o.alive then B.log(s,o.name..' died: '..o.deathCause..'.');s.food[#s.food+1]={x=o.x,y=o.y,kind='tissue',amount=1} end end
- if living+#s.eggs<30 then for _,a in ipairs(s.organisms) do if a.alive and a.breed>60 and a.maturity>=1 and a.energy>65 then for _,b in ipairs(s.organisms) do if b~=a and b.breed>60 and (a.x-b.x)^2+(a.y-b.y)^2<.008 and R.compatible(a,b) and B.rand(s)<dt*.03*a.caps.fitness then B.breed(s,a,b);return end end end end end
+ if living+#s.eggs<(s.activeHabitatCapacity or 30) then for _,a in ipairs(s.organisms) do if a.alive and a.breed>60 and a.maturity>=1 and a.energy>65 then for _,b in ipairs(s.organisms) do if b~=a and b.breed>60 and (a.x-b.x)^2+(a.y-b.y)^2<.008 and R.compatible(a,b) and B.rand(s)<dt*.03*a.caps.fitness then B.breed(s,a,b);return end end end end end
 end
-function B.update(s,dt,environment) s.accumulator=(s.accumulator or 0)+dt;while s.accumulator>=.05-1e-9 do step(s,.05,environment);s.accumulator=s.accumulator-.05 end end
+function B.updateWorld(s,dt,environment) s.accumulator=(s.accumulator or 0)+dt;while s.accumulator>=.05-1e-9 do step(s,.05,environment);s.accumulator=s.accumulator-.05 end end
+function B.update(s,dt,environment) if s.desktop then return require('desktop_worlds').update(s,dt,B.updateWorld) end;return B.updateWorld(s,dt,environment) end
 return B
+

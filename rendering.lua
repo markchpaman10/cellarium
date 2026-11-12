@@ -62,4 +62,8 @@ function R.draw(o,x,y,scale,t,layer,selected)
  if selected and a.components[selected] then local c=a.components[selected];love.graphics.setColor(.45,1,.77);love.graphics.setLineWidth(.5);love.graphics.ellipse('line',c.x,c.y,math.max(3,c.rx or 5),math.max(3,c.ry or 5)) end
  love.graphics.pop();love.graphics.setColor(1,1,1);love.graphics.setLineWidth(1)
 end
+function R.drawTopDown(o,x,y,scale,t)
+ love.graphics.push();love.graphics.translate(x,y);love.graphics.rotate(o.angle or 0)
+ local projection=setmetatable({angle=0},{__index=o});R.draw(projection,0,0,scale,t,'External');love.graphics.pop()
+end
 return R

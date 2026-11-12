@@ -13,9 +13,13 @@ function G.valid(g)
   for j,l in ipairs(c.loci) do
    if l.id~=(({ 'L','D','E' })[j]..i) then return false end
    for _,side in ipairs({'a','b'}) do local v=l[side];if type(v)~='number' or v<0 or v>3 or v%1~=0 then return false end end
+   if l.copies~=nil and (type(l.copies)~='number' or l.copies<0 or l.copies>6 or l.copies%1~=0) then return false end
+   if l.deleted~=nil and type(l.deleted)~='boolean' then return false end
   end
   if (g.version==3 and #c.loci~=2) or (g.version==4 and #c.loci~=3) then return false end
- end;return true
+ end
+ for _,r in ipairs(g.regulation or {}) do if type(r.sourceChromosome)~='number' or r.sourceChromosome%1~=0 or r.sourceChromosome<1 or r.sourceChromosome>24 or type(r.targetChromosome)~='number' or r.targetChromosome%1~=0 or r.targetChromosome<1 or r.targetChromosome>24 or not ({[1]=true,[2]=true,[3]=true})[r.sourceSite] or not ({[1]=true,[2]=true,[3]=true})[r.targetSite] or (r.mode~='activate' and r.mode~='suppress') then return false end end
+ return true
 end
 function G.upgrade(g)
  assert(G.valid(g),'Invalid genome before schema migration');if g.version==4 then return g end
@@ -33,8 +37,7 @@ function G.new(rand)
  return g
 end
 function G.value(g,i)
- local l=g.chromosomes[i].loci[1];local mode=G.loci[i].mode
- if mode=='dominant' then return math.max(l.a,l.b)/3 elseif mode=='recessive' then return math.min(l.a,l.b)/3 else return (l.a+l.b)/6 end
+ return require('gene_expression').value(g,i,1,G.loci[i].mode)
 end
 function G.express(g)
  local e={};for i,d in ipairs(G.loci) do e[i]=G.value(g,i);e[d.name]=e[i] end
@@ -48,7 +51,7 @@ function G.marker(g)
  return dna,bits
 end
 function G.hash(g)
- local n=17;for _,c in ipairs(g.chromosomes) do for _,l in ipairs(c.loci) do n=(n*31+l.a*4+l.b+1)%2147483647 end end;return n
+ local n=17;for _,c in ipairs(g.chromosomes) do for _,l in ipairs(c.loci) do n=(n*31+l.a*4+l.b+1)%2147483647;if l.copies~=nil or l.deleted then n=(n*31+(l.copies or 1)*3+(l.deleted and 1 or 0))%2147483647 end end end;for _,r in ipairs(g.regulation or {}) do n=(n*31+r.sourceChromosome*9+r.sourceSite*3+r.targetChromosome*2+r.targetSite+(r.mode=='activate' and 1 or 2))%2147483647 end;return n
 end
 function G.rng(seed) return function() seed=(seed*48271)%2147483647;return seed/2147483647 end end
 function G.mutate(g,rand,rate,stage)
@@ -74,12 +77,15 @@ function G.fuse(genomes,options)
   end
   l[side]=value;l[side=='a' and 'sourceA' or 'sourceB']='Lab '..#genomes..'-donor recombination'
  end end end
+ for i,c in ipairs(out.chromosomes) do for j,l in ipairs(c.loci) do local sum,has=0,false;for _,g in ipairs(genomes) do local from=g.chromosomes[i].loci[j];sum=sum+(from.copies or 1);has=has or from.copies~=nil end;if has then l.copies=math.floor(sum/#genomes+.5);l.deleted=l.copies==0 end end end
+ out.regulation=nil;local seen={};for _,g in ipairs(genomes) do for _,r in ipairs(g.regulation or {}) do local key=r.targetChromosome..'/'..r.targetSite;if not seen[key] then seen[key]=true;out.regulation=out.regulation or {};out.regulation[#out.regulation+1]=G.copy(r) end end end
  for _,parent in ipairs(genomes) do for _,m in ipairs(parent.mutations or {}) do local l=out.chromosomes[m.locus] and out.chromosomes[m.locus].loci[m.site or 1];if l and (l.a==m.to or l.b==m.to) then local inherited=G.copy(m);inherited.inheritedFrom=G.hash(parent);out.mutations[#out.mutations+1]=inherited end end end
  if (options.exposure or 0)>0 then G.mutate(out,rand,options.exposure,'Forge exposure') end
  return out,seed
 end
 function G.gamete(g,rand,source,mutation)
- local h={alleles={},source=source,events={},mutations={}}
+ local h={alleles={},source=source,events={},mutations={},locusMetadata={},regulation=G.copy(g.regulation)}
+ for i,c in ipairs(g.chromosomes) do h.locusMetadata[i]={};for j,l in ipairs(c.loci) do h.locusMetadata[i][j]={copies=l.copies,deleted=l.deleted} end end
  for i,c in ipairs(g.chromosomes) do local side=rand()<.5 and 'a' or 'b';h.alleles[i]={};for j,l in ipairs(c.loci) do if j>1 and rand()<.2 then side=side=='a' and 'b' or 'a';h.events[#h.events+1]={chromosome=i,locus=j} end;local v=l[side];if mutation and rand()<.003*(1.5-G.express(g).stability)*(j==2 and ((i==4 or i==6 or i==17) and .12 or .6) or 1) then local old=v;v=math.max(0,math.min(3,v+(rand()<.5 and -1 or 1)));if old~=v then h.mutations[#h.mutations+1]={locus=i,site=j,from=old,to=v,stage='Meiosis'} end end;h.alleles[i][j]=v end end
  for _,m in ipairs(g.mutations or {}) do if h.alleles[m.locus] and h.alleles[m.locus][m.site or 1]==m.to then local inherited=G.copy(m);inherited.inheritedFrom=source;h.mutations[#h.mutations+1]=inherited end end
  return h
@@ -87,7 +93,8 @@ end
 function G.fertilize(a,b)
  local out={version=4,chromosomes={},mutations={},lineage={a.source,b.source}}
  for i=1,24 do if not a.alleles[i] or not b.alleles[i] then return nil end;out.chromosomes[i]={id=i,loci={}};for j,v in ipairs(a.alleles[i]) do out.chromosomes[i].loci[j]={id=({'L','D','E'})[j]..i,a=v,b=b.alleles[i][j],sourceA=a.source,sourceB=b.source} end end
- for _,h in ipairs({a,b}) do for _,m in ipairs(h.mutations or {}) do out.mutations[#out.mutations+1]=G.copy(m) end end
+ for i,c in ipairs(out.chromosomes) do for j,l in ipairs(c.loci) do local ma=a.locusMetadata and a.locusMetadata[i] and a.locusMetadata[i][j] or {};local mb=b.locusMetadata and b.locusMetadata[i] and b.locusMetadata[i][j] or {};if ma.copies~=nil or mb.copies~=nil then l.copies=math.floor(((ma.copies or 1)+(mb.copies or 1))/2+.5);l.deleted=l.copies==0 end end end
+ local regs={};for _,h in ipairs({a,b}) do for _,r in ipairs(h.regulation or {}) do local k=r.targetChromosome..'/'..r.targetSite;if not regs[k] then out.regulation=out.regulation or {};out.regulation[#out.regulation+1]=G.copy(r);regs[k]=true end end;for _,m in ipairs(h.mutations or {}) do out.mutations[#out.mutations+1]=G.copy(m) end end
  return G.valid(out) and out or nil
 end
 function G.similarity(a,b) local n,total=0,0;for i=1,24 do for j,x in ipairs(a.chromosomes[i].loci) do local y=b.chromosomes[i].loci[j];if y then n=n+((x.a==y.a and 1 or 0)+(x.b==y.b and 1 or 0));total=total+2 end end end;return n/math.max(1,total) end
@@ -101,3 +108,4 @@ function G.importNumeric(str)
  local g=G.new(G.rng(99));local map={2,6,4,3,14,11,18,23};for j,i in ipairs(map) do local v=math.min(3,math.floor(tonumber(str:sub(j*2-1,j*2))/25));g.chromosomes[i].loci[1].a=v;g.chromosomes[i].loci[1].b=v end;g.lineage={'Explicit import of legacy eight-trait numeric format'};return g
 end
 return G
+

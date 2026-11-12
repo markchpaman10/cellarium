@@ -5,22 +5,28 @@ local sources={'cells','organisms','materials','frozen'}
 local function count(t) return #t end
 function U.openOrganism(s,index) U.view='Anatomy';U.source='organisms';U.index=index;U.component=1 end
 function U.mousepressed(x,y) if U.view~='Anatomy' then return end;for i=#(U.hits or {}),1,-1 do local r=U.hits[i];if x>=r.x and x<=r.x+r.w and y>=r.y and y<=r.y+r.h then U.component=r.id;return end end end
-function U.textinput(t) if U.naming then U.nameBuffer=(U.nameBuffer..t):sub(1,28) end end
+function U.textinput(t) if U.searching then U.query=((U.query or '')..t):sub(1,40);U.page=1;return end;if U.naming then U.nameBuffer=(U.nameBuffer..t):sub(1,28) end end
 function U.keypressed(k,s)
+ if U.searching then if k=='escape' or k=='return' then U.searching=false elseif k=='backspace' then U.query=(U.query or ''):sub(1,-2);U.page=1 end;return true end
  if not U.naming then return false end
  if k=='escape' then U.naming=false elseif k=='backspace' then U.nameBuffer=U.nameBuffer:sub(1,-2) elseif k=='return' then local v=(s[U.source] or {})[U.index];if v and #U.nameBuffer>0 then if v.strain and v.type then require('biology').renameStrain(s,v.strain,U.nameBuffer) else v.name=U.nameBuffer end end;U.naming=false end;return true
 end
 function U.draw(s,c)
  local text,button,panel,col,msg=c.text,c.button,c.panel,c.col,c.msg;local C=c.C;local B=c.B
- for i,name in ipairs({'Genome','Anatomy','Development','Physiology','Engineering','Experiments','Cultures','Environment'}) do button(name,314+(i-1)*137,202,127,35,function() U.view=name;if name=='Anatomy' then U.source='organisms';U.index=1;U.component=1 end end,U.view==name) end
+ for i,name in ipairs({'Genome','Anatomy','Development','Physiology','Engineering','Experiments','Cultures','Environment','Behavior'}) do button(name,314+(i-1)*121,202,114,35,function() U.view=name;if name=='Anatomy' or name=='Behavior' then U.source='organisms';U.index=1;U.component=1 end end,U.view==name) end
  panel(32,202,260,650);text('RESEARCH COLLECTION',51,222,13,C.mint)
  for i,key in ipairs(sources) do button(({cells='Cells',organisms='Creatures',materials='DNA',frozen='Frozen'})[key],49+(i-1)%2*115,256+math.floor((i-1)/2)*37,108,30,function() U.source=key;U.index=1;U.page=1 end,U.source==key) end
- local list=s[U.source] or {};local start=math.floor((U.index-1)/12)*12+1
- for row=0,math.min(11,#list-start) do local i=start+row;local v=list[i];local label=v.name or (U.source=='materials' and 'DNA '..v.id or B.types[v.type]..' '..v.id)
-  button(label:sub(1,25),49,349+row*31,226,27,function() U.index=i;U.component=1 end,U.index==i)
- end
- button('<',49,743,55,28,function() U.index=math.max(1,start-12) end);button('>',220,743,55,28,function() U.index=start+12<=#list and start+12 or 1 end)
- text(#list..' records',120,750,12,C.muted);text('Shared simulation.\nInspect only as deeply as you like.',51,796,12,C.muted)
+ local list=s[U.source] or {};local indices={};U.query=U.query or '';U.sort=U.sort or 1
+ for i,v in ipairs(list) do local searchable=(v.name or '')..' '..tostring(v.id)..' '..tostring(v.source or '')..' '..(v.genome and G.marker(v.genome) or '');if searchable:lower():find(U.query:lower(),1,true) then indices[#indices+1]=i end end
+ table.sort(indices,function(i,j) local a,b=list[i],list[j];if U.sort==2 and (a.name or '')~=(b.name or '') then return (a.name or '')<(b.name or '') elseif U.sort==3 and (a.generation or 0)~=(b.generation or 0) then return (a.generation or 0)>(b.generation or 0) end;return a.id<b.id end)
+ button('Search: '..U.query..(U.searching and '_' or ''),49,334,226,27,function() U.searching=true end)
+ button('Sort: '..({'ID','Name','Generation'})[U.sort],49,367,226,27,function() U.sort=U.sort%3+1 end)
+ U.page=math.min(U.page or 1,math.max(1,math.ceil(#indices/10)));local start=(U.page-1)*10+1
+ for row=0,9 do local i=indices[start+row];local v=i and list[i];if v then local label=v.name or (U.source=='materials' and 'DNA '..v.id or B.types[v.type]..' '..v.id);button(label:sub(1,25),49,405+row*31,226,27,function() U.index=i;U.component=1 end,U.index==i) end end
+ button('<',49,743,55,28,function() U.page=math.max(1,U.page-1) end);button('>',220,743,55,28,function() U.page=U.page%math.max(1,math.ceil(#indices/10))+1 end)
+ text(#indices..' / '..#list,120,750,12,C.muted)
+ button('Rename record',49,783,226,28,function() local v=list[U.index];if v then U.naming=true;U.nameBuffer=v.name or 'DNA '..v.id end end)
+ text('One persistent laboratory database.',51,825,11,C.muted)
  local v=list[U.index];panel(314,251,1094,601)
  local function result(ok,why) msg(why or (ok and 'Done.' or 'Action unavailable.')) end
  if U.view=='Genome Edit' then
@@ -92,6 +98,16 @@ function U.draw(s,c)
   for i,item in ipairs(rows) do local x=340+math.floor((i-1)/8)*520;local y=475+(i-1)%8*31;text(item[1],x,y,13,C.muted);text(string.format('%.2f',item[2]),x+230,y,14,C.mint) end
   text('Movement: '..(v.locomotion or caps.locomotion)..' / glide '..tostring(caps.flight.glide)..' / powered flight '..tostring(caps.flight.powered),340,752,14,C.mint)
   text('Current habitat: '..(v.environment or 'land')..' / biological projections '..#(v.anatomy.projections or {})..' / no combat simulation',340,792,13,C.muted)
+ elseif U.view=='Behavior' then
+  if not v or not v.anatomy then text('Choose a living organism to inspect learned behavior.',340,280,20,C.muted);return end
+  local Cog=require('cognition');local cognition=Cog.ensure(v);local cap=Cog.capabilities(v);local nature=Cog.nature(v)
+  text(v.name..' / behavior and memory',340,271,24);text('Neural capacity '..cap.capacity..' memories / learning '..math.floor(cap.learning*100)..'% / activity '..v.behavior,340,310,14,C.mint)
+  local keys={'sociability','aggression','fearfulness','curiosity','territoriality','dominance','tolerance','attachment','exploration','flexibility','stressSensitivity','socialLearning'}
+  for i,key in ipairs(keys) do text(key..'  '..string.format('%.2f',nature[key]),340+math.floor((i-1)/6)*260,363+(i-1)%6*28,13,C.muted) end
+  text('MEMORIES / actual perceived outcomes',340,557,13,C.mint)
+  for i=math.max(1,#cognition.memories-6),#cognition.memories do local m=cognition.memories[i];text(m.kind..' / strength '..string.format('%.2f',m.strength)..' / outcome '..string.format('%.2f',m.outcome or 0),340,590+(i-math.max(1,#cognition.memories-6))*28,13,C.muted) end
+  text('RELATIONSHIPS / individual recognition',900,363,13,C.mint);local row=0;for id,r in pairs(cognition.relationships) do if row<9 then text('#'..id..' / familiar '..string.format('%.2f',r.familiarity)..' / trust '..string.format('%.2f',r.trust)..' / fear '..string.format('%.2f',r.fear),900,402+row*28,12,C.muted);row=row+1 end end
+  text('Signals: '..#cognition.events..' / no dialogue, language model or combat.',900,722,12,C.muted)
  elseif U.view=='Engineering' then
   text('A closer hand in inheritance.',340,271,24);text('Optional tools. Three-cell fusion remains the quickest path to life.',340,309,14,C.muted)
   local cell=U.source=='cells' and v
@@ -141,3 +157,4 @@ function U.draw(s,c)
  if U.naming then panel(480,388,510,150);text('Enter a name, then press Enter. Esc cancels.',500,410,14,C.mint);text(U.nameBuffer..'_',500,459,24) end
 end
 return U
+

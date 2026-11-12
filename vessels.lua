@@ -11,6 +11,7 @@ V.types={
 local function id(s) local n=s.nextId;s.nextId=n+1;return n end
 function V.ensure(s)
  s.vessels=s.vessels or {};s.credits=s.credits or 100
+ for _,v in ipairs(s.vessels) do v.temperature=v.temperature or 37;v.waste=v.waste or 0;v.cultureAge=v.cultureAge or 0;v.health=v.health or 1 end
  if not s.vesselsInitialized then
   for _,t in ipairs({1,1,2,3,4,5}) do V.add(s,t,true) end
   s.vesselsInitialized=true
@@ -20,18 +21,20 @@ function V.add(s,kind,free)
  local def=V.types[kind];if not def then return false,'Invalid vessel.' end
  if not free and (s.credits or 0)<def.price then return false,'Not enough credits.' end
  if not free then s.credits=s.credits-def.price end
- local v={id=id(s),kind=kind,contents={},frozen=false,medium=1,progress=0,nutrients=1,contamination=0,sterility=1}
+ local v={id=id(s),kind=kind,contents={},frozen=false,medium=1,progress=0,nutrients=1,contamination=0,sterility=1,temperature=37,waste=0,cultureAge=0,health=1,closed=false}
  s.vessels[#s.vessels+1]=v;return true,'Empty '..def.name..' acquired.'
 end
 local function count(v) local n=0;for _,b in ipairs(v.contents) do n=n+b.count end;return n end
 V.count=count
-local function compatible(a,b) return a.type==b.type and G.hash(a.genome)==G.hash(b.genome) end
+local function compatible(a,b) return a.type==b.type and require('persistence').encode(a.genome)==require('persistence').encode(b.genome) end
 function V.transfer(s,source,destination,amount)
  local v=s.vessels[destination];if not v or v.frozen then return false,'Select an unfrozen vessel.' end
  local cell=type(source)=='number' and s.cells[source] or source
  if not cell then return false,'Select a cell.' end
  local capacity=V.types[v.kind].capacity-count(v)
- amount=math.min(amount or 1,capacity)
+ if type(source)~='number' then return false,'Transfers require a counted source. Use the pipette for vessel samples.' end
+ if amount and amount~=1 then return false,'One loose cell supplies one cell equivalent.' end
+ amount=math.min(1,capacity)
  if amount<1 then return false,'Vessel is full.' end
  if #v.contents>0 and not compatible(v.contents[1].cell,cell) then return false,'Different strains require separate vessels.' end
  local bucket=v.contents[1]
@@ -64,15 +67,23 @@ function V.cultivate(s,index,medium)
 end
 function V.update(s,dt)
  for _,v in ipairs(s.vessels or {}) do
+  if not v.frozen then
+   v.cultureAge=(v.cultureAge or 0)+dt;v.temperature=v.temperature or 37;v.waste=v.waste or 0;v.health=v.health or 1
+   v.contamination=math.min(1,(v.contamination or 0)+dt*(1-(v.sterility or 1))*.003*(1+v.waste))
+   local stress=math.abs(v.temperature-37)/35*.02+v.contamination*.01
+   v.health=math.max(0,v.health-dt*stress)
+   for _,b in ipairs(v.contents) do b.cell.viability=math.min(b.cell.viability,v.health);b.cell.age=b.cell.age+dt end
+  end
   if v.cultivating and not v.frozen and #v.contents>0 then
    local b=v.contents[1];local def=V.types[v.kind]
    local room=def.capacity-count(v)
    if room<=0 then v.cultivating=false else
     local e=G.express(b.cell.genome)
-    local rate=K.rates[b.cell.type]*def.growth*(.65+e[6]*.3+e[1]*.05)*(v.medium==2 and 1.4 or 1)*(1-v.contamination)*math.max(.1,v.nutrients)/15
+    local suitability=math.max(0,1-math.abs(v.temperature-37)/20)
+    local rate=K.rates[b.cell.type]*def.growth*(.65+e[6]*.3+e[1]*.05)*(v.medium==2 and 1.4 or 1)*(1-v.contamination)*math.max(0,v.nutrients)*suitability*v.health/15
     v.progress=v.progress+dt*rate
     local born=math.min(room,math.floor(v.progress))
-    if born>0 then b.count=b.count+born;v.progress=v.progress-born;v.nutrients=math.max(0,v.nutrients-born*.025) end
+    if born>0 then local remaining=b.cell.replicationCapacity or 0;if remaining<=0 then v.cultivating=false;born=0 else b.cell.replicationCapacity=remaining-1 end;b.count=b.count+born;v.progress=v.progress-born;v.nutrients=math.max(0,v.nutrients-born*.025);v.waste=math.min(1,v.waste+born*.02) end
     if count(v)>=def.capacity or v.nutrients<=.02 then v.cultivating=false end
    end
   end
@@ -96,3 +107,4 @@ function V.discard(s,index)
  return true,'Contents disposed and vessel cleaned for reuse.'
 end
 return V
+
