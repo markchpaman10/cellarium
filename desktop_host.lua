@@ -26,7 +26,7 @@ function Host.init(context)
  Host.context=context;Host.monitors=Native.init();if not Host.monitors then Host.context=nil;context.setState(nil);love.event.quit();return false end;assert(#Host.monitors>0,'No usable Windows monitor.')
  local restored,why=Store.load(context.B)
  if restored then context.setState(restored);Host.message(restored.desktop.recovery or 'Desktop laboratory restored.') elseif love.filesystem.getInfo('desktop-laboratory.lua') then Host.message('Saved laboratory could not load: '..tostring(why)..'. Original retained; automatic overwrites disabled.');Host.saveBlocked=true end
- local s=Host.state();M.ensure(s);Worlds.ensure(s);V.ensure(s)
+ local s=Host.state();M.ensure(s);s.desktop.tool=nil;Worlds.ensure(s);V.ensure(s)
  if not s.desktop.starterPrepared then
   local emptyVial=s.vessels[5];if emptyVial and #s.cells>0 then T.seed(s,emptyVial.id,1) end
   if #s.materials==0 and #s.cells>0 then context.B.extract(s,1) end
@@ -70,7 +70,7 @@ function Host.tray()
  local action=Native.menu(items);if action then action() end
 end
 function Host.objectMenu(o)
- local s=Host.state();local v=T.vessel(s,o.entityId);local items={{label='Inspect / Open',action=function() Host.open('inspect',o.id) end},
+ local s=Host.state();local v=T.vessel(s,o.entityId);local items={{label='Inspect / Open',action=function() if o.kind=='forge' or o.kind=='workstation' or v then require('desktop_controls').expand(s,o);Host.render(true) else Host.open('inspect',o.id) end end},
   {label=o.locked and 'Unlock position' or 'Lock position',checked=o.locked,action=function() o.locked=not o.locked end},
   {label='Scale +',action=function() o.scale=math.min(1.8,o.scale+.1);M.restore(o,Host.monitors) end},{label='Scale -',action=function() o.scale=math.max(.5,o.scale-.1) end},
   {label='Bring forward',action=function() local n=0;for _,other in ipairs(s.desktop.objects) do n=math.max(n,other.layer) end;o.layer=n+1 end},
@@ -78,7 +78,9 @@ function Host.objectMenu(o)
  if v then
   table.insert(items,1,{label='Use dropper: '..(s.desktop.pipette.sample and 'dispense here' or 'collect 1 cell eq.'),action=function() if s.desktop.pipette.sample then Host.beginDispense(o) else local _,why=T.collect(s,v.id);Host.message(why) end end})
   items[#items+1]={label=v.closed and 'Open container' or 'Close container',action=function() v.closed=not v.closed end}
- elseif o.kind=='dropper' then items[#items+1]={label='Sterilize dropper',action=function() local _,why=T.clean(s);Host.message(why) end};items[#items+1]={label='Discard loaded sample...',action=function() if Native.confirm('Dispose of the loaded biological sample?') then s.desktop.pipette.sample=nil;Host.message('Sample discarded. Sterilize before reuse.') end end}
+ elseif o.kind=='dropper' then
+  items[#items+1]={label='Collect sample beneath tip',action=function() local target=Host.targetAtTip(o);if target then local _,why=T.collect(s,target.entityId);Host.message(why) else Host.message('Position the tip inside an open cell container first.') end end}
+  items[#items+1]={label='Sterilize dropper',action=function() local _,why=T.clean(s);Host.message(why) end};items[#items+1]={label='Discard loaded sample...',action=function() if Native.confirm('Dispose of the loaded biological sample?') then s.desktop.pipette.sample=nil;Host.message('Sample discarded. Sterilize before reuse.') end end}
  end
  local action=Native.menu(items);if action then action() end
 end
@@ -89,21 +91,11 @@ function Host.targetAtTip(o)
 end
 function Host.click(o,x,y)
  local s=Host.state();s.desktop.selectedObject=o.id
- if o.kind=='dropper' then s.desktop.tool='dropper';Host.message('Dropper selected. Left-drag to move; right-click to collect beneath its tip. Release over a destination to dispense.');return end
- local v=T.vessel(s,o.entityId)
- if v and s.desktop.tool=='dropper' and s.desktop.pipette.sample then Host.beginDispense(o);return end
- if o.kind=='dna' and s.desktop.tool=='dropper' then Host.message('Archived DNA is sequence data. Send it to the Forge; it is not a living cell suspension.');return end
- if o.kind=='forge' then Host.open('forge',o.id) elseif o.kind=='workstation' then Host.open('workstation',o.id)
+ if o.kind=='dropper' then Host.open('inspect',o.id);return end
+ if o.kind=='forge' or o.kind=='workstation' or T.vessel(s,o.entityId) then require('desktop_controls').expand(s,o);Host.render(true)
  elseif o.group=='habitats' then local best,bd;for _,organism in ipairs(s.organisms) do if organism.worldId==o.entityId then local px,py=18+organism.x*(o.w-36),29+organism.y*(o.h-64);local dist=(px-x)^2+(py-y)^2;if not bd or dist<bd then best=organism;bd=dist end end end;if best and bd<35^2 then s.desktop.selectedOrganism=best.id end;Host.open('inspect',o.id)
  elseif o.kind=='organism' then s.desktop.selectedOrganism=o.entityId;Host.open('organism',o.entityId)
  else Host.open('inspect',o.id) end
-end
-local function isHandle(o,x,y)
- if o.kind=='dish' then local radius=math.sqrt((x-118)^2+(y-112)^2);return radius>=91 end
- if o.kind=='dropper' then return true end
- if o.group=='habitats' then return x<20 or x>o.w-20 or y<30 or y>o.h-36 end
- if o.kind=='vial' or o.kind=='dna' or o.kind=='cryovial' then return y<44 end
- return y<72 or y>o.h-28
 end
 function Host.event(e)
  local s=Host.state();local o=e.id and M.find(s,e.id)
@@ -112,11 +104,12 @@ function Host.event(e)
  elseif e.type=='displays' then Host.monitors=Native.monitors();for _,v in ipairs(s.desktop.objects) do M.restore(v,Host.monitors) end
  elseif o then
   local monitor=M.monitorAt(Host.monitors,o.x,o.y);local factor=o.scale*monitor.dpi/96;local x,y=(e.x or 0)/factor,(e.y or 0)/factor
-  if e.type=='down' then Host.pressed={id=o.id,x=e.cursor.x,y=e.cursor.y,moved=false,handle=isHandle(o,x,y)};s.desktop.selectedObject=o.id;if o.kind=='dropper' then s.desktop.tool='dropper' end;if Host.pressed.handle then M.beginDrag(o,e.cursor) end
-  elseif e.type=='move' and Host.pressed and Host.pressed.id==o.id then if math.abs(e.cursor.x-Host.pressed.x)+math.abs(e.cursor.y-Host.pressed.y)>4 then Host.pressed.moved=true end;if o.drag then M.drag(o,e.cursor);Native.move(Host.windows[o.id],o.x,o.y) end
+  if e.type=='down' then local control=require('desktop_controls').hit(o,x,y);Host.pressed={id=o.id,x=e.cursor.x,y=e.cursor.y,moved=false,control=control};s.desktop.selectedObject=o.id;s.desktop.tool=nil;if not control and not M.beginDrag(o,e.cursor) then Host.message('Position is locked. Right-click and choose Unlock position.') end
+  elseif e.type=='move' and Host.pressed and Host.pressed.id==o.id then if math.abs(e.cursor.x-Host.pressed.x)+math.abs(e.cursor.y-Host.pressed.y)>5 then Host.pressed.moved=true end;if o.drag and Host.pressed.moved then M.drag(o,e.cursor);Native.move(Host.windows[o.id],o.x,o.y) end
   elseif e.type=='up' then
    local pressed=Host.pressed;Host.pressed=nil;M.endDrag(o,Host.monitors)
-   if pressed and not pressed.moved then Host.click(o,x,y)
+   if pressed and pressed.control then local current=require('desktop_controls').hit(o,x,y);if not pressed.moved and current and current.id==pressed.control.id then pressed.control.fn();Host.render(true) end
+   elseif pressed and not pressed.moved then Host.click(o,x,y)
    elseif o.kind=='dropper' and s.desktop.pipette.sample then
     local target=Host.targetAtTip(o)
     if target then Host.beginDispense(target) end
@@ -124,8 +117,7 @@ function Host.event(e)
     for _,rack in ipairs(s.desktop.objects) do if rack.kind=='rack' then local rw,rh=M.dimensions(rack,M.monitorAt(Host.monitors,rack.x,rack.y));if e.cursor.x>=rack.x and e.cursor.x<rack.x+rw and e.cursor.y>=rack.y and e.cursor.y<rack.y+rh then o.config.rack=rack.id;o.config.slot=math.max(1,math.min(8,math.floor((e.cursor.x-rack.x)/rw*8)+1));break else o.config.rack=nil end end end
    end
   elseif e.type=='objectMenu' then
-   if o.kind=='dropper' or (T.vessel(s,o.entityId) and s.desktop.tool=='dropper') then local target=o.kind=='dropper' and Host.targetAtTip(o) or o;if target then local _,why=T.collect(s,target.entityId);Host.message(why) else Host.message('Place the dropper tip inside an open cell container, then right-click.') end
-   else Host.objectMenu(o) end
+   if Host.pressed then local moving=M.find(s,Host.pressed.id);if moving then M.endDrag(moving,Host.monitors) end;Host.pressed=nil end;Native.endPointer();s.desktop.tool=nil;Host.objectMenu(o)
   elseif e.type=='hide' then o.stored=true elseif e.type=='wheel' then o.scale=math.max(.5,math.min(1.8,o.scale+(e.delta>0 and .1 or -.1)));M.restore(o,Host.monitors) end
  end
 end
@@ -144,6 +136,11 @@ function Host.update(dt)
  if not Host.context then return end
  for _,e in ipairs(Native.pump()) do Host.event(e) end
  local s=Host.state();local d=M.ensure(s)
+ -- SDL can release capture for a non-SDL, nonactivating tool window. Track only
+ -- the gesture begun on our equipment; poll while held so it crosses boundaries.
+ if Host.pressed and not Host.testing then
+  local o=M.find(s,Host.pressed.id);if o then local cursor,held=Native.pointer();local event={type=held and 'move' or 'up',id=o.id,cursor=cursor,x=cursor.x-o.x,y=cursor.y-o.y};Host.event(event);if not held then Native.endPointer() end else Host.pressed=nil;Native.endPointer() end
+ end
  for _,o in ipairs(d.objects) do if o.config.rack and not o.drag then local rack=M.find(s,o.config.rack);if rack and M.isVisible(d,rack) then local f=rack.scale*(M.monitorAt(Host.monitors,rack.x,rack.y).dpi/96);o.x=rack.x+(22+(o.config.slot or 1)*32)*f-47*o.scale;o.y=rack.y+53*f-160*o.scale end end end
  for _,o in ipairs(d.objects) do if o.kind=='organism' and not o.drag then for _,v in ipairs(s.organisms) do if v.id==o.entityId and v.alive then local last=o.config.lastPosition or {x=v.x,y=v.y};o.x=o.x+(v.x-last.x)*1000;o.y=o.y+(v.y-last.y)*700;o.config.lastPosition={x=v.x,y=v.y};M.restore(o,Host.monitors,true) end end end end
  if Host.droplet then Host.droplet.time=Host.droplet.time+dt;d.animation={target=Host.droplet.target,progress=math.min(1,Host.droplet.time/Host.droplet.duration)};if Host.droplet.time>=Host.droplet.duration then local _,why=T.dispense(s,Host.droplet.entity);Host.message(why);Host.droplet=nil;d.animation=nil end end

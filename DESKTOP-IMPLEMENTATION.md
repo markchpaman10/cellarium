@@ -1,5 +1,15 @@
 # Desktop laboratory implementation and verification
 
+## Input repair and direct desktop controls — revision 3
+
+Right-click now always opens the object's context menu, including the dropper and containers. The persisted dropper-tool flag is cleared and no longer intercepts other object clicks. Collection requires an explicit menu or desktop button action. Left-drag any visible object body; a five-pixel threshold distinguishes moving from clicking. Embedded buttons consume their own clicks without dragging. Native mouse events retain their event-time screen coordinates. A pointer poll runs only during a gesture begun on this application's equipment, allowing dragging to continue if SDL or a nonactivating window loses capture. No global input hook is installed. Reset Layout now respects its new positions instead of immediately restoring old preferred coordinates.
+
+Forge, workstation and culture-container clicks expand working controls within the same native desktop HWND. They do not open a menu or a separate records application. The Forge exposes actual allele editing across all loci, dosage/regulation/splicing, undo/reset, two-source assembly, forecast, archiving, finite developmental-cell installation, incubation and export. The workstation exposes actual specimen/container selection, seeding, cultivation, extraction, blank-cell preparation, preservation and gamete precursors. Culture controls change their authoritative vessel record. Collapse restores the physical object footprint. The separate new records application remains optional through the tray.
+
+Earlier native checks validated explicit window placement and down/up messages; they did not prove a complete mouse-movement drag. The revised regression run moves Petri dishes, ordinary/cryogenic vials, dropper, workstation and Forge via native down/move/up sequences and checks both model coordinates and actual Win32 window bounds. It also checks context-menu routing on every object after a stale saved dropper selection, and operates desktop workstation/Forge/culture buttons through native messages without opening the records window. 44 groups pass. Physical-mouse testing across all user configurations remains a manual check.
+
+The descriptions below document the original desktop revision; where they describe rim-only dragging, immediate right-click aspiration or automatic opening of the detail application from a Forge/workstation, this revision supersedes them as described above.
+
 ## Result and scope
 
 This is a separate Windows desktop development revision of the engineering/Gippity merge. It implements native equipment windows, a real tray, shared biological records, counted pipette transfers, independent visibility groups, multiple habitat contexts and a new detailed records application. The classic five-workspace interface is optional in Settings. It is not the launch or equipment-opening interface.
@@ -62,7 +72,7 @@ Modified integration: main, conf, biology, physiology, vessels, genome, genome_e
 
 ## Verification performed
 
-42 automated test groups passed in LÖVE 11.5, including nine groups that create actual native Windows tray/windows in an interactive session. The three priority architecture checks passed:
+44 automated test groups passed in LÖVE 11.5, including eleven groups that create actual native Windows tray/windows in an interactive session. The three priority architecture checks passed:
 
 1. A real Petri HWND was moved to the **second connected monitor** and its signed Win32 bounds were verified. Synthetic tests additionally cover negative coordinates, mixed DPI, changed resolution, disconnected-monitor fallback and restoration.
 2. Counted cells passed from a real source vessel through a loaded pipette into the destination's persistent bucket. Source and target quantities, canonical genome and identities were checked. Native left-button/right-button events also exercised drag and aspiration. Empty/closed/frozen/full/incompatible cases and contamination were tested.

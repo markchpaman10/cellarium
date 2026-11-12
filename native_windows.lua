@@ -23,6 +23,7 @@ HWND __stdcall WindowFromPoint(POINT);BOOL __stdcall IsWindowVisible(HWND);
 HWND __stdcall FindWindowA(const char*,const char*);
 BOOL __stdcall PeekMessageA(MSG*,HWND,UINT,UINT,UINT);BOOL __stdcall TranslateMessage(const MSG*);intptr_t __stdcall DispatchMessageA(const MSG*);
 BOOL __stdcall GetCursorPos(POINT*); HWND __stdcall SetCapture(HWND);BOOL __stdcall ReleaseCapture(void);HWND __stdcall GetCapture(void);
+short __stdcall GetAsyncKeyState(int);
 BOOL __stdcall SetForegroundWindow(HWND);BOOL __stdcall PostMessageA(HWND,UINT,uintptr_t,intptr_t);intptr_t __stdcall SendMessageA(HWND,UINT,uintptr_t,intptr_t);
 HDC __stdcall GetDC(HWND);int __stdcall ReleaseDC(HWND,HDC);HDC __stdcall CreateCompatibleDC(HDC);BOOL __stdcall DeleteDC(HDC);
 HBITMAP __stdcall CreateDIBSection(HDC,const BITMAPINFO*,UINT,void**,HANDLE,DWORD);HANDLE __stdcall SelectObject(HDC,HANDLE);BOOL __stdcall DeleteObject(HANDLE);
@@ -45,6 +46,7 @@ local function push(e) W.events[#W.events+1]=e end
 local function cursor() local p=ffi.new('POINT[1]');user.GetCursorPos(p);return {x=tonumber(p[0].x),y=tonumber(p[0].y)} end
 W.cursor=cursor
 local function xy(lp) local n=tonumber(lp);local x=bit.band(n,65535);local y=bit.band(bit.rshift(n,16),65535);if x>=32768 then x=x-65536 end;if y>=32768 then y=y-65536 end;return x,y end
+local function eventCursor(hwnd,x,y) local r=ffi.new('RECT[1]');user.GetWindowRect(hwnd,r);return {x=tonumber(r[0].left)+x,y=tonumber(r[0].top)+y} end
 local callback
 callback=ffi.cast('WNDPROC',function(hwnd,msg,wp,lp)
  local win=W.windows[key(hwnd)]
@@ -55,9 +57,9 @@ callback=ffi.cast('WNDPROC',function(hwnd,msg,wp,lp)
  if msg==0x10 then if win then push{type='hide',id=win.id} else push{type='exit'} end;return 0 end
  if win then
   if msg==0x21 then return 3 end -- MA_NOACTIVATE: objects do not steal typing focus.
-  if msg==0x201 then local x,y=xy(lp);user.SetCapture(hwnd);push{type='down',id=win.id,x=x,y=y,cursor=cursor()};return 0 end
-  if msg==0x200 then if user.GetCapture()==hwnd then local x,y=xy(lp);push{type='move',id=win.id,x=x,y=y,cursor=cursor()} end;return 0 end
-  if msg==0x202 then user.ReleaseCapture();local x,y=xy(lp);push{type='up',id=win.id,x=x,y=y,cursor=cursor()};return 0 end
+  if msg==0x201 then local x,y=xy(lp);W.pointerOwner=win.id;user.SetCapture(hwnd);push{type='down',id=win.id,x=x,y=y,cursor=eventCursor(hwnd,x,y)};return 0 end
+  if msg==0x200 then if W.pointerOwner==win.id then local x,y=xy(lp);push{type='move',id=win.id,x=x,y=y,cursor=eventCursor(hwnd,x,y)} end;return 0 end
+  if msg==0x202 then W.pointerOwner=nil;user.ReleaseCapture();local x,y=xy(lp);push{type='up',id=win.id,x=x,y=y,cursor=eventCursor(hwnd,x,y)};return 0 end
   if msg==0x215 then push{type='cancelDrag',id=win.id};return 0 end
   if msg==0x205 then push{type='objectMenu',id=win.id};return 0 end
   if msg==0x20a then local delta=bit.arshift(tonumber(wp),16);push{type='wheel',id=win.id,delta=delta};return 0 end
@@ -115,6 +117,8 @@ function W.present(win,data,x,y,topmost,layer)
  if not win.visible then user.ShowWindow(win.hwnd,4);win.visible=true end
 end
 function W.move(win,x,y) user.SetWindowPos(win.hwnd,nil,math.floor(x),math.floor(y),0,0,bit.bor(1,4,0x10)) end
+function W.pointer() return cursor(),bit.band(tonumber(user.GetAsyncKeyState(1)),0x8000)~=0 end
+function W.endPointer() W.pointerOwner=nil;user.ReleaseCapture() end
 function W.hide(win) if win.visible then user.ShowWindow(win.hwnd,0);win.visible=false end end
 function W.destroy(win) releaseBitmap(win);W.windows[key(win.hwnd)]=nil;user.DestroyWindow(win.hwnd) end
 function W.pump()

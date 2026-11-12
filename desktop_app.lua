@@ -42,12 +42,12 @@ local function lab(s)
  for i,m in ipairs(metrics) do local x=250+(i-1)*290;card(x,182,270,112);text(m[1],x+18,201,13,palette.muted);text(m[2],x+18,228,32,palette.teal) end
  card(250,318,562,252);text('The pipette',274,339,22);local p=s.desktop.pipette
  text(p.sample and 'LOADED / '..p.sample.quantity..' cell equivalent' or p.clean and 'STERILE / empty' or 'USED / empty',274,380,16,palette.teal)
- text('Left-click and hold anywhere on the dropper to drag it.\nRight-click with its tip over a cell container to draw a sample.\nRelease the loaded tip over a compatible destination to dispense.\nA rejected transfer retains the loaded sample.',274,418,14,palette.muted)
+ text('Left-click and hold anywhere on the dropper to drag it.\nRight-click a source and choose the Collect sample menu action.\nRelease the loaded tip over a compatible destination to dispense.\nA rejected transfer retains the loaded sample.',274,418,14,palette.muted)
  button('Sterilize dropper',274,518,228,34,function() result(T.clean(s)) end)
  button('Dispose loaded sample...',518,518,269,34,function() if require('native_windows').confirm('Discard the loaded sample?') then p.sample=nil end end,false,true)
  card(836,318,554,252);text('Desktop visibility',860,339,22)
  for i,g in ipairs({'laboratory','habitats','organisms'}) do button((s.desktop.groups[g] and 'Hide ' or 'Show ')..g,860,382+(i-1)*52,502,37,function() Host.toggle(g) end,s.desktop.groups[g]) end
- card(250,594,1140,210);text('Equipment storage',274,614,22);text('Right-click equipment to lock, resize, label, inspect or return it to storage.\nDrag dishes by their rims and habitats by their frames. The tray remains available while this window is closed.\nCultures and organisms keep simulating when hidden. Ctrl+Shift+L opens recovery controls.',274,657,14,palette.muted)
+ card(250,594,1140,210);text('Equipment storage',274,614,22);text('Right-click equipment to lock, resize, label, inspect or return it to storage.\nLeft-drag visible equipment bodies; click without moving to inspect. The tray remains available while this window is closed.\nCultures and organisms keep simulating when hidden. Ctrl+Shift+L opens recovery controls.',274,657,14,palette.muted)
  button('Restore stored equipment',274,745,300,35,function() for _,o in ipairs(s.desktop.objects) do if not o.archivedEntity then o.stored=false;o.visible=true end end end)
  button('Save laboratory',590,745,250,35,function() Host.save() end)
  button('Return to desktop',856,745,506,35,function() Host.hidePanel() end,true)
@@ -265,6 +265,6 @@ function A.draw(s,context)
   local c=require('biology').colors[cell.type];local points={};for i=0,63 do local angle=i/64*math.pi*2;local radius=116*(1+.04*math.sin(angle*5+G.hash(cell.genome)%11));points[#points+1]=800+math.cos(angle)*radius;points[#points+1]=442+math.sin(angle)*radius end;set({c[1],c[2],c[3],.3});love.graphics.polygon('fill',points);set(palette.teal);love.graphics.polygon('line',points);set({.2,.42,.48,.5});love.graphics.ellipse('fill',781,448,35,30);for i=1,11 do local angle=i*2.4;set({c[1]*.6,c[2]*.7,c[3]*.7,.7});love.graphics.ellipse('fill',800+math.cos(angle)*(55+i*3),442+math.sin(angle)*(55+i*3),7,4) end
   text('A category-based magnified illustration; colonies in dishes are shown at normal desktop scale.',475,633,13,palette.muted);button('Close magnification',475,677,650,34,function() A.microscope=nil end)
  end
- set({.86,.9,.91});love.graphics.rectangle('fill',220,861,1220,39);text(Host.notice or 'Left-drag the dropper. Right-click to aspirate. Release its loaded tip over a destination to dispense.',244,874,12,palette.muted)
+ set({.86,.9,.91});love.graphics.rectangle('fill',220,861,1220,39);text(Host.notice or 'Left-drag the dropper. Right-click opens actions. Release its loaded tip over a destination to dispense.',244,874,12,palette.muted)
 end
 return A

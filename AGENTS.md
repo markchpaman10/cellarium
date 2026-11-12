@@ -8,4 +8,4 @@ Cellarium development preferences:
 Desktop edition exception, explicitly requested in the desktop overhaul prompt:
 - This separate desktop save identity saves on exit, restores on launch, and applies bounded offline advancement. Other versions remain manual-save only.
 - Native desktop objects and the new records app are the default. The classic UI is an explicit Settings option, never an automatic fallback UI.
-- Dropper: left-button drag; right-click aspiration; release a loaded tip over a compatible destination to dispense. Preserve counted samples when rejecting a transfer.
+- Input repair: left-drag visible object bodies, right-click ALWAYS opens context menus. Collect samples only through explicit menu/buttons; no persistent dropper input takeover. Release a loaded tip over a compatible destination to dispense. Workstation, Forge and culture controls expand in their own native desktop windows. Preserve counted samples when rejecting a transfer.

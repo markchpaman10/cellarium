@@ -102,6 +102,7 @@ local function habitat(s,o)
  label(title,23,o.h-27,11);label(Units.temperature(world.habitat.temperature)..' / '..require('desktop_worlds').population(s,world.id)..' living',o.w-152,o.h-27,10,{.6,.8,.8,1})
 end
 function A.draw(s,o)
+ if require('desktop_controls').draw(s,o) then return end
  love.graphics.setLineWidth(1);if o.kind=='dish' then dish(s,o) elseif o.kind=='vial' or o.kind=='cryovial' or o.kind=='dna' then tube(s,o) elseif o.kind=='flask' then flask(s,o) elseif o.kind=='plate' then plate(s,o) elseif o.kind=='dropper' then dropper(s,o) elseif o.kind=='rack' then rack(o) elseif o.kind=='forge' or o.kind=='workstation' then instrument(s,o) elseif o.kind=='organism' then local organism;for _,v in ipairs(s.organisms) do if v.id==o.entityId then organism=v end end;if organism then R.drawTopDown(organism,o.w/2,o.h/2,R.fitScale(organism.anatomy,125,120,1),s.time) end else habitat(s,o) end
  if s.desktop.animation and s.desktop.animation.target==o.id then local p=s.desktop.animation.progress;local x,y=o.w/2,20+p*p*(o.h*.45-20);color(.49,.95,.73,.9);love.graphics.ellipse('fill',x,y,4,6);love.graphics.polygon('fill',x-3,y-3,x+3,y-3,x,y-11);color(.91,1,.94,.8);love.graphics.circle('fill',x-1,y-2,1.2) end
  if s.desktop.selectedObject==o.id then color(.52,1,.79,.7);love.graphics.setLineWidth(1);love.graphics.arc('line','open',o.w/2,o.h/2,math.min(o.w,o.h)*.46,4.3,5.1) end

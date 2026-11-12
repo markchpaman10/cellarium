@@ -46,6 +46,6 @@ function M.applyLayout(s,layout,monitors)
 end
 function M.reset(s,monitors)
  local m=monitors[1];if not m then return end
- for i,o in ipairs(M.ensure(s).objects) do o.x=m.x+30+((i-1)%5)*170;o.y=m.y+30+math.floor((i-1)/5)*150;o.scale=math.min(1,math.max(.55,m.w/1600));o.visible=true;o.stored=false;o.drag=nil;M.restore(o,monitors);M.remember(o,monitors) end
+ for i,o in ipairs(M.ensure(s).objects) do o.x=m.x+30+((i-1)%5)*170;o.y=m.y+30+math.floor((i-1)/5)*150;o.scale=math.min(1,math.max(.55,m.w/1600));o.visible=true;o.stored=false;o.drag=nil;M.restore(o,monitors,true);M.remember(o,monitors) end
 end
 return M
