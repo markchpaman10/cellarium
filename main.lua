@@ -1,4 +1,4 @@
-local B=require('biology');local Habi=require('habitat');local Units=require('units');local Library=require('cell_library');local Forge=require('forge_ui');local HabitatView=require('habitat_view')
+local B=require('biology');local Lab=require('lab_engineering');local Engineering=require('engineering_lab_ui');local Habi=require('habitat');local Units=require('units');local Library=require('cell_library');local Forge=require('forge_ui');local HabitatView=require('habitat_view')
 local G=require('genome');local R=require('rendering');local U=require('research');local S=require('persistence')
 local s,tab,selected,donors,medium,environment,speed,paused,notice,toastTime
 local buttons,fonts={},{}
@@ -41,16 +41,16 @@ local function loadSave()
  msg('Save could not load: '..tostring(why));return false
 end
 function love.load()
- for _,a in ipairs(arg or {}) do if a=='--audit' or a=='--ecology-audit' then local ok,result=pcall(function() return require(a=='--ecology-audit' and 'ecology_audit' or 'audit').run(B) end);if not ok then local f=io.open(love.filesystem.getSource()..'/audit-error.txt','w');if f then f:write(tostring(result));f:close() end end;love.event.quit(ok and result and 0 or 1);return end end
+ for _,a in ipairs(arg or {}) do if a=='--audit' or a=='--ecology-audit' or a=='--engineering-audit' then local ok,result=pcall(function() return require(a=='--engineering-audit' and 'engineering_audit' or a=='--ecology-audit' and 'ecology_audit' or 'audit').run(B) end);if not ok then local f=io.open(love.filesystem.getSource()..'/audit-error.txt','w');if f then f:write(tostring(result));f:close() end end;love.event.quit(ok and result and 0 or 1);return end end
  for _,a in ipairs(arg or {}) do if a=='--test' then local ok,result=pcall(require('tests'),B);local f=io.open(love.filesystem.getSource()..'/test-results.txt','w');if f then f:write(ok and result or tostring(result));f:close() end;love.event.quit(ok and 0 or 1);return end end
- for _,n in ipairs({11,12,13,14,16,18,20,24,28,32,40}) do fonts[n]=love.graphics.newFont(n) end
- R.init();love.graphics.setBackgroundColor(C.bg);s=B.new();B.collect(s);tab=1;donors={};medium=1;environment=1;speed=1;paused=false;toastTime=0
+ for _,n in ipairs({11,12,13,14,16,18,20,22,24,26,28,32,40}) do fonts[n]=love.graphics.newFont(n) end
+ R.init();love.graphics.setBackgroundColor(C.bg);s=B.new();B.collect(s);tab=1;donors={};Lab.starter(s);medium=1;environment=1;speed=1;paused=false;toastTime=0
  B.log(s,'New experiment. Select a strain to begin cultivation. Load restores a manual save.')
  for _,a in ipairs(arg or {}) do
   if a=='--ui-test' then uiTest=true;developmentRun=true;s=B.new(34);B.collect(s);toastTime=0 end
   if a:find('smoke') then smoke=true;developmentRun=true;toastTime=0;s=B.new(42);B.collect(s)
    if a~='--smoke' then for i=1,7 do local o=B.spawn(s,s.cells[i].genome,'Render check',0);if o then o.maturity=1;o.bodyCondition=1 end end;for i=1,40 do B.update(s,.05,1) end;tab=3;selected=1 end
-   if a=='--habitat-smoke' then for i=1,180 do B.update(s,.1) end elseif a=='--diversity-smoke' then gallery=true;local fixtures=require('audit_examples');s=B.new(42);for _,key in ipairs({'compact','elongatedLimbless','multilegged','radial','asymmetric','branched'}) do local specimen=fixtures[key];local o=assert(B.spawn(s,G.copy(specimen.genome),'Audit sample '..specimen.sample,0));o.name=key;o.sample=specimen.sample;o.maturity=1;o.behavior='Exploring' end elseif a=='--development-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Development' elseif a=='--development-genome-smoke' then tab=5;U.source='cells';U.index=1;U.view='Genome';U.genomePage=2 elseif a=='--ecology-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Environment' elseif a=='--defenses-smoke' then tab=5;U.openOrganism(s,1);U.layer='Defenses' elseif a=='--ecology-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Environment' elseif a=='--defenses-smoke' then tab=5;U.openOrganism(s,1);U.layer='Defenses' elseif a=='--genome-smoke' then tab=5;U.view='Genome' elseif a=='--anatomy-smoke' then tab=5;U.openOrganism(s,1);U.layer='Organs' elseif a=='--engineering-smoke' then tab=5;U.view='Engineering';B.precursor(s,1,'Egg');B.precursor(s,1,'Sperm') elseif a=='--physiology-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Physiology' elseif a=='--incubation-smoke' then B.combine(s,{s.cells[1].id,s.cells[2].id,s.cells[3].id});B.update(s,12,1);tab=2 elseif a=='--culture-smoke' then B.cultivate(s,1,1);tab=5;U.view='Cultures' elseif a=='--forge-smoke' then tab=2;donors={s.cells[1].id,s.cells[2].id,s.cells[3].id} end
+   if a=='--engineering-dev-smoke' then tab=2;Lab.starter(s);local d=Lab.draft(s,{s.lab.vials[1].id});Engineering.draft=#s.lab.drafts;Engineering.selected[s.lab.vials[1].id]=true elseif a=='--life-dev-smoke' then tab=2;Engineering.mode='life' elseif a=='--habitat-smoke' then for i=1,180 do B.update(s,.1) end elseif a=='--diversity-smoke' then gallery=true;local fixtures=require('audit_examples');s=B.new(42);for _,key in ipairs({'compact','elongatedLimbless','multilegged','radial','asymmetric','branched'}) do local specimen=fixtures[key];local o=assert(B.spawn(s,G.copy(specimen.genome),'Audit sample '..specimen.sample,0));o.name=key;o.sample=specimen.sample;o.maturity=1;o.behavior='Exploring' end elseif a=='--development-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Development' elseif a=='--development-genome-smoke' then tab=5;U.source='cells';U.index=1;U.view='Genome';U.genomePage=2 elseif a=='--ecology-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Environment' elseif a=='--defenses-smoke' then tab=5;U.openOrganism(s,1);U.layer='Defenses' elseif a=='--ecology-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Environment' elseif a=='--defenses-smoke' then tab=5;U.openOrganism(s,1);U.layer='Defenses' elseif a=='--genome-smoke' then tab=5;U.view='Genome' elseif a=='--anatomy-smoke' then tab=5;U.openOrganism(s,1);U.layer='Organs' elseif a=='--engineering-smoke' then tab=5;U.view='Engineering';B.precursor(s,1,'Egg');B.precursor(s,1,'Sperm') elseif a=='--physiology-smoke' then tab=5;U.source='organisms';U.index=1;U.view='Physiology' elseif a=='--incubation-smoke' then B.combine(s,{s.cells[1].id,s.cells[2].id,s.cells[3].id});B.update(s,12,1);tab=2 elseif a=='--culture-smoke' then B.cultivate(s,1,1);tab=5;U.view='Cultures' elseif a=='--forge-smoke' then tab=2;donors={s.cells[1].id,s.cells[2].id,s.cells[3].id} end
   end
  end
 end
@@ -63,16 +63,13 @@ function love.update(dt)
    local function press(label) love.draw();for i=#buttons,1,-1 do if buttons[i].label==label then local b=buttons[i];click(b.x+b.w/2,b.y+b.h/2);return end end;error('Missing UI button: '..label) end
    click(120,418);press('Seed selected cell');assert(#s.dishes==1,'Seed UI');B.update(s,100);love.draw();click(420,608);assert(#s.dishes==0,'Harvest UI')
    click(120,418);press('Freeze specimen');assert(#s.frozen==1,'Freeze UI');click(1000,115);click(600,330);assert(#s.frozen==0,'Thaw UI')
-   click(450,115);click(120,418);click(462,430);click(120,456);click(686,430);click(120,494);click(910,430);assert(#donors==3,'Donor UI');press('Fuse genomes & begin development');assert(#s.eggs==1,'Fusion UI');B.update(s,70);assert(#s.organisms==1,'Development UI')
-   click(700,115);local o=s.organisms[1];click(49+o.x*981,256+o.y*576-(o.altitude or 0)*65);press('Inspect anatomy & chromosomes');assert(tab==5 and U.source=='organisms','Inspect UI')
-   press('Rename');love.textinput('Test');love.keypressed('return');assert(o.name:find('Test'),'Rename UI')
-   click(90,270);click(120,363);press('Engineering');press('Extract DNA template');assert(#s.materials==1,'Extraction UI')
-   B.collect(s);U.index=#s.cells-6;press('Stem > egg precursor');press('Stem > sperm precursor');assert(#s.gametes==2,'Precursor UI');B.update(s,9);click(500,528);click(500,561);press('Fertilize selected egg + sperm');assert(#s.gametes==0 and #s.eggs==1,'Fertilization UI')
-   local b=assert(B.spawn(s,o.genome,'UI second parent',0));o.maturity=1;b.maturity=1;o.energy=90;b.energy=90;click(200,270);click(120,363);press('Set selected creature as A');click(120,394);press('Set selected creature as B');press('Breed selected parents');assert(#s.eggs==2,'Breeding UI')
-   press('Environment');assert(U.view=='Environment','Ecology inspection UI');press('Genome');press('Primary loci >');press('Development loci >');assert(U.genomePage==3,'Ecology chromosome page UI')
+   click(450,115);press('DNA workshop');love.draw();click(120,409);press('Assemble selected DNA');assert(#s.lab.drafts==1,'Draft UI');press('Install genome / single embryo');assert(#s.eggs==1,'Installation UI');B.update(s,80);assert(#s.organisms==1,'Synthetic development UI')
+   press('Archive genome');press('Reuse archive');assert(#s.lab.drafts==2,'Archive UI');press('Blank cells +6 / 8 credits');press('Batch engineer / 6 stem cells');assert(#s.cells>=13,'Batch UI')
+   press('Life & observations');assert(Engineering.mode=='life','Life inspection UI');local o=s.organisms[1];assert(o.stats and o.cognition,'Living state UI')
+   click(700,115);click(49+o.x*981,256+o.y*576-(o.altitude or 0)*65);press('Inspect anatomy & chromosomes');assert(tab==5,'Anatomy UI');press('Environment');assert(U.view=='Environment','Legacy ecology UI')
    press('New');assert(#s.organisms==0 and #s.cells==7 and tab==1,'New session UI')
   end)
-  local f=io.open(love.filesystem.getSource()..'/ui-test-results.txt','w');if f then f:write(ok and 'PASS: real mouse/key callbacks for seeding, harvesting, freezing, thawing, donor selection, fusion, development, inspection, naming, extraction, gamete formation, fertilization, selective breeding.' or tostring(why));f:close() end
+  local f=io.open(love.filesystem.getSource()..'/ui-test-results.txt','w');if f then f:write(ok and 'PASS: cultivation, cryostorage, DNA selection, genome construction, blank-cell installation, synthetic embryogenesis, archival reuse, batch engineering, living-state inspection, ecological inspection and New session callbacks.' or tostring(why));f:close() end
   love.event.quit(ok and 0 or 1);return
  end
  dt=math.min(dt,.1);if not paused then B.update(s,dt*speed) end;toastTime=math.max(0,toastTime-dt)
@@ -85,11 +82,11 @@ local function genePanel(c,x,y)
  text('Full chromosomes in Research',x,y+211,12,C.muted)
 end
 local function header()
- text('C E L L A R I U M',32,23,24);text('L I V I N G   L A B O R A T O R Y',34,57,11,C.muted)
+ text('C E L L A R I U M  /  DEV',32,23,24);text('L I V I N G   L A B O R A T O R Y',34,57,11,C.muted)
  text('EXPERIMENT  /  001',1030,26,12,C.muted);text(string.format('%.1f h',s.time),1030,47,20,C.mint)
  button('Save',1180,26,76,36,save);button('Load',1264,26,76,36,function() if not loadSave() then msg('No saved experiment yet.') end end)
- button('New',1348,26,60,36,function() s=B.new();B.collect(s);tab=1;selected=nil;donors={};Library.filter=0;Library.page=1;Library.favoritesOnly=false;medium=1;environment=1;speed=1;paused=false;U.index=1;U.compare=nil;msg('New experiment started. Manual save has not been overwritten.') end)
- local names={'01   Cultivation','02   Genome forge','03   Living habitat','04   Cryobank & records','05   Research'}
+ button('New',1348,26,60,36,function() s=B.new();B.collect(s);Lab.starter(s);Engineering.draft=1;Engineering.selected={};tab=1;selected=nil;donors={};Library.filter=0;Library.page=1;Library.favoritesOnly=false;medium=1;environment=1;speed=1;paused=false;U.index=1;U.compare=nil;msg('New experiment started. Manual save has not been overwritten.') end)
+ local names={'01   Cultivation','02   Genome laboratory','03   Living habitat','04   Cryobank & records','05   Research'}
  for i,n in ipairs(names) do button(n,32+(i-1)*277,94,265,43,function() tab=i;selected=nil end,tab==i) end
  local alive=0;for _,o in ipairs(s.organisms) do if o.alive then alive=alive+1 end end
  text(#s.cells..' specimens    /    '..#s.frozen..' preserved    /    '..alive..' living    /    generation '..s.generation,34,158,13,C.muted)
@@ -123,9 +120,12 @@ local function cultivation()
   button('Freeze specimen',1089,772,297,42,function() B.freeze(s,selected);selected=nil;msg('Genome preserved in the cryobank.') end)
  else text('SPECIMEN INSPECTOR',1089,224,13,C.mint);cell(1238,380,65,1,{},s.time);text('Every cell holds a possibility.',1089,520,18);text('Select a strain to inspect its genes.\n\nBars show expressed inherited traits.\nEvery cell carries 24 chromosome pairs.\nInspect chromosomes and anatomy\nin the Research workspace.',1089,562,14,C.muted) end
 end
-local function forge()
+local function legacyForge()
  library(32,202,260,650,true)
  Forge.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B,selected=selected,donors=donors,cell=cell,organism=organism,finished=function() donors={};selected=nil end})
+end
+local function forge()
+ Engineering.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B})
 end
 local function habitat()
  HabitatView.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B,organism=organism,selected=selected})
@@ -173,7 +173,7 @@ function love.mousepressed(mx,my,b)
  if tab==5 then U.mousepressed(x,y) end
  if tab==3 then local dist=50^2;selected=nil;for i,o in ipairs(s.organisms) do local d=(x-(49+o.x*981))^2+(y-(256+o.y*576-(o.altitude or 0)*65))^2;if d<dist then selected=i;dist=d end end end
 end
-function love.textinput(t) if tab==5 then U.textinput(t) end end
-function love.keypressed(k) if tab==5 and U.keypressed(k,s) then return end;if k=='space' then paused=not paused elseif k=='s' then save() elseif tonumber(k) and tonumber(k)>=1 and tonumber(k)<=5 then tab=tonumber(k);selected=nil end end
+function love.textinput(t) if tab==2 then Engineering.textinput(t) elseif tab==5 then U.textinput(t) end end
+function love.keypressed(k) if tab==2 and Engineering.keypressed(k,s) then return end;if tab==5 and U.keypressed(k,s) then return end;if k=='space' then paused=not paused elseif k=='s' then save() elseif tonumber(k) and tonumber(k)>=1 and tonumber(k)<=5 then tab=tonumber(k);selected=nil end end
 -- Early development: persistence is explicit only (Save button or S).
 function love.quit() end

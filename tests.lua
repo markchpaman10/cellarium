@@ -65,13 +65,13 @@ return function(B)
   local s=B.new(5);B.collect(s);B.cultivate(s,1,1);B.update(s,90,1);B.harvest(s,1);local strain=s.cells[#s.cells].strain;B.renameStrain(s,strain,'Selected line');for _,c in ipairs(s.cells) do if c.strain==strain then assert(c.name=='Selected line') end end
  end)
  test('Versioned save round trip / anatomy references / v1 migration',function()
-  local s=B.new(10);B.collect(s);B.spawn(s,s.cells[1].genome,'save test',0);B.cultivate(s,2,1);B.precursor(s,1,'Egg');local raw='return '..S.encode(s);local r,why=S.decode(raw,B);assert(r,why);assert(r.version==4 and #r.gametes==1);local a=r.organisms[1].anatomy;assert(a.structures[1]==a.components[a.structures[1].id]);assert(S.encode(r.cells)==S.encode(s.cells));assert(G.hash(r.organisms[1].genome)==G.hash(s.organisms[1].genome))
-  local old={cells={{id=1,type=6,g={1,1,1,1,1,1,1},parent='old'}},frozen={},organisms={},dishes={},eggs={},seed=2,nextId=2};local m=S.migrate(old,B);assert(m.version==4 and m.cells[1].type==4 and m.cells[1].subtype=='Digestive' and G.valid(m.cells[1].genome));assert(not S.decode('return os.execute("bad")',B))
+  local s=B.new(10);B.collect(s);B.spawn(s,s.cells[1].genome,'save test',0);B.cultivate(s,2,1);B.precursor(s,1,'Egg');local raw='return '..S.encode(s);local r,why=S.decode(raw,B);assert(r,why);assert(r.version==5 and #r.gametes==1);local a=r.organisms[1].anatomy;assert(a.structures[1]==a.components[a.structures[1].id]);assert(S.encode(r.cells)==S.encode(s.cells));assert(G.hash(r.organisms[1].genome)==G.hash(s.organisms[1].genome))
+  local old={cells={{id=1,type=6,g={1,1,1,1,1,1,1},parent='old'}},frozen={},organisms={},dishes={},eggs={},seed=2,nextId=2};local m=S.migrate(old,B);assert(m.version==5 and m.cells[1].type==4 and m.cells[1].subtype=='Digestive' and G.valid(m.cells[1].genome));assert(not S.decode('return os.execute("bad")',B))
  end)
  test('Version 2 migration preserves every existing allele, marker and living body',function()
   local g=G.new(G.rng(31));for _,c in ipairs(g.chromosomes) do c.loci[2]=nil;c.loci[3]=nil end;g.version=2;local before=G.copy(g);local marker=G.marker(g);G.upgrade(g);assert(g.version==4 and G.marker(g)==marker)
   for i=1,24 do assert(S.encode(g.chromosomes[i].loci[1])==S.encode(before.chromosomes[i].loci[1])) end
-  local s=B.new(123);s.version=2;B.collect(s);local legacy=A.generate(g,{generator='legacy',temperature=37,nutrition=1});local o=P.new(100,g,'old saved organism',0,.5,.5,0,legacy);s.organisms={o};local body=S.encode(legacy.components);local restored=assert(S.decode('return '..S.encode(s),B));assert(restored.version==4);assert(S.encode(restored.organisms[1].anatomy.components)==body);assert(restored.organisms[1].anatomy.version==2)
+  local s=B.new(123);s.version=2;B.collect(s);local legacy=A.generate(g,{generator='legacy',temperature=37,nutrition=1});local o=P.new(100,g,'old saved organism',0,.5,.5,0,legacy);s.organisms={o};local body=S.encode(legacy.components);local restored=assert(S.decode('return '..S.encode(s),B));assert(restored.version==5);assert(S.encode(restored.organisms[1].anatomy.components)==body);assert(restored.organisms[1].anatomy.version==2)
  end)
  test('Additional loci segregate, recombine and survive fusion',function()
   local g=G.new(G.rng(62));for _,chr in ipairs(g.chromosomes) do for _,l in ipairs(chr.loci) do l.a=0;l.b=3 end end
@@ -93,5 +93,6 @@ return function(B)
   local fixture=require('audit_examples').branched;local branching=A.procedural(fixture.genome);for _,op in ipairs(branching.operations) do operations[op.operation]=true end;assert(operations.BRANCH and operations.MIRROR)
  end)
  require('ecology_tests')(B,test)
+ require('engineering_tests')(B,test)
  return table.concat(passed,'\n')..'\n'..#passed..' test groups passed.'
 end

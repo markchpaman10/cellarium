@@ -1,8 +1,8 @@
-local G=require('genome');local H=require('habitat');local A=require('anatomy');local K=require('cultivation');local D=require('development');local P=require('physiology');local R=require('reproduction')
+local G=require('genome');local Lab=require('lab_engineering');local H=require('habitat');local A=require('anatomy');local K=require('cultivation');local D=require('development');local P=require('physiology');local R=require('reproduction')
 local B={types=K.types,genes={}}
 B.colors={{.40,.94,.77},{1,.48,.48},{.69,.56,1},{.95,.77,.42},{1,.36,.53},{.60,.85,.57},{.95,.65,.35}}
 for i=1,10 do B.genes[i]=G.loci[i].name end
-function B.new(seed) return {version=4,seed=seed or 76123,nextId=1,time=0,accumulator=0,cells={},dishes={},frozen={},materials={},gametes={},organisms={},eggs={},food={},history={},experiments={},lineages={},generation=0,discoveries={},collected=0,habitat=H.new(seed or 76123)} end
+function B.new(seed) return {version=5,seed=seed or 76123,nextId=1,time=0,accumulator=0,cells={},dishes={},frozen={},materials={},gametes={},organisms={},eggs={},food={},history={},experiments={},lineages={},generation=0,discoveries={},collected=0,habitat=H.new(seed or 76123)} end
 function B.rand(s) s.seed=(s.seed*48271)%2147483647;return s.seed/2147483647 end
 function B.id(s) local n=s.nextId;s.nextId=n+1;return n end
 function B.log(s,t) table.insert(s.history,1,t);if #s.history>100 then table.remove(s.history) end end
@@ -70,7 +70,7 @@ function B.breed(s,a,b)
  a.energy=a.energy-20;b.energy=b.energy-20;a.breed=0;b.breed=0;B.log(s,'Two-parent breeding: embryo generation '..gen..'.');return true,'Offspring developing in incubation.'
 end
 local function step(s,dt,environment)
- H.ensure(s);s.time=s.time+dt;for _,c in ipairs(s.cells) do c.age=c.age+dt end;s.habitat.environment=environment or s.habitat.environment
+ H.ensure(s);Lab.update(s,dt);s.time=s.time+dt;for _,c in ipairs(s.cells) do c.age=c.age+dt end;s.habitat.environment=environment or s.habitat.environment
  for _,d in ipairs(s.dishes) do K.update(d,dt) end
  for _,h in ipairs(s.gametes) do h.progress=math.min(1,h.progress+dt/8);h.stage=h.progress>=1 and h.kind or 'Gamete precursor' end
  for i=#s.eggs,1,-1 do local e=s.eggs[i];local viable,failures=D.update(e,dt);if viable~=nil then

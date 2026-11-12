@@ -13,15 +13,15 @@ local function upgradeAll(value,seen)
  for _,v in pairs(value) do upgradeAll(v,seen) end
 end
 function S.migrate(old,B)
- if old.version==2 or old.version==3 or old.version==4 then
+ if old.version==2 or old.version==3 or old.version==4 or old.version==5 then
   upgradeAll(old)
   for _,h in ipairs(old.gametes or {}) do
    local source=h.genomeSource;if source then local rand=G.rng(G.hash(source)+(h.id or 1));for i=1,24 do for site=2,3 do if not h.alleles[i][site] then local l=source.chromosomes[i].loci[site];h.alleles[i][site]=rand()<.5 and l.a or l.b end end end end
   end
-  old.version=4;require('habitat').ensure(old)
+  old.version=5;require('lab_engineering').ensure(old);require('habitat').ensure(old)
   for _,c in ipairs(old.cells) do assert(G.valid(c.genome),'Invalid cell genome') end
   for _,c in ipairs(old.frozen) do assert(G.valid(c.genome),'Invalid frozen genome') end
-  for _,o in ipairs(old.organisms) do assert(G.valid(o.genome),'Invalid organism genome');S.rebind(o.anatomy);o.traits=G.express(o.genome);o.caps=A.capabilities(o.anatomy,o.genome);o.altitude=o.altitude or 0;o.oxygen=o.oxygen or 1 end
+  for _,o in ipairs(old.organisms) do assert(G.valid(o.genome),'Invalid organism genome');S.rebind(o.anatomy);o.traits=G.express(o.genome);o.caps=A.capabilities(o.anatomy,o.genome);o.altitude=o.altitude or 0;o.oxygen=o.oxygen or 1;require('cognition').ensure(o);require('living_stats').updateVitals(o,0) end
   for _,e in ipairs(old.eggs) do assert(G.valid(e.genome),'Invalid embryo genome');if e.anatomy then S.rebind(e.anatomy) end end;return old
  end
  assert(not old.version,'Unsupported future save version')
