@@ -2,6 +2,12 @@
 
 Separate development revision based on the Gippity/engineering merge. Native Windows equipment is the default; the classic interface is available only through **Settings → Classic interface**.
 
+## How to use the new system
+
+Start with the **[Desktop Laboratory User Guide](docs/USER_GUIDE.md)**. It explains the current controls, individual containers, sample transfers, workstation, Forge, saving and recovery. Each physical vial shows only its own contents; source selectors belong to central tools, not vial panels.
+
+![Simplified individual container](docs/desktop/Cellarium-Container-Preview.png)
+
 ## Launch
 
 Exit any older desktop laboratory through its tray menu first. Extract the entire Windows ZIP, then open `Cellarium-Desktop-Laboratory.exe`. Keep the DLLs beside it. No administrator privileges, installation, network service or separate command-line launcher is needed. Windows 10 or newer, x64.
