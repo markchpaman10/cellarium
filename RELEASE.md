@@ -1,9 +1,9 @@
-Cellarium genome engineering: development vertical slice
+Cellarium ecological laboratory development snapshot
 
-Branch: genome-engineering-dev. Preserved ecology version: main.
+Includes regional coverings and anatomical defenses, environmental adaptation, mixed habitats, organized cell collections, and a development forecast with meaningful forge controls.
 
-DNA vials, multi-source genome construction, locus editing/regulation, archives, blank-cell installation and culture batches are playable. Initial dynamic six-stat summaries, transport vitals, continuous nature, perceived memory, learned relationships and structured nonverbal events are integrated.
+Combat is deferred. Saving and loading are manual. Temperatures use Fahrenheit.
 
-46 regression groups and the actual UI workflow pass. The measured 1,000-genome and 60-hour matched-pair study is in engineering-audit.md. The full prompt and remaining milestones are in docs/.
+Validation: 33 simulation test groups and the packaged Windows UI workflow passed. Both 1,000-case generation audits and the 900-hour population study are included. The strict population study ends in extinction; long-term ecological balance remains unfinished.
 
-Desktop pets, advanced cognition/pathology, speech/local AI and combat are not complete. No autosave. Fahrenheit UI. Separate save identity and builds/dev/ artifacts.
+Windows: extract builds/Cellarium-Windows.zip and run Cellarium.exe. The portable LÖVE package is builds/Cellarium.love.

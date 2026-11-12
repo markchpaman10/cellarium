@@ -31,17 +31,4 @@ PASS Save round trip preserves ecological anatomy, habitat and defenses
 PASS Library filtering/sorting/favorites and Fahrenheit conversion work
 PASS Navigation routes around physical obstacles and births retain local positions
 PASS Airway and mouth injuries affect actual respiration and feeding
-PASS DNA vial generation has persistent reproducible sequence identity
-PASS Genome construction uses six DNA sources with real locus contributions
-PASS Deletion, duplication and regulation alter biological expression and development
-PASS Splicing, archive reuse and dosage/regulatory inheritance preserve edited genomes
-PASS Blank-cell installation completes synthetic embryogenesis without donor-cell ingredients
-PASS Batch engineering creates six matching stem cells that enter existing cultivation
-PASS Six dynamic stats respond to fatigue, tissue injury and neural condition
-PASS Blood transport can fail while generic health remains positive
-PASS Continuous nature differs genetically; injury can override aggression
-PASS Perception-gated memory reinforces, forgets and respects neural capacity
-PASS Individual recognition and trust require repeated perceived social encounters
-PASS Communication and future AI intents cannot invent speech or desktop access
-PASS Manual save and shared organism adapter preserve memories, relationships and laboratory history
-46 test groups passed.
+33 test groups passed.

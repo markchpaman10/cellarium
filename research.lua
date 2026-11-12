@@ -1,4 +1,5 @@
 local G=require('genome');local EG=require('environment_genes');local Units=require('units');local DG=require('development_genes');local A=require('anatomy');local R=require('rendering');local K=require('cultivation')
+local Editor=require('genome_editor')
 local U={genomePage=1,operationIndex=1,view='Genome',source='cells',index=1,page=1,layer='External',component=1,locus=1,compare=nil,parentA=nil,parentB=nil,egg=nil,sperm=nil,experiment=1,naming=false,nameBuffer=''}
 local sources={'cells','organisms','materials','frozen'}
 local function count(t) return #t end
@@ -22,12 +23,15 @@ function U.draw(s,c)
  text(#list..' records',120,750,12,C.muted);text('Shared simulation.\nInspect only as deeply as you like.',51,796,12,C.muted)
  local v=list[U.index];panel(314,251,1094,601)
  local function result(ok,why) msg(why or (ok and 'Done.' or 'Action unavailable.')) end
- if U.view=='Genome' then
+ if U.view=='Genome Edit' then
+  Editor.draw(s,{text=text,button=button,msg=msg,C=C,B=B,source=v})
+ elseif U.view=='Genome' then
   if not v then text('Select a specimen, creature or extracted DNA.',340,280,20,C.muted);return end
   local g=v.genome;local e=G.express(g);local marker,bits=G.marker(g);local site=U.genomePage
   button(({'Primary loci >','Development loci >','Ecology loci >'})[site],938,269,226,34,function() U.genomePage=U.genomePage%3+1 end)
   text(v.name or 'DNA template '..v.id,340,271,24);text('24 chromosome pairs / 144 alleles  |  Marker '..marker..' / '..string.format('%04X',bits),340,310,14,C.mint)
   button('Pin comparison',1180,269,202,34,function() U.compare=G.copy(g);msg('Genome pinned. Differences now appear in amber.') end)
+  button('Edit genome copy',1180,308,202,34,function() if Editor.begin(v) then U.view='Genome Edit' end end)
   for i,definition in ipairs(G.loci) do local d=site==1 and definition or {name=(site==2 and DG.names or EG.names)[i],mode='additive'};local x=340+math.floor((i-1)/12)*525;local y=353+(i-1)%12*32;local l=g.chromosomes[i].loci[site];local expression=site==1 and e[i] or (l.a+l.b)/6;local difference=U.compare and (l.a~=U.compare.chromosomes[i].loci[site].a or l.b~=U.compare.chromosomes[i].loci[site].b)
    button(string.format('%02d',i)..'  '..d.name,x,y,175,27,function() U.locus=i end,U.locus==i)
    text(l.a..' | '..l.b,x+192,y+5,14,difference and {.98,.73,.35} or C.mint)

@@ -9,7 +9,7 @@ function L.indices(s)
 end
 function L.draw(s,x,y,w,h,c)
  local text,button,panel,col=c.text,c.button,c.panel,c.col;local C,B=c.C,c.B;panel(x,y,w,h);text('STRAIN COLLECTION',x+17,y+17,13,C.mint);text('Grouped by cell type and lineage',x+17,y+42,11,C.muted)
- button('+ Purchase DNA vial',x+16,y+71,w-32,35,function() local vial,why=require('lab_engineering').buyVial(s);if vial then c.msg('DNA vial acquired. Open Genome laboratory to engineer cells.') else c.msg(why) end end)
+ button('+ Collect wild cells',x+16,y+71,w-32,35,function() if #s.cells<180 then B.collect(s);c.msg('Seven new wild strains collected.') else c.msg('Use or preserve cells before collecting more.') end end)
  button(L.filter==0 and 'All cell types' or B.types[L.filter],x+16,y+119,w-76,30,function() L.filter=(L.filter+1)%8;L.page=1 end,L.filter~=0)
  button('Fav',x+w-52,y+119,36,30,function() L.favoritesOnly=not L.favoritesOnly;L.page=1 end,L.favoritesOnly)
  button('Sort: '..L.sortNames[L.sort],x+16,y+158,w-32,29,function() L.sort=L.sort%#L.sortNames+1;L.page=1 end)

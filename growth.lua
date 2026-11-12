@@ -15,7 +15,7 @@ function F.generate(genome,conditions)
  local axis={root};local axisCount=d.segments
  local radialOrder=3+math.floor(d[18]*5+.01);local radialAxisLength=0
  local function extendAxis(parent,angle,count,radial)
-  for k=1,count do local p=a.regions[parent];local theta=angle+(radial and 0 or curvature*k/math.max(1,count));local taper=.68+.32*math.sin((k+.5)/(count+1)*pi);local r=region(parent,p.x+math.cos(theta)*step,p.y+math.sin(theta)*step,width*(.7+d[1]*.25)*taper,width*(.65+d[2]*.35)*taper,theta,'axis',0);if not r then break end;axis[#axis+1]=r;parent=r.id;op('DIVIDE',r.id,r.parent,'Axis segmentation') end
+  for k=1,count do local p=a.regions[parent];local theta=angle+(radial and 0 or curvature*k/math.max(1,count));local progress=k/math.max(1,count);local taper=radial and (.74+.22*math.sin(progress*pi)) or (.38+.64*math.sin((progress*.82+.08)*pi))*(1-.26*progress);local r=region(parent,p.x+math.cos(theta)*step,p.y+math.sin(theta)*step,width*(.7+d[1]*.25)*taper,width*(.65+d[2]*.35)*taper,theta,'axis',0);if not r then break end;axis[#axis+1]=r;parent=r.id;op('DIVIDE',r.id,r.parent,'Axis segmentation') end
  end
  if d.symmetry=='radial' then
   local count=math.min(math.floor((axisCount-1)/3),math.floor((a.budget-1)/(radialOrder*2)));radialAxisLength=count
@@ -29,7 +29,7 @@ function F.generate(genome,conditions)
   for k=1,segments do
    local prev=a.regions[parent];local length=(5+d[8]*14)*size*lengthScale;local theta=angle+(d[3]-.5)*k*.35*bendSign
    local start=k==1 and math.max(p.rx,p.ry)*.65 or 0
-   local r=region(parent,prev.x+math.cos(theta)*(length+start),prev.y+math.sin(theta)*(length+start),radius*(1-k/(segments+1)*.32),radius*(.8+d[9]*.3),theta,'appendage',depth)
+   local r=region(parent,prev.x+math.cos(theta)*(length+start),prev.y+math.sin(theta)*(length+start),radius*(1-k/(segments+1)*.65),radius*(.8+d[9]*.3)*(1-k/(segments+1)*.52),theta,'appendage',depth)
    if not r then break end;r.mirrorGroup=mirrorGroup;r.pathIndex=k;r.jointed=k<=d.joints;r.root=host;path[#path+1]=r.id;parent=r.id
   end
   if #path>0 then a.appendages[#a.appendages+1]={root=host,regions=path,depth=depth,angle=angle,mirrorGroup=mirrorGroup};local tip=a.regions[path[#path]]

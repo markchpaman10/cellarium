@@ -23,11 +23,23 @@ function H.compatibility(c,cell)
 end
 function H.location(h,c,target,anchor)
  anchor=anchor or {x=.5,y=.5}
- local best,bestScore
- for y=4,H.height-3 do for x=4,H.width-3 do local cell=h.cells[(y-1)*H.width+x];local matches=not target or target=='auto' or target=='shore' and cell.kind~='land' and cell.depth<.3 or target=='ridge' and cell.kind=='land' and cell.elevation>.4 or cell.kind==target
-  if matches and not cell.obstacle then local score=H.compatibility(c,cell)+math.min(2,H.oxygenRatio(c,cell))*.1-(((x-.5)/H.width-anchor.x)^2+((y-.5)/H.height-anchor.y)^2)*.07+(cell.shelter or 0)*.02+(cell.kind=='land' and 0 or (1-cell.depth)*.02);if not bestScore or score>bestScore then bestScore=score;best={x=(x-.5)/H.width,y=(y-.5)/H.height} end end
- end end;return best or {x=.5,y=.5}
+ local best,bestScore,backup,backupRatio
+ local function consider(x,y,cell)
+  if cell.obstacle then return end
+  local ratio=H.oxygenRatio(c,cell)
+  local point={x=(x-.5)/H.width,y=(y-.5)/H.height}
+  -- Prefer breathable locations regardless of an incompatible release preference.
+  if not backupRatio or ratio>backupRatio then backupRatio=ratio;backup=point end
+  if ratio<1 then return end
+  local matches=not target or target=='auto' or target=='shore' and cell.kind~='land' and cell.depth<.3 or target=='ridge' and cell.kind=='land' and cell.elevation>.4 or cell.kind==target
+  local distance=(point.x-anchor.x)^2+(point.y-anchor.y)^2
+  local score=H.compatibility(c,cell)*2+math.min(2,ratio)*.3-distance*.45+(cell.shelter or 0)*.02+(matches and .15 or 0)
+  if not bestScore or score>bestScore then bestScore=score;best=point end
+ end
+ for y=4,H.height-3 do for x=4,H.width-3 do consider(x,y,h.cells[(y-1)*H.width+x]) end end
+ return best or backup, best~=nil
 end
+
 function H.resource(s,random,kind)
  local x,y=.05+random()*.9,.08+random()*.84;local env=H.sample(s.habitat,x,y);return {x=x,y=y,kind=kind or (env.kind=='land' and (random()<.65 and 'plant' or 'debris') or (random()<.7 and 'dissolved' or 'debris')),amount=1}
 end

@@ -1,5 +1,5 @@
 local G={version=4}
-local DG=require('development_genes');local X=require('gene_expression')
+local DG=require('development_genes')
 local EG=require('environment_genes');G.environmentLoci=EG.names
 G.developmentLoci=DG.names
 local names={'Power','Strength','Dexterity','Intelligence','Health','Vitality','Endurance','Nature','Speed','Attunement','Body size','Body length','Body width','Limb pairs','Bone density','Muscle growth','Fat storage','Skin thickness','Heart capacity','Lung capacity','Digestion','Neural wiring','Pigment','Fertility'}
@@ -12,11 +12,10 @@ function G.valid(g)
   if c.id~=i or not c.loci or #c.loci<1 then return false end
   for j,l in ipairs(c.loci) do
    if l.id~=(({ 'L','D','E' })[j]..i) then return false end
-   if l.copies~=nil and (type(l.copies)~='number' or l.copies%1~=0 or l.copies<0 or l.copies>6) then return false end
    for _,side in ipairs({'a','b'}) do local v=l[side];if type(v)~='number' or v<0 or v>3 or v%1~=0 then return false end end
   end
   if (g.version==3 and #c.loci~=2) or (g.version==4 and #c.loci~=3) then return false end
- end;for _,r in ipairs(g.regulation or {}) do for _,field in ipairs({'sourceChromosome','targetChromosome'}) do if type(r[field])~='number' or r[field]<1 or r[field]>24 then return false end end;for _,field in ipairs({'sourceSite','targetSite'}) do if type(r[field])~='number' or r[field]<1 or r[field]>3 then return false end end;if r.mode~='activate' and r.mode~='suppress' then return false end end;return true
+ end;return true
 end
 function G.upgrade(g)
  assert(G.valid(g),'Invalid genome before schema migration');if g.version==4 then return g end
@@ -33,7 +32,10 @@ function G.new(rand)
  for i,c in ipairs(g.chromosomes) do c.loci[3]={id='E'..i,a=math.floor(rand()*4),b=math.floor(rand()*4),sourceA='wild ecology',sourceB='wild ecology'} end
  return g
 end
-function G.value(g,i) return X.value(g,i,1,G.loci[i].mode) end
+function G.value(g,i)
+ local l=g.chromosomes[i].loci[1];local mode=G.loci[i].mode
+ if mode=='dominant' then return math.max(l.a,l.b)/3 elseif mode=='recessive' then return math.min(l.a,l.b)/3 else return (l.a+l.b)/6 end
+end
 function G.express(g)
  local e={};for i,d in ipairs(G.loci) do e[i]=G.value(g,i);e[d.name]=e[i] end
  e.perception=(e[4]+e[10]+e[22])/3;e.immunity=(e[5]+e[6]+e[18])/3;e.stability=(e[6]+e[22])/2
@@ -46,7 +48,7 @@ function G.marker(g)
  return dna,bits
 end
 function G.hash(g)
- local n=17;for _,c in ipairs(g.chromosomes) do for _,l in ipairs(c.loci) do n=(n*31+l.a*4+l.b+1)%2147483647;if (l.copies or 1)~=1 then n=(n*31+(l.copies or 1)*7)%2147483647 end end end;for _,r in ipairs(g.regulation or {}) do n=(n*31+r.sourceChromosome*11+r.sourceSite*7+r.targetChromosome*3+r.targetSite+(r.mode=='suppress' and 101 or 13))%2147483647 end;return n
+ local n=17;for _,c in ipairs(g.chromosomes) do for _,l in ipairs(c.loci) do n=(n*31+l.a*4+l.b+1)%2147483647 end end;return n
 end
 function G.rng(seed) return function() seed=(seed*48271)%2147483647;return seed/2147483647 end end
 function G.mutate(g,rand,rate,stage)
@@ -56,22 +58,35 @@ function G.mutate(g,rand,rate,stage)
 end
 function G.fuse(genomes,options)
  options=options or {}
- local seed=1;for _,g in ipairs(genomes) do seed=(seed+G.hash(g))%2147483647 end;local rand=G.rng(seed);local out=G.copy(genomes[1]);out.mutations={};out.lineage={'Three-source laboratory recombination'}
- for i,c in ipairs(out.chromosomes) do for j,l in ipairs(c.loci) do for _,side in ipairs({'a','b'}) do local a,b,d=genomes[1].chromosomes[i].loci[j][side],genomes[2].chromosomes[i].loci[j][side],genomes[3].chromosomes[i].loci[j][side];local v=(a==b or a==d) and a or (b==d and b or ({a,b,d})[math.floor(rand()*3)+1]);if options.recombination=='mosaic' then local donor=1+((i+j+(side=='a' and 0 or 1))%3);v=genomes[donor].chromosomes[i].loci[j][side] end;l[side]=v;l[side=='a' and 'sourceA' or 'sourceB']='Lab majority' end end end
+ assert(#genomes>=2,'At least two genome donors required')
+ local seed=1;for _,g in ipairs(genomes) do seed=(seed+G.hash(g))%2147483647 end
+ local rand=G.rng(seed);local out=G.copy(genomes[1]);out.mutations={};out.lineage={#genomes..'-source laboratory recombination'}
+ for i,c in ipairs(out.chromosomes) do for j,l in ipairs(c.loci) do for _,side in ipairs({'a','b'}) do
+  local values,winner,bestCount={},nil,nil
+  for k,g in ipairs(genomes) do values[k]=g.chromosomes[i].loci[j][side] end
+  local value
+  if options.recombination=='mosaic' then value=values[1+((i+j+(side=='a' and 0 or 1))%#values)]
+  else
+   local counts={};for _,v in ipairs(values) do counts[v]=(counts[v] or 0)+1 end
+   bestCount=0;for v,n in pairs(counts) do if n>bestCount then bestCount=n;winner=v end end
+   local ties={};for v,n in pairs(counts) do if n==bestCount then ties[#ties+1]=v end end
+   table.sort(ties);value=ties[math.floor(rand()*#ties)+1]
+  end
+  l[side]=value;l[side=='a' and 'sourceA' or 'sourceB']='Lab '..#genomes..'-donor recombination'
+ end end end
  for _,parent in ipairs(genomes) do for _,m in ipairs(parent.mutations or {}) do local l=out.chromosomes[m.locus] and out.chromosomes[m.locus].loci[m.site or 1];if l and (l.a==m.to or l.b==m.to) then local inherited=G.copy(m);inherited.inheritedFrom=G.hash(parent);out.mutations[#out.mutations+1]=inherited end end end
  if (options.exposure or 0)>0 then G.mutate(out,rand,options.exposure,'Forge exposure') end
  return out,seed
 end
 function G.gamete(g,rand,source,mutation)
- local h={alleles={},metadata={},regulation=G.copy(g.regulation or {}),source=source,events={},mutations={}}
- for i,c in ipairs(g.chromosomes) do local side=rand()<.5 and 'a' or 'b';h.alleles[i]={};h.metadata[i]={};for j,l in ipairs(c.loci) do if j>1 and rand()<.2 then side=side=='a' and 'b' or 'a';h.events[#h.events+1]={chromosome=i,locus=j} end;local v=l[side];if mutation and rand()<.003*(1.5-G.express(g).stability)*(j==2 and ((i==4 or i==6 or i==17) and .12 or .6) or 1) then local old=v;v=math.max(0,math.min(3,v+(rand()<.5 and -1 or 1)));if old~=v then h.mutations[#h.mutations+1]={locus=i,site=j,from=old,to=v,stage='Meiosis'} end end;h.alleles[i][j]=v;h.metadata[i][j]={copies=l.copies or 1} end end
+ local h={alleles={},source=source,events={},mutations={}}
+ for i,c in ipairs(g.chromosomes) do local side=rand()<.5 and 'a' or 'b';h.alleles[i]={};for j,l in ipairs(c.loci) do if j>1 and rand()<.2 then side=side=='a' and 'b' or 'a';h.events[#h.events+1]={chromosome=i,locus=j} end;local v=l[side];if mutation and rand()<.003*(1.5-G.express(g).stability)*(j==2 and ((i==4 or i==6 or i==17) and .12 or .6) or 1) then local old=v;v=math.max(0,math.min(3,v+(rand()<.5 and -1 or 1)));if old~=v then h.mutations[#h.mutations+1]={locus=i,site=j,from=old,to=v,stage='Meiosis'} end end;h.alleles[i][j]=v end end
  for _,m in ipairs(g.mutations or {}) do if h.alleles[m.locus] and h.alleles[m.locus][m.site or 1]==m.to then local inherited=G.copy(m);inherited.inheritedFrom=source;h.mutations[#h.mutations+1]=inherited end end
  return h
 end
 function G.fertilize(a,b)
  local out={version=4,chromosomes={},mutations={},lineage={a.source,b.source}}
- for i=1,24 do if not a.alleles[i] or not b.alleles[i] then return nil end;out.chromosomes[i]={id=i,loci={}};for j,v in ipairs(a.alleles[i]) do out.chromosomes[i].loci[j]={id=({'L','D','E'})[j]..i,a=v,b=b.alleles[i][j],sourceA=a.source,sourceB=b.source}local ma=a.metadata and a.metadata[i] and a.metadata[i][j];local mb=b.metadata and b.metadata[i] and b.metadata[i][j];if ma or mb then local copies=math.floor(((ma and ma.copies or 1)+(mb and mb.copies or 1))/2+.5);if copies~=1 then out.chromosomes[i].loci[j].copies=copies;out.chromosomes[i].loci[j].deleted=copies==0 end end end end
- out.regulation={};local seen={};for _,h in ipairs({a,b}) do for _,r in ipairs(h.regulation or {}) do local key=r.sourceChromosome..'/'..r.sourceSite..'/'..r.targetChromosome..'/'..r.targetSite..'/'..r.mode;if not seen[key] then out.regulation[#out.regulation+1]=G.copy(r);seen[key]=true end end end
+ for i=1,24 do if not a.alleles[i] or not b.alleles[i] then return nil end;out.chromosomes[i]={id=i,loci={}};for j,v in ipairs(a.alleles[i]) do out.chromosomes[i].loci[j]={id=({'L','D','E'})[j]..i,a=v,b=b.alleles[i][j],sourceA=a.source,sourceB=b.source} end end
  for _,h in ipairs({a,b}) do for _,m in ipairs(h.mutations or {}) do out.mutations[#out.mutations+1]=G.copy(m) end end
  return G.valid(out) and out or nil
 end
