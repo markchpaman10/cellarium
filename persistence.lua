@@ -3,9 +3,10 @@ function S.encode(v)
  if type(v)=='number' then assert(v==v and math.abs(v)<math.huge,'Invalid number');return string.format('%.17g',v) elseif type(v)=='boolean' then return tostring(v) elseif type(v)=='string' then return string.format('%q',v) elseif type(v)=='table' then local p={'{'};local keys={};for k in pairs(v) do keys[#keys+1]=k end;table.sort(keys,function(a,b) return tostring(a)<tostring(b) end);for _,k in ipairs(keys) do p[#p+1]='['..S.encode(k)..']='..S.encode(v[k])..',' end;p[#p+1]='}';return table.concat(p) end;return 'nil'
 end
 function S.rebind(a)
+ if a.anatomicalVersion then a.parts=a.regions end
  if a.version~=3 then a.generator='legacy-fallback' end
  local lists={Bone='bones',Muscle='muscles',Fat='fat',Skin='skin',Sensor='sensors',Gill='gills',Airway='airways',Membrane='surfaces',Fin='surfaces',Projection='projections',Mouth='mouths'};a.bones={};a.structures={};a.muscles={};a.fat={};a.skin={};a.organs={};a.sensors={};a.gills={};a.airways={};a.surfaces={};a.projections={};a.mouths={}
- for _,c in ipairs(a.components) do local key=lists[c.type];if key then a[key][#a[key]+1]=c end;if c.type=='Bone' or c.type=='Support' or c.type=='Carapace' then a.structures[#a.structures+1]=c elseif c.type=='Heart' or c.type=='Lung' or c.type=='Brain' or c.type=='Stomach' then a.organs[#a.organs+1]=c end end;return a
+ for _,c in ipairs(a.components) do local key=lists[c.type];if key then a[key][#a[key]+1]=c end;if c.type=='Bone' or c.type=='Support' or c.type=='Carapace' then a.structures[#a.structures+1]=c elseif c.type=='Heart' or c.type=='Lung' or c.type=='Brain' or c.type=='Stomach' or c.type=='Kidney' or c.type=='Gonad' then a.organs[#a.organs+1]=c end end;return a
 end
 local function upgradeAll(value,seen)
  if type(value)~='table' then return end;seen=seen or {};if seen[value] then return end;seen[value]=true

@@ -51,16 +51,4 @@ PASS Continuous culture does not hit an invisible old batch replication counter
 PASS Capacity and freezing stop growth without creating or losing cells
 PASS Embryos, gametes and organism ages all follow real elapsed time
 PASS Countdown formatting uses actual elapsed durations rather than simulated-hour labels
-PASS Native tray and independent layered windows initialize
-INFO Native move targeted actual second monitor.
-PASS Native Petri dish moves using signed Windows screen coordinates
-PASS Explicit context-menu sample action transfers real quantities without taking over right click
-PASS Native hide and restore keeps all IDs, handles, locks, layouts and sample quantities
-PASS Native message pump receives input for our own objects only
-PASS Transparent Petri corners pass native hit testing while culture pixels receive input
-PASS Petri, vial, dropper, workstation and Forge move through real native down/move/up events
-PASS Right-click menus remain available on every item after a saved dropper selection
-PASS Workstation, Forge and culture controls operate in their own desktop windows
-PASS Atomic desktop save and restart decode preserve real state
-PASS Native cleanup removes every equipment HWND and tray icon
-65 result lines; 0 failures.
+53 result lines; 0 failures.

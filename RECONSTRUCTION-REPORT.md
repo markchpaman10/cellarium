@@ -1,0 +1,19 @@
+# Reconstruction delivery report
+
+Branch: desktop-laboratory-dev. Incorporates anatomy-dev 7f4230a on the desktop foundation 631da87d; main and anatomy-dev remain preserved. Current executable: Cellarium-Reconstruction-Dev.exe. Separate save identity: cellarium-desktop-reconstruction-dev.
+
+Implemented: reusable connected vertebral/neck/rib/girdle/skull/appendage/distal/phalangeal structures; antagonistic muscle/tendon coverage; branched motor, sensory and organ nerves; respiratory/digestive/circulatory/waste/reproductive tissues; regional fat and skin; tissue-derived continuous surface; current-anatomy physical stats and local protection; genetic target/current growth states; continuous incubation and juvenile growth; metabolic reserve energy accounting; recorded development trajectory, timeline and individual component inspection; legacy/save/Forge/archive/habitat integration.
+
+Executed: 30 reconstruction test groups and all 53 headless desktop regression groups passed. The fused Windows executable was also run against the reconstruction suite. Tests check actual state continuity, table identity, tissue conservation, elapsed-time partition consistency, recorded states, save/load continuation, old anatomy, incubation/juvenile physiology, rendering and actual UI callbacks. Full results are included. The old monolithic tests.lua line-26 failure is a known baseline issue, not counted as passing.
+
+Unfiltered 100-genome audit: 41 viable, 59 biological failures, zero technical generation errors. Mean structural elements 106.94 versus the previous generator's 25.12 on the exact same seeds; mean muscle bundles 107.64 versus 25.12. The new elements have connected vertebral/rib/girdle/cranial/phalangeal roles, not decorative count inflation.
+
+Unfiltered 1,000-genome audit: 431 viable, 569 biological failures, zero technical generation errors. Appendage counts include 118 limbless, 180 two, 245 four and 223 six. Heads include 181 zero, 487 one, 228 two and 104 three. Support strategies: 624 endoskeletal, 239 hydrostatic frameworks and 137 segmented exoskeletal. Exact signatures number 999 when skeletal counts and orientation bins are included; that does not mean 999 visually unrelated body plans. Prior anatomy-dev viability was 590/1,000. The decrease is retained, primarily digestion, supply and structural-load failures, rather than hiding failures or regenerating until successful.
+
+Visual artifacts: the first 20 unfiltered audit genomes, including failures; a 10-stage external/internal sequence of seed 20365841 using actual biological states; full state records; and the updated generator screen. No species templates or external animal art.
+
+Native Windows test launch was blocked: Computer Use returned "Computer Use app approval timed out"; no native test output was created. Physical dragging, multi-monitor behavior, tray restoration and physical mouse use of the new screen remain unverified for this executable. Prior-version native passes are not claimed for this revision.
+
+Limits: scheduled synthetic tissue development rather than cellular embryology, finite-element tissue deformation or collision-based gait simulation; exploratory capacity/energy coefficients; larger anatomy saves; some bilateral structures overlap in side view; the underlying appendage/head count planner is retained. Further regional regulation and viability balancing remain useful follow-up work.
+
+Launch by extracting the whole Windows ZIP, exiting any older Cellarium tray process and running the new executable. Open Settings > Anatomy Generator / developer tool. Live biology follows PC elapsed time; only the diagnostic playback has pause/speed controls. Inch/ounce/Fahrenheit display remains. Desktop exit-save/launch-restore is unchanged under the separate identity.

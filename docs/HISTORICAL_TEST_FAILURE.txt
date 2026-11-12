@@ -1,0 +1,3 @@
+Reproduced on unchanged main and on the preserved procedural generator:
+tests.lua:26: Genetic tissue/supply incompatibility must fail naturally
+This historical assertion is not counted among the passing anatomy or desktop groups.

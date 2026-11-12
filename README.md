@@ -1,6 +1,14 @@
-# Cellarium — Windows Desktop Laboratory
+# Cellarium: Anatomical Reconstruction Laboratory
 
-The main branch now contains the desktop laboratory, including PC-linked life timing and continuous fed cultures. Experimental anatomy changes are developed separately on anatomy-dev. Native Windows equipment is the default; the classic interface is available only through **Settings → Classic interface**.
+This is the **desktop-laboratory-dev** reconstruction revision. It builds connected skeletal structures and layered tissues with persistent, continuously growing anatomy. Main and the previous anatomy-dev branch remain preserved.
+
+Download the [complete Windows build](builds/Cellarium-Reconstruction-Dev-Windows.zip), extract it, and run **Cellarium-Reconstruction-Dev.exe**. Keep its DLLs beside it and exit older Cellarium builds through the tray first.
+
+Open **Settings > Anatomy Generator / developer tool**. Read the [reconstruction guide](docs/RECONSTRUCTION_USER_GUIDE.md), [architecture and migration](docs/RECONSTRUCTION_ARCHITECTURE.md), [before-change audit](docs/RECONSTRUCTION_AUDIT.md), [1,000-genome results](docs/RECONSTRUCTION_AUDIT_1000.md), [contact sheet](docs/RECONSTRUCTION_CONTACT_SHEET.png) and [growth sequence](docs/RECONSTRUCTION_GROWTH_SEQUENCE.png).
+
+Actual verification: 30 reconstruction groups and 53 desktop regression groups passed. The unfiltered 1,000-genome run produced 431 viable organisms, 569 biological failures and no technical generation errors. This is experimental; viability fell from the previous anatomy version's 590/1,000, and failures are retained. Native Windows interaction tests could not launch because Computer Use app approval timed out; they are unverified for this revision.
+
+The [delivery report](RECONSTRUCTION-REPORT.md) lists actual results and limitations. The original [main desktop](https://github.com/markchpaman10/cellarium/tree/main) and [anatomy-dev baseline](https://github.com/markchpaman10/cellarium/tree/anatomy-dev) remain separate. This executable has its own save identity.
 
 ## How to use the new system
 
@@ -10,7 +18,7 @@ Start with the **[Desktop Laboratory User Guide](docs/USER_GUIDE.md)**. It expla
 
 ## Launch
 
-Exit any older desktop laboratory through its tray menu first. Extract the entire Windows ZIP, then open `Cellarium-Desktop-Laboratory.exe`. Keep the DLLs beside it. No administrator privileges, installation, network service or separate command-line launcher is needed. Windows 10 or newer, x64.
+Exit any older desktop laboratory through its tray menu first. Extract the entire Windows ZIP, then open `Cellarium-Reconstruction-Dev.exe`. Keep the DLLs beside it. No administrator privileges, installation, network service or separate command-line launcher is needed. Windows 10 or newer, x64.
 
 The laboratory launches as individual transparent equipment windows and a real system-tray icon. It does not open the classic UI. Right-click the tray icon for Research & Cryobank, Genome Database, Organism Records, visibility, saved layout, Settings and Exit. Open Settings or a workstation when you need precise controls. Closing the detailed window returns to the tray. **Ctrl+Shift+L** hides equipment and opens recovery controls. **Ctrl+Q**, with the detailed window focused, exits.
 

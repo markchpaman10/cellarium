@@ -7,8 +7,8 @@ end
 function P.update(o,s,dt,env)
  if not o.alive then o.corpse=o.corpse+dt;return end
  local motionDt=s.clock and dt*60 or dt
- H.ensure(s);o.altitude=o.altitude or 0;o.oxygen=o.oxygen or 1;local e=o.traits;o.caps=A.capabilities(o.anatomy,o.genome);local c=o.caps;o.locomotion=c.locomotion or 'jointed';o.age=o.age+dt;o.breed=o.breed+dt
- if o.energy>25 then o.maturity=math.min(1,o.maturity+dt*c.growthRate);o.bodyCondition=.4+.6*o.maturity end
+ H.ensure(s);o.altitude=o.altitude or 0;o.oxygen=o.oxygen or 1;local e=o.traits;if o.anatomy.anatomicalVersion==2 then local previousMass=o.anatomy.massLedger.mass;local previousFat=0;for _,c in ipairs(o.anatomy.fat) do previousFat=previousFat+c.mass end;local m=o.anatomy.growthModel;local fraction=m.fatFraction or .7;local nutrition=o.energy>55 and .9 or o.energy>20 and .35 or 0;fraction=clamp(fraction+dt*(nutrition>.5 and .006 or nutrition>0 and -.002 or -.015),.02,1);require('anatomical_development').advance(o.anatomy,dt,{nutrition=nutrition,oxygen=o.oxygen or 1,temperature=s.habitat.temperature or 37,fatFraction=fraction});local newFat=0;for _,c in ipairs(o.anatomy.fat) do newFat=newFat+c.mass end;local stored=newFat-previousFat;o.energy=clamp(o.energy-stored*35-math.max(0,o.anatomy.massLedger.mass-previousMass-stored)*8,0,100);o.maturity=math.max(0,(m.progress-m.embryonicFraction)/(1-m.embryonicFraction)) end;o.caps=A.capabilities(o.anatomy,o.genome);local c=o.caps;o.locomotion=c.locomotion or 'jointed';o.age=o.age+dt;o.breed=o.breed+dt
+ if o.energy>25 and o.anatomy.anatomicalVersion~=2 then o.maturity=math.min(1,o.maturity+dt*c.growthRate);o.bodyCondition=.4+.6*o.maturity end
  o.lifeStage=o.age>c.lifespan*.8 and 'Elderly' or o.maturity<1 and 'Juvenile' or 'Mature'
  local localEnv=H.sample(s.habitat,o.x,o.y,o.altitude);local inWater=localEnv.kind=='freshwater' or localEnv.kind=='saltwater';o.environment=localEnv.kind
  if o.previousEnvironment and o.previousEnvironment~=o.environment then o.transitions=(o.transitions or 0)+1 end;o.previousEnvironment=o.environment
@@ -35,13 +35,14 @@ function P.update(o,s,dt,env)
  local condition=math.min(o.health/100,o.stamina/100+.3,o.energy/100+.4);local targetAltitude=0;if o.energy>65 and o.stamina>45 and o.oxygen>.8 and c.airRespiration/c.oxygenDemand>.95 and c.flight.powered then targetAltitude=.35 elseif c.flight.glide and (localEnv.elevation or 0)>.42 and o.energy>60 then targetAltitude=.15 end
  if targetAltitude>o.altitude then o.altitude=math.min(targetAltitude,o.altitude+dt*.035) else o.altitude=math.max(0,o.altitude-dt*(c.flight.glide and .008 or .09)) end
  o.locomotion=o.altitude>.08 and (c.flight.powered and 'powered flight' or 'gliding') or inWater and 'swimming' or c.locomotion or 'jointed'
- local speed=(o.altitude>.08 and (c.landSpeed+.018)*(c.flight.glide and 1.2 or 1) or inWater and c.swimSpeed or c.landSpeed)*condition*(.45+o.maturity*.55)*(.35+o.oxygen*.65)
+ local speed=(o.altitude>.08 and (c.landSpeed+.018)*(c.flight.glide and 1.2 or 1) or inWater and c.swimSpeed or c.landSpeed)*condition*(o.anatomy.anatomicalVersion==2 and 1 or (.45+o.maturity*.55))*(.35+o.oxygen*.65)
  local nextX=o.x+math.cos(o.angle)*speed*motionDt;local nextY=o.y+math.sin(o.angle)*speed*motionDt;local nextEnv=H.sample(s.habitat,nextX,nextY,o.altitude);if nextEnv.obstacle or (H.oxygenRatio(c,nextEnv)<.85 and H.oxygenRatio(c,localEnv)>.95 and e.perception>.25) then o.angle=o.angle+2;moving=false end
  if moving then o.x=clamp(o.x+math.cos(o.angle)*speed*motionDt,.06,.94);o.y=clamp(o.y+math.sin(o.angle)*speed*motionDt,.09,.91);o.stamina=clamp(o.stamina+dt*(c.supply*1.4-.65-c.force*.02),0,100) else o.stamina=clamp(o.stamina+dt*(2+c.supply*3),0,100) end
  if o.x<=.061 or o.x>=.939 or o.y<=.091 or o.y>=.909 then o.angle=o.angle+2 end
- if food and dist<.0017 and o.energy<98 and o.altitude<.08 then local meal=table.remove(s.food,food);o.energy=math.min(100,o.energy+(20+c.digestion*6)*(c.diet[meal.kind or 'debris'] or .5));o.fatMass=math.min(c.fatCapacity*.1,o.fatMass+.02);Cog.remember(o,{kind='food',x=meal.x,y=meal.y,outcome=1},s.time) end
+ if food and dist<.0017 and o.energy<98 and o.altitude<.08 then local meal=table.remove(s.food,food);o.energy=math.min(100,o.energy+(20+c.digestion*6)*(c.diet[meal.kind or 'debris'] or .5));if o.anatomy.anatomicalVersion~=2 then o.fatMass=math.min(c.fatCapacity*.1,o.fatMass+.02) end;Cog.remember(o,{kind='food',x=meal.x,y=meal.y,outcome=1},s.time) end
  local drain=c.metabolicDemand*(moving and 1 or .6)*(o.altitude>.08 and (c.flight.powered and 1.9 or 1.12) or 1);o.energy=o.energy-dt*drain
- if o.energy<20 and o.fatMass>0 then local transfer=math.min(o.fatMass,dt*.025);o.fatMass=o.fatMass-transfer;o.energy=o.energy+transfer*35 end;o.energy=math.max(0,o.energy)
+ if o.anatomy.anatomicalVersion==2 then o.fatMass=c.physicalMass.Fat or 0 end
+ if o.anatomy.anatomicalVersion~=2 and o.energy<20 and o.fatMass>0 then local transfer=math.min(o.fatMass,dt*.025);o.fatMass=o.fatMass-transfer;o.energy=o.energy+transfer*35 end;o.energy=math.max(0,o.energy)
  local tempStress=math.max(0,math.abs((s.habitat.temperature or 22)-22)-c.temperatureTolerance)*.025;local saltStress=inWater and math.max(0,localEnv.salinity-c.salinityTolerance)*.25*(1-c.waterResistance*.4) or 0;local oxygenStress=(1-o.oxygen)*.8
  if o.oxygen<.2 then A.damage(o.anatomy,'Muscle',dt*.0005) end
  if env==2 then o.sickness=clamp(o.sickness+dt*(.04*(1-c.immunity)-c.immunity*.015),0,1) else o.sickness=clamp(o.sickness-dt*(.01+c.immunity*.02),0,1) end
@@ -52,6 +53,6 @@ function P.update(o,s,dt,env)
  if o.energy>40 then for _,part in ipairs(o.anatomy.components) do part.condition=math.min(1,part.condition+dt*(part.regeneration and part.regeneration*.01 or .0006*(.4+e[6]))) end;for _,j in ipairs(o.anatomy.joints) do j.condition=math.min(1,j.condition+dt*.0004) end end
  o.mentalCondition=c.mentalCondition*(1-o.sickness)*o.stamina/100;o.hunger=1-o.energy/100;o.thirst=1-o.hydration/100
  o.maxHealth=c.maxHealth;o.currentHealth=c.maxHealth*o.health/100;o.metabolicDemand=c.metabolicDemand;o.fertility=c.fitness*(o.lifeStage=='Elderly' and .25 or 1);o.environmentalTolerance=c.tolerance;Stats.updateVitals(o,dt)
- if o.health<=0 or c.circulation<.1 or c.respiration<.1 then o.alive=false;o.lifeStage='Deceased';o.behavior='Deceased';o.deathCause=o.oxygen<.25 and 'Oxygen deficiency ('..o.environment..')' or saltStress>.1 and 'Salinity exposure' or tempStress>.1 and 'Temperature exposure' or o.hydration<=0 and 'Dehydration' or o.energy<=0 and 'Starvation' or o.age>c.lifespan and 'Aging' or o.sickness>.7 and 'Disease' or c.supply<.2 and 'Organ failure' or 'Environmental exposure' end
+ if o.health<=0 or (o.anatomy.anatomicalVersion==2 and c.supply<.05 or o.anatomy.anatomicalVersion~=2 and (c.circulation<.1 or c.respiration<.1)) then o.alive=false;o.lifeStage='Deceased';o.behavior='Deceased';o.deathCause=o.oxygen<.25 and 'Oxygen deficiency ('..o.environment..')' or saltStress>.1 and 'Salinity exposure' or tempStress>.1 and 'Temperature exposure' or o.hydration<=0 and 'Dehydration' or o.energy<=0 and 'Starvation' or o.age>c.lifespan and 'Aging' or o.sickness>.7 and 'Disease' or c.supply<.2 and 'Organ failure' or 'Environmental exposure' end
 end
 return P
