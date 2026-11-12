@@ -1,5 +1,6 @@
 local G=require('genome');local Eco=require('adaptation');local F=require('growth');local Legacy=require('anatomy_legacy');local certificate=require('generator_certificate');local A={legacy=Legacy}
 function A.capabilities(a,g)
+ if a.anatomicalVersion then return require('anatomical_physiology').capabilities(a,g) end
  if a.version~=3 then return Eco.capabilities(a,g,Legacy.capabilities(a,g)) end
  local e=G.express(g);local d=a.parameters;local mass,rawForce,support,skin,fat,exchange,waste=0,0,0,0,0,0,0;local heart,lungs,digest,neural=0,0,0,0;local brainCount=0;local activeMuscles=0
  for _,c in ipairs(a.components) do
@@ -34,6 +35,7 @@ function A.capabilities(a,g)
  c.maxHealth=65+mass*2+e[5]*45;c.endurance=(.25+e[7])*(.3+supply)*50;c.energyCapacity=100+fat;c.tolerance=(e[10]+e[18]+e[6])/3;c.growthRate=.012+e[6]*.01;c.mentalCondition=coordination*(.5+e[4]*.5);return Eco.capabilities(a,g,c)
 end
 function A.validate(a)
+ if a.anatomicalVersion then return require('body_parts').validate(a) end
  if a.version~=3 then return Legacy.validate(a) end
  local failures,limitations={},{};local c=a.caps
  if #a.regions>a.limits.regions or #a.components>a.limits.components then failures[#failures+1]='Development exceeded complexity budget' end
@@ -54,7 +56,11 @@ end
 function A.procedural(g,conditions)
  g=G.upgrade(g);local a=F.generate(g,conditions);Eco.enrich(a,g,conditions);a.caps=A.capabilities(a,g);a.viable,a.failures=A.validate(a);return a
 end
+function A.blocks(g,conditions)
+ g=G.upgrade(g);local a=require('anatomical_growth').generate(g,conditions);a.caps=A.capabilities(a,g);a.viable,a.failures=A.validate(a);a.limitations={'Experimental anatomy: inspect structural tradeoffs'};return a
+end
 function A.generate(g,conditions)
+ if not conditions or not conditions.generator or conditions.generator=='anatomical' then return A.blocks(g,conditions) end
  if (conditions and conditions.generator=='legacy') or not certificate.approved then local a=Legacy.generate(g,conditions);a.generator='legacy-fallback';a.caps=A.capabilities(a,g);return a end
  local ok,a=pcall(A.procedural,g,conditions)
  if ok then return a end -- Biological failure is reported, never silently replaced.

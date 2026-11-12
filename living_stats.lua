@@ -5,6 +5,7 @@ function T.calculate(o)
  local muscle=avg(a.muscles,'efficiency');local neural=0;for _,p in ipairs(a.organs) do if p.type=='Brain' then neural=neural+p.capacity*p.efficiency*p.condition end end
  local condition=0;for _,p in ipairs(a.components) do condition=condition+p.condition end;condition=condition/math.max(1,#a.components)
  local armor,area=0,0;for _,p in ipairs(a.skin) do local coverage=math.max(.1,(p.rx or 4)*(p.ry or 4));armor=armor+(p.armor or p.toughness or 0)*coverage*p.condition;area=area+coverage end
+ if a.anatomicalVersion then armor=c.skin;area=1 end
  local joints=0;for _,j in ipairs(a.joints) do joints=joints+j.mobility*j.condition end;joints=joints/math.max(1,#a.joints)
  return {STR=c.force*growth*math.sqrt(energy*stamina),DEF=(armor/math.max(1,area)+c.support*.25)*growth,DEX=c.coordination*(.35+joints*.65)*(.5+muscle*.5)*growth*math.sqrt(stamina),INT=neural*c.coordination*growth*(1-(o.sickness or 0))*.5,VIT=math.sqrt(math.max(0,c.supply*oxygen))*condition*(.5+c.immunity*.5),END=c.endurance*energy*stamina*oxygen*.02}
 end

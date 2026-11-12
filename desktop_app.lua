@@ -32,8 +32,9 @@ function A.open(mode,id,s)
  else A.page='Lab' end
 end
 function A.openGenome(value) E.begin(value);A.page='Genome Forge';A.name=value.name or 'Edited genome' end
-function A.textinput(t) if A.editing then if A.editing=='query' then A.query=(A.query..t):sub(1,48);A.recordPage=1 else A.name=(A.name..t):sub(1,40) end;return true end end
+function A.textinput(t) if A.page=='Anatomy Generator' and require('anatomy_dev_ui').textinput(t) then return true end;if A.editing then if A.editing=='query' then A.query=(A.query..t):sub(1,48);A.recordPage=1 else A.name=(A.name..t):sub(1,40) end;return true end end
 function A.keypressed(key)
+ if A.page=='Anatomy Generator' and require('anatomy_dev_ui').keypressed(key) then return true end
  if A.editing then if key=='return' or key=='escape' then if key=='return' and A.editing=='vessel' then local v=T.vessel(Host.state(),A.labelVessel);if v then v.label=A.name end end;A.editing=nil elseif key=='backspace' then if A.editing=='query' then A.query=A.query:sub(1,-2) else A.name=A.name:sub(1,-2) end end;return true end
  return false
 end
@@ -133,7 +134,7 @@ local function assembly(s)
 end
 local function incubation(s)
  heading('Development & reproduction','Embryos differentiate using their own inherited genome. Biological failure remains possible.')
- for i=1,math.min(5,#s.eggs) do local e=s.eggs[i];local remaining=(1-e.progress)*24/(e.anatomy and e.anatomy.growthFactor or 1);local y=180+(i-1)*85;card(250,y,1140,70);text('#'..e.id..' / '..e.stage,270,y+13,18);text(math.floor(e.progress*100)..'% / remaining ~'..Clock.biologyDuration(remaining)..' / '..e.parents,270,y+41,13,palette.muted);set(palette.tint);love.graphics.rectangle('fill',960,y+27,400,9,4);set(palette.teal);love.graphics.rectangle('fill',960,y+27,400*e.progress,9,4) end
+ for i=1,math.min(5,#s.eggs) do local e=s.eggs[i];local remaining=(1-e.progress)*24/(e.anatomy and e.anatomy.growthFactor or 1);local y=180+(i-1)*85;card(250,y,1140,70);text('#'..e.id..' / '..e.stage,270,y+13,18);text(math.floor(e.progress*100)..'% / remaining ~'..Clock.biologyDuration(remaining)..' / '..e.parents,270,y+41,13,palette.muted);set(palette.tint);love.graphics.rectangle('fill',960,y+27,400,9,4);set(palette.teal);love.graphics.rectangle('fill',960,y+27,400*e.progress,9,4);if e.anatomy and e.anatomy.anatomicalVersion and e.constructionFrame then local a=e.anatomy;local f=a.snapshots[e.constructionFrame];local body=setmetatable({regions=f.regions,components=f.components,joints=f.joints,nerves=f.nerves,vessels=f.vessels},{__index=a});R.draw({anatomy=body,alive=true,maturity=1,behavior='Resting'},850,y+35,R.fitScale(a,140,55,.5),0,'External') end end
  if #s.eggs==0 then text('No embryos developing. Incubate an edited genome or assemble donor cells in the Forge.',250,195,18,palette.muted) end
  card(250,640,1140,182);text('Gamete bank',273,659,21)
  local egg,sperm=s.gametes[A.gameteA],s.gametes[A.gameteB]
@@ -156,7 +157,7 @@ local function habitats(s)
  local organism=s.organisms[A.record];button(organism and (organism.name..' / '..organism.worldId..' >') or 'No living specimens yet',273,455,700,35,function() A.record=A.record%math.max(1,#s.organisms)+1 end)
  button('Move selected here',988,455,378,35,function() if organism then result(Worlds.move(s,organism.id,world.id));Host.sync() end end)
  if organism then text(organism.behavior..' / health '..math.floor(organism.health)..'% / oxygen '..math.floor((organism.oxygen or 1)*100)..'%',273,518,17,palette.teal);R.draw(organism,470,650,R.fitScale(organism.anatomy,250,170,3),Clock.visual(s),'External');button('Open this organism record',670,596,344,36,function() A.page='Records';A.recordType='organisms' end);button('Recall to terrarium',1030,596,336,36,function() result(Worlds.move(s,organism.id,'terrarium'));Host.sync() end) end
- button('Develop audited reference genome',273,750,420,35,function() local e=require('biology').queue(s,G.copy(require('audit_examples').compact.genome),'Audited reference genotype',0);e.worldId='terrarium';Host.message('Reference genome is developing in incubation.');A.page='Incubation' end)
+ button('Develop audited reference genome',273,750,420,35,function() local e=require('biology').queue(s,G.new(G.rng(20365841)),'Audited reference genotype',0);e.worldId='terrarium';Host.message('Reference genome is developing in incubation.');A.page='Incubation' end)
  button('Open desktop container',710,750,656,35,function() for _,o in ipairs(s.desktop.objects) do if o.entityId==world.id then o.stored=false;o.visible=true;M.setGroup(s,'habitats',true);Host.hidePanel();break end end end)
 end
 local function records(s,cryobank,research)
@@ -227,6 +228,7 @@ local function settings(s)
  button('Reset positions...',985,335,379,40,function() if require('native_windows').confirm('Reset equipment positions? All cultures will remain intact.') then M.reset(s,Host.monitors) end end)
  button('Start a new experiment...',275,398,520,40,function() if require('native_windows').confirm('Start a new desktop experiment? The next desktop save will replace the current session. Other versions are unaffected.') then Host.context.newExperiment() end end,false,true)
  button('Restore all stored objects',820,398,544,40,function() for _,o in ipairs(d.objects) do if not o.archivedEntity then o.stored=false;o.visible=true end end end)
+ button('Anatomy Generator / developer tool',820,460,544,40,function() A.page='Anatomy Generator' end)
  text('PERSISTENCE',275,485,14,palette.teal);text('The desktop revision saves on exit and restores on launch.\nDrop a previous experiment.lua file onto this window to migrate it.\nPC elapsed time is preserved, including while hidden or closed.\nClosing this window returns to the real Windows tray. Exit from the tray or press Ctrl+Q.',275,523,15,palette.muted)
  text('Connected monitors: '..#Host.monitors,275,641,15,palette.teal)
  for i,m in ipairs(Host.monitors) do text(m.id..' / '..m.w..'x'..m.h..' / '..m.x..', '..m.y..' / '..m.dpi..' DPI',275,674+(i-1)*25,13,palette.muted) end
@@ -256,7 +258,7 @@ function A.draw(s,context)
  for i,page in ipairs({'Lab','Cultures','Genome Forge','Incubation','Habitats','Records','Research','Cryobank','Settings'}) do button(page,16,119+(i-1)*51,188,42,function() A.page=page;A.editing=nil end,A.page==page) end
  text('Desktop edition\nNative equipment & tray\nLocal biological records',25,737,12,palette.muted)
  button('Save laboratory',16,815,188,36,function() Host.save() end)
- if A.page=='Lab' then lab(s) elseif A.page=='Cultures' then cultures(s) elseif A.page=='Genome Forge' then forge(s) elseif A.page=='Assembly' then assembly(s) elseif A.page=='Incubation' then incubation(s) elseif A.page=='Habitats' then habitats(s) elseif A.page=='Records' then records(s,false,false) elseif A.page=='Research' then records(s,false,true) elseif A.page=='Cryobank' then records(s,true,false) elseif A.page=='Behavior' then behavior(s) elseif A.page=='History' then history(s) elseif A.page=='Observations' then observations(s) else settings(s) end
+ if A.page=='Anatomy Generator' then require('anatomy_dev_ui').draw(s,{text=text,button=button,card=card,register=context.register}) elseif A.page=='Lab' then lab(s) elseif A.page=='Cultures' then cultures(s) elseif A.page=='Genome Forge' then forge(s) elseif A.page=='Assembly' then assembly(s) elseif A.page=='Incubation' then incubation(s) elseif A.page=='Habitats' then habitats(s) elseif A.page=='Records' then records(s,false,false) elseif A.page=='Research' then records(s,false,true) elseif A.page=='Cryobank' then records(s,true,false) elseif A.page=='Behavior' then behavior(s) elseif A.page=='History' then history(s) elseif A.page=='Observations' then observations(s) else settings(s) end
  if A.preview and E.forecast and A.page=='Genome Forge' then
   set({.03,.08,.10,.65});love.graphics.rectangle('fill',220,55,1220,806);card(450,180,700,540);text('Developed body forecast',475,205,25);text((E.forecast.viable and 'Viable' or 'Nonviable')..' / '..E.forecast.caps.locomotion..' / '..#E.forecast.regions..' regions',475,249,16,palette.teal)
   R.draw({anatomy=E.forecast,genome=E.draft,caps=E.forecast.caps,maturity=1,alive=true,behavior='Resting',angle=0},800,444,R.fitScale(E.forecast,570,270,4),0,'External')

@@ -1,4 +1,8 @@
-# Cellarium — Windows Desktop Laboratory
+# Cellarium — Experimental Anatomical Laboratory
+
+This branch builds actual anatomical parts with connected support, joints, organs, muscle, nerves, fat and skin. Open **Settings > Anatomy Generator / developer tool** to inspect recorded development. See the [Anatomy Generator guide](docs/ANATOMY_USER_GUIDE.md), [architecture and limitations](docs/ANATOMY_ARCHITECTURE.md), [1,000-genome audit](docs/ANATOMY_AUDIT_1000.md) and [contact sheet](docs/ANATOMY_CONTACT_SHEET.png).
+
+Download the [complete anatomy Windows package](builds/Cellarium-Anatomy-Dev-Windows.zip), extract it, and launch `Cellarium-Anatomy-Dev.exe`. The stable desktop is on [main](https://github.com/markchpaman10/cellarium/tree/main).
 
 The main branch now contains the desktop laboratory, including PC-linked life timing and continuous fed cultures. Experimental anatomy changes are developed separately on anatomy-dev. Native Windows equipment is the default; the classic interface is available only through **Settings → Classic interface**.
 
@@ -10,7 +14,7 @@ Start with the **[Desktop Laboratory User Guide](docs/USER_GUIDE.md)**. It expla
 
 ## Launch
 
-Exit any older desktop laboratory through its tray menu first. Extract the entire Windows ZIP, then open `Cellarium-Desktop-Laboratory.exe`. Keep the DLLs beside it. No administrator privileges, installation, network service or separate command-line launcher is needed. Windows 10 or newer, x64.
+Exit any older desktop laboratory through its tray menu first. Extract the entire Windows ZIP, then open `Cellarium-Anatomy-Dev.exe`. Keep the DLLs beside it. No administrator privileges, installation, network service or separate command-line launcher is needed. Windows 10 or newer, x64.
 
 The laboratory launches as individual transparent equipment windows and a real system-tray icon. It does not open the classic UI. Right-click the tray icon for Research & Cryobank, Genome Database, Organism Records, visibility, saved layout, Settings and Exit. Open Settings or a workstation when you need precise controls. Closing the detailed window returns to the tray. **Ctrl+Shift+L** hides equipment and opens recovery controls. **Ctrl+Q**, with the detailed window focused, exits.
 

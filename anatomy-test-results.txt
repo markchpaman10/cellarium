@@ -1,0 +1,20 @@
+PASS Deterministic genome, seed and developmental environment
+PASS Parent connectivity and supported joint limits
+PASS Muscles span distinct structural supports
+PASS Every functional part has brain-to-motor nerve connectivity
+PASS Cavities contain organs and reject collisions
+PASS Tissue volume conservation and physical mass ledger
+PASS Regional dorsal armor does not protect ventral abdomen
+PASS Physical stats respond to muscle, mass, organ and tissue condition
+PASS Self-inheritance preserves homozygous anatomy; mutation changes development
+PASS Biological failure retains actual body, never substitutes fallback
+PASS Save/load preserves canonical genome and anatomy identity
+PASS Recorded construction stages preserve final graph
+PASS Old procedural and legacy records retain their generators and physiology
+PASS Forge/archive/incubation/PC-clock laboratory integration
+PASS Joint motion remains within limits with connected descendant transforms
+PASS Developmental allele edits alter real heads and appendages
+PASS Unfiltered 1000 audit has viable and diverse inheritable bodies without technical fallback
+PASS Real side-view contact sheet, layers, playback and desktop tool render
+PASS Developer controls: seed entry, recorded replay, archive and export callbacks
+19 groups executed; 0 failures.

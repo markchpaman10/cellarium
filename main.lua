@@ -44,9 +44,11 @@ local function loadSave()
  msg('Save could not load: '..tostring(why));return false
 end
 function love.load()
+ for _,v in ipairs(arg or {}) do if v=='--anatomy-test' or v=='--test' then local ok,r=xpcall(function() return require('anatomy_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
+ for _,a in ipairs(arg or {}) do if a=='--anatomy-baseline' then local ok,result=pcall(function() return require('anatomy_baseline_audit').run() end);print(result);love.event.quit(ok and 0 or 1);return end end
  for _,a in ipairs(arg or {}) do if a=='--desktop-test' or a=='--desktop-native-test' then local ok,result=xpcall(function() return require('desktop_tests').run(B,a=='--desktop-native-test') end,debug.traceback);local f=assert(io.open((love.filesystem.isFused() and love.filesystem.getSourceBaseDirectory() or love.filesystem.getSource())..'/desktop-test-results.txt','w'));f:write(result);f:close();love.event.quit(ok and 0 or 1);return end end
  for _,a in ipairs(arg or {}) do if a=='--audit' or a=='--ecology-audit' then local ok,result=pcall(function() return require(a=='--ecology-audit' and 'ecology_audit' or 'audit').run(B) end);if not ok then local f=io.open(love.filesystem.getSource()..'/audit-error.txt','w');if f then f:write(tostring(result));f:close() end end;love.event.quit(ok and result and 0 or 1);return end end
- for _,a in ipairs(arg or {}) do if a=='--test' then local ok,result=pcall(require('tests'),B);local f=io.open(love.filesystem.getSource()..'/test-results.txt','w');if f then f:write(ok and result or tostring(result));f:close() end;love.event.quit(ok and 0 or 1);return end end
+ for _,a in ipairs(arg or {}) do if a=='--historical-test' then local an=require('anatomy');local generate=an.generate;an.generate=function(g,c) c=G.copy(c or {});c.generator='procedural';return generate(g,c) end;local ok,result=pcall(require('tests'),B);an.generate=generate;local f=io.open(love.filesystem.getSource()..'/test-results.txt','w');if f then f:write(ok and result or tostring(result));f:close() end;love.event.quit(ok and 0 or 1);return end end
  for _,n in ipairs({11,12,13,14,16,18,20,24,28,32,40}) do fonts[n]=love.graphics.newFont(n) end
  R.init();love.graphics.setBackgroundColor(C.bg);s=B.new();B.collect(s);tab=1;donors={};medium=1;environment=1;toastTime=0
  V.ensure(s);B.log(s,'New experiment. Select a strain to begin cultivation. Load restores a manual save.')
@@ -73,6 +75,7 @@ function love.load()
  end
 end
 function love.update(dt)
+ require('anatomy_dev_ui').update(dt)
  if not s then return end
  if uiTest then
   uiTest=false

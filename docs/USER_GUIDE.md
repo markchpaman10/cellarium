@@ -1,3 +1,7 @@
+# Anatomy branch addition
+
+The experimental anatomy generator is available through Settings > Anatomy Generator / developer tool. See [ANATOMY_USER_GUIDE.md](ANATOMY_USER_GUIDE.md) for replay, seeds, layers, inspection, genome archiving and exports. Main remains the stable desktop edition. This build uses a separate save identity.
+
 # Using the desktop laboratory
 
 This guide describes the current **desktop laboratory** on main (also retained on desktop-laboratory-dev), including the simplified individual containers. The classic UI is optional and is not needed for the workflow below.

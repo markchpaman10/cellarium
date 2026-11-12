@@ -86,7 +86,7 @@ function P.draw(s,c)
   button('Add from other habitats >',423,722,330,33,function() P.organism=P.organism%math.max(1,#s.organisms)+1 end)
   local incoming=s.organisms[P.organism];text(incoming and incoming.name..' / '..incoming.worldId or 'No organisms yet; incubate a genome in the Forge.',775,731,13,C.muted)
   button('Move selected organism here',423,770,330,33,function() if incoming then result(Worlds.move(s,incoming.id,world.id));Host.sync() end end)
-  button('Develop reference specimen',775,770,330,33,function() local g=G.copy(require('audit_examples').compact.genome);local e=c.B.queue(s,g,'Audited reference genotype',0);e.worldId='terrarium';msg('Reference genome incubating in terrestrial mesocosm.') end)
+  button('Develop reference specimen',775,770,330,33,function() local g=G.new(G.rng(20365841));local e=c.B.queue(s,g,'Audited reference genotype',0);e.worldId='terrarium';msg('Reference genome incubating in terrestrial mesocosm.') end)
  elseif o.kind=='dna' then
   local dna;for _,vial in ipairs(s.materials) do if vial.id==o.entityId then dna=vial end end;if not dna then return end
   text(dna.name or 'Archived DNA',423,373,25);text('DNA is a genome record, not a living culture.\nGenome '..G.hash(dna.genome)..' / marker '..G.marker(dna.genome)..'\n144 alleles / '..#dna.genome.mutations..' recorded mutations',423,425,16,C.muted)

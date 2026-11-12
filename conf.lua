@@ -1,3 +1,3 @@
 function love.conf(t)
- t.identity='cellarium-desktop-laboratory-dev'; t.version='11.5'; t.window.title='CELLARIUM / Desktop Laboratory Records'; t.window.width=1440; t.window.height=900; t.window.resizable=true; t.window.minwidth=1100; t.window.minheight=720; t.window.highdpi=true; t.console=false
+ t.identity='cellarium-anatomy-dev'; t.version='11.5'; t.window.title='CELLARIUM / Anatomy Development Laboratory'; t.window.width=1440; t.window.height=900; t.window.resizable=true; t.window.minwidth=1100; t.window.minheight=720; t.window.highdpi=true; t.console=false
 end
