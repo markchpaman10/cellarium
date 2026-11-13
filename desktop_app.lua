@@ -18,7 +18,8 @@ local function result(ok,why) Host.message(why or (ok and 'Done.' or 'Action una
 local function heading(title,subtitle) text(title,250,89,29);text(subtitle,250,132,14,palette.muted) end
 local function countLiving(s) local n=0;for _,o in ipairs(s.organisms) do if o.alive then n=n+1 end end;return n end
 function A.open(mode,id,s)
- if mode=='label' then local o=M.find(s,id);if o then A.beginLabel(s,o.kind,o.entityId,true) end;return
+ if mode=='assistant' then A.page='Assistant';A.editing=nil;return
+ elseif mode=='label' then local o=M.find(s,id);if o then A.beginLabel(s,o.kind,o.entityId,true) end;return
  elseif mode=='forge' or mode=='genomes' then A.page='Genome Forge'
  elseif mode=='research' then A.page='Research';A.recordType='experiments';A.record=1
  elseif mode=='organisms' or mode=='organism' then A.page='Records';A.recordType='organisms';for i,o in ipairs(s.organisms) do if o.id==id then A.record=i;A.recordPage=math.floor((i-1)/11)+1 end end
@@ -42,8 +43,9 @@ function A.finishLabel(s,save)
  if save then local ok,why=require('container_labels').set(s,e.kind,e.id,e.draft);Host.message(why);if not ok then return end end
  A.labelEdit=nil;A.page=e.returnPage or 'Lab';Host.render(true);if e.fromDesktop then Host.hidePanel() end
 end
-function A.textinput(t) if A.page=='Container label' and A.labelEdit then local e=A.labelEdit;local value=require('container_labels').input((e.selectAll and '' or e.draft)..t);if value then e.draft=value;e.selectAll=false end;return true end;if A.page=='Anatomy Generator' and require('anatomy_dev_ui').textinput(t) then return true end;if A.editing then if A.editing=='query' then A.query=(A.query..t):sub(1,48);A.recordPage=1 else A.name=(A.name..t):sub(1,40) end;return true end end
+function A.textinput(t) if A.page=='Assistant' then return require('assistant_ui').textinput(t) end;if A.page=='Container label' and A.labelEdit then local e=A.labelEdit;local value=require('container_labels').input((e.selectAll and '' or e.draft)..t);if value then e.draft=value;e.selectAll=false end;return true end;if A.page=='Anatomy Generator' and require('anatomy_dev_ui').textinput(t) then return true end;if A.editing then if A.editing=='query' then A.query=(A.query..t):sub(1,48);A.recordPage=1 else A.name=(A.name..t):sub(1,40) end;return true end end
 function A.keypressed(key)
+ if A.page=='Assistant' then return require('assistant_ui').keypressed(key,Host.state()) end
  if A.page=='Container label' and A.labelEdit then local e=A.labelEdit;if key=='return' then A.finishLabel(Host.state(),true) elseif key=='escape' then A.finishLabel(Host.state(),false) elseif key=='backspace' then e.draft=e.selectAll and '' or require('container_labels').backspace(e.draft);e.selectAll=false elseif key=='a' and love.keyboard.isDown('lctrl','rctrl') then e.selectAll=true end;return true end
  if A.page=='Anatomy Generator' and require('anatomy_dev_ui').keypressed(key) then return true end
  if A.editing then if key=='return' or key=='escape' then if key=='return' and A.editing=='vessel' then local v=T.vessel(Host.state(),A.labelVessel);if v then v.label=A.name end end;A.editing=nil elseif key=='backspace' then if A.editing=='query' then A.query=A.query:sub(1,-2) else A.name=A.name:sub(1,-2) end end;return true end
@@ -263,10 +265,10 @@ function A.draw(s,context)
  A.context=context;set(palette.bg);love.graphics.rectangle('fill',0,0,1440,900)
  set({.095,.16,.19});love.graphics.rectangle('fill',0,0,1440,55);text('CELLARIUM',24,17,17,{.9,.98,.96});text('local laboratory  /  '..A.page:lower(),252,19,13,{.69,.81,.82});text(Clock.wallTime(),1110,19,12,{.67,.84,.79});button('Return to desktop',1254,10,167,34,function() Host.hidePanel() end)
  set({.89,.92,.93});love.graphics.rectangle('fill',0,55,220,845);text('LABORATORY',24,88,11,palette.muted)
- for i,page in ipairs({'Lab','Cultures','Genome Forge','Incubation','Habitats','Records','Research','Cryobank','Settings'}) do button(page,16,119+(i-1)*51,188,42,function() A.page=page;A.editing=nil end,A.page==page) end
+ for i,page in ipairs({'Lab','Assistant','Cultures','Genome Forge','Incubation','Habitats','Records','Research','Cryobank','Settings'}) do button(page,16,119+(i-1)*51,188,42,function() A.page=page;A.editing=nil end,A.page==page) end
  text('Desktop edition\nNative equipment & tray\nLocal biological records',25,737,12,palette.muted)
  button('Save laboratory',16,815,188,36,function() Host.save() end)
- if A.page=='Container label' then containerLabel(s) elseif A.page=='Anatomy Generator' then require('anatomy_dev_ui').draw(s,{text=text,button=button,card=card,register=context.register}) elseif A.page=='Lab' then lab(s) elseif A.page=='Cultures' then cultures(s) elseif A.page=='Genome Forge' then forge(s) elseif A.page=='Assembly' then assembly(s) elseif A.page=='Incubation' then incubation(s) elseif A.page=='Habitats' then habitats(s) elseif A.page=='Records' then records(s,false,false) elseif A.page=='Research' then records(s,false,true) elseif A.page=='Cryobank' then records(s,true,false) elseif A.page=='Behavior' then behavior(s) elseif A.page=='History' then history(s) elseif A.page=='Observations' then observations(s) else settings(s) end
+ if A.page=='Assistant' then require('assistant_ui').draw(s,{text=text,button=button,card=card,register=context.register}) elseif A.page=='Container label' then containerLabel(s) elseif A.page=='Anatomy Generator' then require('anatomy_dev_ui').draw(s,{text=text,button=button,card=card,register=context.register}) elseif A.page=='Lab' then lab(s) elseif A.page=='Cultures' then cultures(s) elseif A.page=='Genome Forge' then forge(s) elseif A.page=='Assembly' then assembly(s) elseif A.page=='Incubation' then incubation(s) elseif A.page=='Habitats' then habitats(s) elseif A.page=='Records' then records(s,false,false) elseif A.page=='Research' then records(s,false,true) elseif A.page=='Cryobank' then records(s,true,false) elseif A.page=='Behavior' then behavior(s) elseif A.page=='History' then history(s) elseif A.page=='Observations' then observations(s) else settings(s) end
  if A.preview and E.forecast and A.page=='Genome Forge' then
   set({.03,.08,.10,.65});love.graphics.rectangle('fill',220,55,1220,806);card(450,180,700,540);text('Developed body forecast',475,205,25);text((E.forecast.viable and 'Viable' or 'Nonviable')..' / '..E.forecast.caps.locomotion..' / '..#E.forecast.regions..' regions',475,249,16,palette.teal)
   R.draw({anatomy=E.forecast,genome=E.draft,caps=E.forecast.caps,maturity=1,alive=true,behavior='Resting',angle=0},800,444,R.fitScale(E.forecast,570,270,4),0,'External')

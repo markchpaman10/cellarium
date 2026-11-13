@@ -1,0 +1,5 @@
+Unmodified Microsoft Visual C++ runtime libraries supplied from the official Microsoft VCLibs x64 Desktop package.
+Source: https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx
+Documentation: https://learn.microsoft.com/en-us/troubleshoot/developer/visualstudio/cpp/libraries/c-runtime-packages-desktop-bridge
+Copyright Microsoft Corporation. All rights reserved.
+These files are provided only as the runtime dependencies of Cellarium and ONNX Runtime. No system installation is performed.

@@ -51,3 +51,4 @@ function F.draw(s,c)
  if #s.eggs>0 then local egg=s.eggs[1];text('INCUBATING '..#s.eggs..' / '..egg.stage,1116,780,12,C.mint);col(C.line);love.graphics.rectangle('fill',1116,814,268,5);col(C.mint);love.graphics.rectangle('fill',1116,814,268*egg.progress,5) end
 end
 return F
+

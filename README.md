@@ -1,6 +1,12 @@
 # Cellarium: Desktop Laboratory + Organism Growth Lab
 
-[Download Windows build](builds/Cellarium-Growth-Integrated-Windows.zip). Extract the ZIP and run **Cellarium-Growth-Integrated.exe**, keeping the DLLs beside it. Exit the older Cellarium build through its tray icon first. The previous workshop build remains available in `builds/`.
+GitHub download: [desktop core](builds/Cellarium-Desktop-Core-Windows.zip) + [assistant runtime](builds/Cellarium-Assistant-Runtime.zip) + [assistant artwork](builds/Cellarium-Assistant-Art.zip). Extract all three into the same folder, then run **Cellarium-Growth-Integrated.exe** with its DLLs and **assistant_assets** folder beside it. The local Windows ZIP already contains everything. Exit the older build through its tray icon first.
+
+## Jenny: offline assistant
+
+Right-click the Cellarium tray icon > **Enable Assistant**. Jenny appears above the Windows taskbar. Click her to ask a question; right-click to choose outfit, idle pose, walking and sarcasm. She uses a bundled CPU-only quantized MiniLM model for English topic matching and verified procedures/live lab data for the answer. Uncertain questions prompt clarification. Office idle walking and the supplied alternate-outfit idle sequences are included. Keep `assistant_assets` beside the executable.
+
+[Assistant guide](docs/ASSISTANT_GUIDE.md) / [CPU compatibility evidence](docs/ASSISTANT_CPU_COMPATIBILITY.md). The SSE2 fallback is supported by the runtime source; a physical non-AVX machine has not been tested.
 
 ## Sample racks and empty flasks
 

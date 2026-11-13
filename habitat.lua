@@ -44,3 +44,4 @@ function H.resource(s,random,kind)
  local x,y=.05+random()*.9,.08+random()*.84;local env=H.sample(s.habitat,x,y);return {x=x,y=y,kind=kind or (env.kind=='land' and (random()<.65 and 'plant' or 'debris') or (random()<.7 and 'dissolved' or 'debris')),amount=1}
 end
 return H
+

@@ -1,0 +1,26 @@
+PASS Real CPU MiniLM produces deterministic normalized 384D embeddings and semantic similarity
+PASS WordPiece uses correct vocabulary IDs, accent handling and bounded input length
+PASS Unknown topics and ambiguous installation phases abstain instead of choosing an unsupported answer
+PASS Current laboratory summary reads actual counts and credits without changing the game
+PASS Death answers use the exact selected record and never invent a cause or substitute an invalid ID
+PASS Movement diagnostics report actual physiological limitations and admit incomplete data
+PASS Multiple specimens require a specific selection instead of an arbitrary first organism
+PASS Culture explanation uses actual growth status, temperature conversion and container identity
+PASS Installation diagnostics reuse the game validator without consuming or copying any sample
+PASS Personality preserves factual text, respects Off and varies repeated-question remarks
+PASS All supplied sheets provide 111 transparent frames within a 2048-pixel texture limit
+PASS Enable creates one independent assistant, keeps her feet above the taskbar, and starts the background model
+PASS Worker classifies asynchronously and main-thread answers use current data
+PASS Idle walking animates without moving equipment and stops while help is open
+PASS Dragging across negative-coordinate mixed-DPI monitors preserves taskbar baseline
+PASS Clicking Jenny retains the selected laboratory item for question context
+PASS Tray menu exposes checked Enable Assistant and disabling keeps biological state unchanged
+PASS Assistant UI renders chat, appearance, topic choices and exact input controls
+PASS Alternate outfit keeps its clothing, cycles supplied idle poses and fits wide resting frames
+PASS No supported explanation is fabricated after a damaged live-state record raises an error
+PASS Every frame shares one body-scale control and baseline; resting artwork is calibrated to the standing body scale
+PASS Repeated enable/disable and garbage collection retain valid native model handles
+PASS Fresh locomotion diagnostics detect damaged tissues even when cached capabilities still report movement
+PASS Fresh locomotion reports joint, nerve and physiological failures from the actual controller
+PASS Genome diagnostics call expression and the current generator without modifying the selected DNA
+25 groups; 0 failures.

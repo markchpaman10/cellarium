@@ -17,13 +17,18 @@ function W.extract(s,id)
  s.materials[#s.materials+1]=record;D.station(s,id).config.genomeId=record.id
  return finish(s,id,true,'DNA #'..record.id..' archived. Source cell retained.')
 end
-function W.install(s,id)
- local input,output,why=D.validatePair(s,id);if not input then return finish(s,id,false,why) end
- local cell=input.contents[1].cell;if cell.sampleKind~='blank' then return finish(s,id,false,'DNA installation requires a purchased blank developmental cell in the input container.') end
+function W.inspectInstall(s,id)
+ local input,output,why=D.validatePair(s,id);if not input then return nil,why end
+ local cell=input.contents[1].cell;if cell.sampleKind~='blank' then return nil,'DNA installation requires a purchased blank developmental cell in the input container.' end
  local station=D.station(s,id);local dna
- if station.config.docks.dna then dna=D.dna(s,id);if not dna then return finish(s,id,false,'The attached DNA vial is unavailable. Detach it or attach a valid DNA vial.') end
+ if station.config.docks.dna then dna=D.dna(s,id);if not dna then return nil,'The attached DNA vial is unavailable. Detach it or attach a valid DNA vial.' end
  else for _,record in ipairs(s.materials) do if record.id==station.config.genomeId then dna=record;break end end end
- if not dna or not G.valid(dna.genome) then return finish(s,id,false,'Attach a DNA vial to the purple DNA dock, or choose an archived genome.') end
+ if not dna or not G.valid(dna.genome) then return nil,'Attach a DNA vial to the purple DNA dock, or choose an archived genome.' end
+ return {input=input,output=output,dna=dna}
+end
+function W.install(s,id)
+ local plan,why=W.inspectInstall(s,id);if not plan then return finish(s,id,false,why) end
+ local input,output,dna=plan.input,plan.output,plan.dna
  local result=B.cell(s,1,G.copy(dna.genome),'Workshop DNA '..dna.id,0);result.developmentalCell=true;output.contents={{cell=result,count=1}};consume(input)
  return finish(s,id,true,'One blank cell consumed. Installed cell delivered to container #'..output.id..'.')
 end

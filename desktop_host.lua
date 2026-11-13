@@ -4,7 +4,7 @@ function Host.state() return Host.context.getState() end
 function Host.message(text) Host.notice=text;if Host.context then Host.context.msg(text) end;if not Host.panelVisible and Native.tray and not Host.testing and (not Host.lastNotice or love.timer.getTime()-Host.lastNotice>2) then Native.notify(text);Host.lastNotice=love.timer.getTime() end end
 local function vesselKind(v) return ({'dish','flask','plate','vial','cryovial'})[v.kind] end
 function Host.sync()
- local s=Host.state();local d=M.ensure(s);V.ensure(s);Worlds.ensure(s);require('physical_cells').ensure(s)
+ local s=Host.state();local d=M.ensure(s);V.ensure(s);Worlds.ensure(s);require('physical_cells').ensure(s);require('assistant').ensure(s,Host.monitors)
  local present={};for _,o in ipairs(d.objects) do present[o.kind..'/'..tostring(o.entityId)]=o end
  local function add(kind,id,group,x,y) if not present[kind..'/'..tostring(id)] then local o=M.add(s,kind,id,group,x,y);M.restore(o,Host.monitors);M.remember(o,Host.monitors);present[kind..'/'..tostring(id)]=o end end
  local primary=Host.monitors[1];local x,y=primary.x+25,primary.y+25
@@ -33,6 +33,7 @@ function Host.init(context)
  for _,o in ipairs(s.desktop.objects) do M.restore(o,Host.monitors) end
  Host.context.setDesktopActive(true);Native.panel(false);Host.panelVisible=false
  Host.render(true)
+ if require('assistant').settings(s).enabled then require('assistant').start() end
  -- Default launch shows only native equipment and tray, never the classic UI.
 end
 function Host.open(mode,id)
@@ -65,10 +66,12 @@ function Host.tray()
   {label='Restore Objects from Storage',action=function() for _,o in ipairs(d.objects) do if not o.archivedEntity then o.stored=false;o.visible=true end end end},
   {separator=true},{label='Settings & Object Manager',action=function() Host.open('settings') end},{label='About Cellarium',action=function() Native.alert('Cellarium / Windows Desktop Laboratory\nLocal procedural artwork and biological simulation.\nCtrl+Shift+L hides equipment and opens recovery controls.\nRight-click equipment for actions. No administrator privileges required.') end},
   {label='Exit Cellarium',action=function() Host.exiting=true;love.event.quit() end}}
+ table.insert(items,1,{label='Enable Assistant',checked=require('assistant').settings(Host.state()).enabled,action=function() local A=require('assistant');A.enable(Host.state(),not A.settings(Host.state()).enabled,Host.monitors);Host.sync();Host.render(true) end});table.insert(items,2,{label='Ask Jenny...',action=function() require('assistant').open(Host.state());Host.sync();Host.render(true) end})
  table.insert(items,1,{label='Buy supplies...',action=function() require('desktop_supply_menus').buy(Host.state()) end});table.insert(items,2,{label='Retrieve frozen cells...',action=function() require('desktop_supply_menus').frozen(Host.state()) end})
  local action=Native.menu(items);if action then action() end
 end
 function Host.objectMenu(o)
+ if o.kind=='assistant' then require('assistant').menu(Host.state(),o);return end
  local Controls=require('desktop_controls')
  if Controls.isContainer(o) then
   local s=Host.state();local items={{label='Show contents',action=function() Controls.expand(s,o);Host.render(true) end},{label='Label container...',action=function() Host.open('label',o.id) end}}
@@ -99,7 +102,7 @@ function Host.targetAtTip(o)
  return target
 end
 function Host.click(o,x,y)
- local s=Host.state();s.desktop.selectedObject=o.id
+ local s=Host.state();if o.kind=='assistant' then require('assistant').open(s);return end;s.desktop.selectedObject=o.id
  if o.kind=='dropper' then Host.open('inspect',o.id);return end
  if o.kind=='forge' or o.kind=='workstation' or require('desktop_controls').isContainer(o) then require('desktop_controls').expand(s,o);Host.render(true)
  elseif o.group=='habitats' then local best,bd;for _,organism in ipairs(s.organisms) do if organism.worldId==o.entityId then local px,py=18+organism.x*(o.w-36),29+organism.y*(o.h-64);local dist=(px-x)^2+(py-y)^2;if not bd or dist<bd then best=organism;bd=dist end end end;if best and bd<35^2 then s.desktop.selectedOrganism=best.id end;Host.open('inspect',o.id)
@@ -113,10 +116,10 @@ function Host.event(e)
  elseif e.type=='displays' then Host.monitors=Native.monitors();for _,v in ipairs(s.desktop.objects) do if not v.drag then M.restore(v,Host.monitors) end end
  elseif o then
   local monitor=M.monitorAt(Host.monitors,o.x,o.y);local factor=o.scale*monitor.dpi/96;local x,y=(e.x or 0)/factor,(e.y or 0)/factor
-  if e.type=='down' then local control=require('desktop_controls').hit(o,x,y);Host.pressed={id=o.id,x=e.cursor.x,y=e.cursor.y,moved=false,control=control};s.desktop.selectedObject=o.id;s.desktop.tool=nil;if not control and not M.beginDrag(o,e.cursor) then Host.message('Position is locked. Right-click and choose Unlock position.') end
+  if e.type=='down' then local control=require('desktop_controls').hit(o,x,y);Host.pressed={id=o.id,x=e.cursor.x,y=e.cursor.y,moved=false,control=control};if o.kind~='assistant' then s.desktop.selectedObject=o.id end;s.desktop.tool=nil;if not control and not M.beginDrag(o,e.cursor) then Host.message('Position is locked. Right-click and choose Unlock position.') end
   elseif e.type=='move' and Host.pressed and Host.pressed.id==o.id then if math.abs(e.cursor.x-Host.pressed.x)+math.abs(e.cursor.y-Host.pressed.y)>5 then Host.pressed.moved=true end;if o.drag and Host.pressed.moved then if o.config.workshop then require('workshop_docking').detach(s,o.id) end;if o.config.rack then require('desktop_rack').detach(o) end;M.drag(o,e.cursor);Native.move(Host.windows[o.id],o.x,o.y);if o.kind=='workstation' then require('workshop_docking').layout(s,o,Host.monitors);for _,child in ipairs(s.desktop.objects) do if child.config.workshop==o.id and Host.windows[child.id] then Native.move(Host.windows[child.id],child.x,child.y) end end end end
   elseif e.type=='up' then
-   local pressed=Host.pressed;Host.pressed=nil;M.endDrag(o,Host.monitors)
+   local pressed=Host.pressed;Host.pressed=nil;M.endDrag(o,Host.monitors);if o.kind=='assistant' and pressed and pressed.moved then require('assistant').finishDrag(s,o,Host.monitors) end
    if pressed and pressed.control then local current=require('desktop_controls').hit(o,x,y);if not pressed.moved and current and current.id==pressed.control.id then if not require('realtime').sync(s,require('biology').update) then Host.message('Synchronizing elapsed PC time. Please wait before changing biology.') else pressed.control.fn() end;Host.render(true) end
    elseif pressed and not pressed.moved then Host.click(o,x,y)
    elseif o.kind=='dropper' and s.desktop.pipette.sample then
@@ -149,7 +152,7 @@ function Host.update(dt)
  if Host.context then require('physical_cells').ensure(Host.state()) end
  if not Host.context then return end
  for _,e in ipairs(Native.pump()) do Host.event(e) end
- local s=Host.state();local d=M.ensure(s)
+ local s=Host.state();local d=M.ensure(s);require('assistant').update(s,dt,Host.monitors)
  -- SDL can release capture for a non-SDL, nonactivating tool window. Track only
  -- the gesture begun on our equipment; poll while held so it crosses boundaries.
  if Host.pressed and not Host.testing then
@@ -166,6 +169,6 @@ function Host.shutdown()
  if not Host.context then return end
  if require('realtime').hasSession(Host.state()) then require('realtime').observe(Host.state()) end
  if not Host.saveBlocked then local ok,why=Store.save(Host.state());if not ok then Native.alert('Cellarium could not save: '..tostring(why)..'\nThe previous save has been retained.') end end
- Native.shutdown();Host.context=nil
+ require('assistant').stop();Native.shutdown();Host.context=nil
 end
 return Host

@@ -29,3 +29,4 @@ function D.capabilities(a,c,q,teeth,mouthCondition,water)
  return diet,label
 end
 return D
+

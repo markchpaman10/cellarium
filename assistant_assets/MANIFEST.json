@@ -1,0 +1,183 @@
+{
+  "model": {
+    "repository": "sentence-transformers/all-MiniLM-L6-v2",
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "variant": "onnx/model_quint8_avx2.onnx",
+    "parameters": "22.7 million",
+    "embeddingDimension": 384,
+    "opset": 14,
+    "quantization": "unsigned dynamic int8; standard ONNX operators",
+    "url": "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/onnx/model_quint8_avx2.onnx"
+  },
+  "runtime": {
+    "version": "1.31.1",
+    "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.31.1/onnxruntime-win-x64-1.31.1.zip",
+    "provider": "CPU only",
+    "cAPI": 17,
+    "baseline": "Windows x64 SSE2; AVX kernels selected only after CPU/OS feature checks in MLAS",
+    "physicalNonAVXTest": "Not available; not claimed as passed"
+  },
+  "vcRuntimeSource": "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx",
+  "files": [
+    {
+      "path": "concrt140.dll",
+      "bytes": 311736,
+      "sha256": "6926ddade5b6e67f1f8b2923d3cea8c2c49a0242144c02e05cc5dd0b42468b7d"
+    },
+    {
+      "path": "MINILM-LICENSE.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "model.onnx",
+      "bytes": 23046789,
+      "sha256": "b941bf19f1f1283680f449fa6a7336bb5600bdcd5f84d10ddc5cd72218a0fd21"
+    },
+    {
+      "path": "msvcp140.dll",
+      "bytes": 563232,
+      "sha256": "6fdc2c6fc1362c317ed65ae331dda329d4d03826feb8d79d635eaf8ba49764bc"
+    },
+    {
+      "path": "msvcp140_1.dll",
+      "bytes": 25536,
+      "sha256": "6284349a2262b2329aa75aa8559980f9b2775dc5ec3a9e9ecdf55648ac7f625a"
+    },
+    {
+      "path": "msvcp140_2.dll",
+      "bytes": 258088,
+      "sha256": "340e8e397ba46769d61384329ec611b7d96e1efb8de2f2d04941e3802a7db784"
+    },
+    {
+      "path": "ONNX-RUNTIME-LICENSE.txt",
+      "bytes": 1094,
+      "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674"
+    },
+    {
+      "path": "ONNX-RUNTIME-NOTICES.txt",
+      "bytes": 344457,
+      "sha256": "c53a76501ef60db6f865f20599f220761201ac4057683acefdab37d861b86622"
+    },
+    {
+      "path": "onnxruntime.dll",
+      "bytes": 17253728,
+      "sha256": "cb2fa518b18356617f6f9f460c012501da2819ec7e5c1d80bd8f5de20492db0c"
+    },
+    {
+      "path": "onnxruntime_providers_shared.dll",
+      "bytes": 21816,
+      "sha256": "8cea20be64259950cda8643af0ed42c2a424400fc3bb9bb29f9a35cee6b3419f"
+    },
+    {
+      "path": "sprites/casual_pickup-atlas.png",
+      "bytes": 1325113,
+      "sha256": "68182fde64b126ef0a911d8f5535adca70752a200c53ba5b1b965361b4ec6dc3"
+    },
+    {
+      "path": "sprites/casual_pickup_back-atlas.png",
+      "bytes": 1271705,
+      "sha256": "55fd21d70092c8570bf5800bc760a2405ff43925265b26ecf8e77f44470c2516"
+    },
+    {
+      "path": "sprites/casual_rest-atlas.png",
+      "bytes": 1262226,
+      "sha256": "36e7034f96b490a6325c8b49e7aeb1cb0bdae1c17c6fb594a7e1cbfaa28cdb5c"
+    },
+    {
+      "path": "sprites/casual_rest_alt-atlas.png",
+      "bytes": 1316275,
+      "sha256": "1a6f637e8a2cc4c0ef86ebb7af8bd2db6d65fddecf7d68d273d5ae61e1a0af4d"
+    },
+    {
+      "path": "sprites/casual_stand-atlas.png",
+      "bytes": 1141081,
+      "sha256": "8e1b5e8fb9b44fcf9bdbd3457ce26d2f6c6ac47f93731c72b65e6c4791d593fc"
+    },
+    {
+      "path": "sprites/casual_stretch-atlas.png",
+      "bytes": 1264660,
+      "sha256": "9eed7254fada1d5a3139e42d36d110c6b82cc887acaa86992455173883e18f19"
+    },
+    {
+      "path": "sprites/casual_stretch_back-atlas.png",
+      "bytes": 1157376,
+      "sha256": "6cbd2ffd660dcedda38b51695fc8bc26d322e15469c561d8b275ebe4547e56bd"
+    },
+    {
+      "path": "sprites/classic_dance-atlas.png",
+      "bytes": 1209269,
+      "sha256": "0fc0a9329d110ef778273b5444d2610613e4af0aecd63f2273fc9fd56afd99ee"
+    },
+    {
+      "path": "sprites/classic_stretch-atlas.png",
+      "bytes": 1284016,
+      "sha256": "4dc309d462f2f58991ab454bbeda2b0f358f3a90937560c95fe78516a4a07c2e"
+    },
+    {
+      "path": "sprites/explain-atlas.png",
+      "bytes": 978855,
+      "sha256": "3d75b7b557c3dd849b447952893905d00e836e2de7144da2bcd8ebfdde97a1f8"
+    },
+    {
+      "path": "sprites/office-atlas.png",
+      "bytes": 1339257,
+      "sha256": "63dc4d1628e5316c2c0596b15fc0d7d5a2b4cddfa12ddfc6709aa8444906b697"
+    },
+    {
+      "path": "sprites/office_clean-atlas.png",
+      "bytes": 1432764,
+      "sha256": "91f0b09df05ee8ae5339433bc922bc1b7c4fc9ee2b05c0c6d85a2ce3d88364c8"
+    },
+    {
+      "path": "sprites/office_idle-atlas.png",
+      "bytes": 2138774,
+      "sha256": "68ed5597e68b28f613c61c293d20f61a3047fe81d6839ae2c6bbedfb0d19adb3"
+    },
+    {
+      "path": "sprites/office_idle_alt-atlas.png",
+      "bytes": 2207457,
+      "sha256": "6c8f5040a415f82db6bda890c036a565df31d54b9c8fd95695386f587db8c43f"
+    },
+    {
+      "path": "sprites/office_relax-atlas.png",
+      "bytes": 1658471,
+      "sha256": "a23dd459c2a9f965ad33f7cc372136529d3cbca054964b807a772f0587462382"
+    },
+    {
+      "path": "sprites/SOURCE.json",
+      "bytes": 8659,
+      "sha256": "0f95ac65c5f849647ea45b16d715cae00b2d12d579e1d66b0e7b9af7d6fb1a1b"
+    },
+    {
+      "path": "sprites/stool-atlas.png",
+      "bytes": 1316378,
+      "sha256": "305198a8817606cb388fc44ab603bbeb8bb1f04846e5dfb2b0a0deccb570f4ac"
+    },
+    {
+      "path": "sprites/turns-atlas.png",
+      "bytes": 1323396,
+      "sha256": "dccb990a63a48f6ae8e9311ff563fb4ee9653fc5aec0c930717e4a6ab3cc0846"
+    },
+    {
+      "path": "sprites/walk-atlas.png",
+      "bytes": 1135239,
+      "sha256": "f7e9b7f685e646b1961def8c11f5bc2d56093edfc63c7e27696a4f7e0bcedf23"
+    },
+    {
+      "path": "vcruntime140.dll",
+      "bytes": 109088,
+      "sha256": "d5a99b38807c3df803876ce5f1e71dc43cd7ac2c882582387e550941bc99cd00"
+    },
+    {
+      "path": "vcruntime140_1.dll",
+      "bytes": 39360,
+      "sha256": "68f948ea61695f85ff24d249077e312abb23267b3adc43679d35d781e9aa0244"
+    },
+    {
+      "path": "vocab.txt",
+      "bytes": 231508,
+      "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+    }
+  ]
+}

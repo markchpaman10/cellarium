@@ -1,0 +1,1 @@
+local root=love.filesystem.getSource()..'/assistant_assets';local N=require('assistant_nlu');local engine=N.open(root);local a=engine.embed('How do I create an organism?');local b=engine.embed('What do I need to grow a creature?');local c=engine.embed('What is the weather forecast tomorrow?');print(engine.version,#a,N.cosine(a,b),N.cosine(a,c));engine.close();return true

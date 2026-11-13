@@ -38,6 +38,33 @@ function L.profile(a,c)
  local duty=clamp(.58+.2*(1-force/math.max(.001,mass)),.55,.88);for i,leg in ipairs(contacts) do leg.phase=(i-1)/#contacts;leg.stride=stride*32;leg.duty=duty end
  return {mode=mode,canMove=speed>0,speed=speed/L.worldInches,waterSpeed=waterSpeed/L.worldInches,stride=stride,mass=mass,force=force,support=load,balance=balance,legs=contacts,allAppendages=roots,axes=axes,flexibility=flexibility,control=neural/math.max(1,#a.muscles),center={x=cx,y=cy,z=cz},duty=duty,joints=joint}
 end
+-- Structured, read-only audit of exactly the anatomical gates used by profile().
+function L.diagnose(a,c,condition)
+ local p=L.profile(a,c);local q=condition or {};local report={profile=p,checks={},failures={},medium=q.medium or 'land'}
+ local function check(code,passed,value,required,explanation)
+  local labels={muscle_force='Effective muscle force',motor_nerves='Motor-nerve reachability',support='Skeletal support',organ_supply='Organ transport and exchange',water_propulsion='Aquatic propulsion',axial_chain='Axial chain',axial_flexibility='Axial joint flexibility',mobile_appendages='Usable limb joints',ground_contacts='Supporting ground contacts',balance='Balance',anatomical_propulsion='Combined anatomical propulsion',energy='Energy',oxygen='Oxygen',health='Health',fatigue='Fatigue'}
+  local item={label=labels[code] or code,code=code,passed=passed,value=value,required=required,explanation=explanation};report.checks[#report.checks+1]=item;if not passed then report.failures[#report.failures+1]=item end
+ end
+ check('muscle_force',p.force>0,p.force,'> 0','Connected, functional muscles must produce effective force.')
+ check('motor_nerves',p.control>0,p.control,'> 0','Brain-to-muscle motor paths must be reachable and functional.')
+ check('support',p.support>0,p.support,'> 0','Developed support must carry the current tissue load.')
+ check('organ_supply',(c.supply or 0)>0,c.supply or 0,'> 0','Organ transport and exchange must provide some physiological supply.')
+ if report.medium=='water' then check('water_propulsion',p.waterSpeed>0,p.waterSpeed*L.worldInches,'> 0 in/sec','The generated anatomy must produce propulsion in water.')
+ elseif #p.allAppendages==0 then
+  check('axial_chain',#p.axes>=2,#p.axes,'>= 2','Limbless propulsion needs a connected axial chain.')
+  check('axial_flexibility',p.flexibility>.12,p.flexibility,'> 0.12','The axial joints must permit the undulation used by the controller.')
+ else
+  local mobile=0;for _,leg in ipairs(p.allAppendages) do if leg.mobility>.01 and leg.condition>.05 then mobile=mobile+1 end end
+  check('mobile_appendages',mobile>=2,mobile,'>= 2','At least two appendages need usable joint range and tissue condition for this land gait.')
+  check('ground_contacts',#p.legs>=2,#p.legs,'>= 2','At least two appendages must reach and support the ground.')
+  check('balance',p.balance>.02,p.balance,'> 0.02','The center of mass must fall within the controller support estimate.')
+ end
+ local propelled=report.medium=='water' and p.waterSpeed>0 or report.medium~='water' and p.canMove
+ check('anatomical_propulsion',propelled,report.medium=='water' and p.waterSpeed*L.worldInches or p.speed*L.worldInches,'> 0 in/sec','Combined anatomy must yield nonzero propulsion; no minimum speed is granted.')
+ for _,field in ipairs({'energy','oxygen','health'}) do if type(q[field])=='number' then check(field,q[field]>0,q[field],'> 0',field..' reserve must be above zero.') end end
+ if type(q.fatigue)=='number' then check('fatigue',q.fatigue<1,q.fatigue,'< 1','Complete fatigue eliminates effective movement until recovery.') end
+ return report
+end
 function L.pose(a,phase,condition,profile)
  local p=profile or L.profile(a,a.caps);if not p.canMove then return a end
  local angles={};local contacts={};local rate=phase or 0

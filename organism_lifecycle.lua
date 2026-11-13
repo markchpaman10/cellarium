@@ -1,5 +1,12 @@
 local G=require('genome');local Nav=require('navigation');local H=require('habitat');local A=require('anatomy');local Cog=require('cognition');local Stats=require('living_stats');local P={}
 local function clamp(v,a,b) return math.max(a,math.min(b,v)) end
+-- Shared, read-only speed law used by the live update and laboratory diagnostics.
+function P.movementSpeed(o,c,inWater)
+ local condition=math.min(o.health/100,o.stamina/100+.3,o.energy/100+.4)
+ local speed=(o.altitude>.08 and c.landSpeed*(c.flight.glide and 1.2 or 1) or inWater and c.swimSpeed or c.landSpeed)*condition*(o.anatomy.anatomicalVersion==2 and 1 or (.45+o.maturity*.55))*(.35+o.oxygen*.65)
+ if o.motion then speed=speed*math.max(0,o.energy/100)*math.max(0,o.oxygen)*(1-o.motion.fatigue)^2 end
+ return speed
+end
 function P.new(id,g,parents,gen,x,y,angle,anatomy)
  local a=anatomy or A.generate(g);local o={id=id,name='Organism '..id,genome=G.copy(g),anatomy=a,traits=G.express(g),caps=a.caps,x=x,y=y,angle=angle,phase=id*.7,energy=90,health=100,stamina=100,hydration=100,sickness=0,age=0,maturity=0,bodyCondition=.4,mentalCondition=1,generation=gen or 0,parents=parents or 'Laboratory',parentIds={},ancestry={},children={},breed=0,alive=true,behavior='Juvenile',deathCause=nil,altitude=0,oxygen=1,transitions=0,corpse=0,inbreeding=0}
  o.fatMass=a.caps.fatCapacity*.04;o.muscleMass=0;for _,m in ipairs(a.muscles) do o.muscleMass=o.muscleMass+m.mass end;return o
@@ -36,7 +43,7 @@ function P.update(o,s,dt,env)
  local condition=math.min(o.health/100,o.stamina/100+.3,o.energy/100+.4);local targetAltitude=0;if o.energy>65 and o.stamina>45 and o.oxygen>.8 and c.airRespiration/c.oxygenDemand>.95 and c.flight.powered then targetAltitude=.35 elseif c.flight.glide and (localEnv.elevation or 0)>.42 and o.energy>60 then targetAltitude=.15 end
  if targetAltitude>o.altitude then o.altitude=math.min(targetAltitude,o.altitude+dt*.035) else o.altitude=math.max(0,o.altitude-dt*(c.flight.glide and .008 or .09)) end
  o.locomotion=o.altitude>.08 and (c.flight.powered and 'powered flight' or 'gliding') or inWater and 'swimming' or c.locomotion or 'jointed'
- local speed=(o.altitude>.08 and c.landSpeed*(c.flight.glide and 1.2 or 1) or inWater and c.swimSpeed or c.landSpeed)*condition*(o.anatomy.anatomicalVersion==2 and 1 or (.45+o.maturity*.55))*(.35+o.oxygen*.65);if o.motion then speed=speed*math.max(0,o.energy/100)*math.max(0,o.oxygen)*(1-o.motion.fatigue)^2 end
+ local speed=P.movementSpeed(o,c,inWater)
  local beforeX,beforeY=o.x,o.y
  local nextX=o.x+math.cos(o.angle)*speed*motionDt;local nextY=o.y+math.sin(o.angle)*speed*motionDt;local nextEnv=H.sample(s.habitat,nextX,nextY,o.altitude);if nextEnv.obstacle or (H.oxygenRatio(c,nextEnv)<.85 and H.oxygenRatio(c,localEnv)>.95 and e.perception>.25) then o.angle=o.angle+2;moving=false end
  if moving then o.x=clamp(o.x+math.cos(o.angle)*speed*motionDt,.06,.94);o.y=clamp(o.y+math.sin(o.angle)*speed*motionDt,.09,.91);o.stamina=clamp(o.stamina+dt*(c.supply*1.4-.65-c.force*.02),0,100) else o.stamina=clamp(o.stamina+dt*(2+c.supply*3),0,100) end

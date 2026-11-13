@@ -1,0 +1,146 @@
+[
+  {
+    "style": "stool",
+    "sourceFile": "d5f15999-df46-4ecc-977b-704ce13face0.png",
+    "sourceSHA256": "ee52e9c438f4333cbdf34046062f61a607b96f6de448152208ec58666916663e",
+    "atlasSHA256": "305198a8817606cb388fc44ab603bbeb8bb1f04846e5dfb2b0a0deccb570f4ac",
+    "frames": 5,
+    "cleanup": "Deterministic connected-background removal; pure red/yellow fringe cleanup; original subject pixels retained."
+  },
+  {
+    "style": "office",
+    "sourceFile": "7f0ff335-924e-4cb8-b102-e4a734a8a0be.png",
+    "sourceSHA256": "344c29859cfbe7d26ef413df4b6d2e89eda2e48bb81e347af0d64a958aa38191",
+    "atlasSHA256": "63dc4d1628e5316c2c0596b15fc0d7d5a2b4cddfa12ddfc6709aa8444906b697",
+    "frames": 5,
+    "cleanup": "Deterministic connected-background removal; pure red/yellow fringe cleanup; original subject pixels retained."
+  },
+  {
+    "style": "turns",
+    "sourceFile": "f07ff35a-6909-4db8-a6f2-a807d096e422.png",
+    "sourceSHA256": "dd92ed3d3bb710b3fb560711a4a545d422768d685ae3ec34193a41c73f85c69e",
+    "atlasSHA256": "dccb990a63a48f6ae8e9311ff563fb4ee9653fc5aec0c930717e4a6ab3cc0846",
+    "frames": 26,
+    "cleanup": "Deterministic connected-background removal; pure red/yellow fringe cleanup; original subject pixels retained."
+  },
+  {
+    "style": "explain",
+    "sourceFile": "41cdefdd-a41f-4249-a37a-69e193d74b27.png",
+    "sourceSHA256": "a25aa209f04721c1f79ba4d6fe999b04e05cabf3481bea05f5280d11028f5cef",
+    "atlasSHA256": "3d75b7b557c3dd849b447952893905d00e836e2de7144da2bcd8ebfdde97a1f8",
+    "frames": 5,
+    "cleanup": "Deterministic connected-background removal; pure red/yellow fringe cleanup; original subject pixels retained."
+  },
+  {
+    "style": "walk",
+    "sourceFile": "fbc6e4da-126a-40a1-b12c-04bdf0febf5b.png",
+    "sourceSHA256": "40c14171773270ef4f759ec332b3e744d5df64b0c2bec48f0eb10d46a2e0d3d3",
+    "atlasSHA256": "f7e9b7f685e646b1961def8c11f5bc2d56093edfc63c7e27696a4f7e0bcedf23",
+    "frames": 5,
+    "cleanup": "Deterministic connected-background removal; pure red/yellow fringe cleanup; original subject pixels retained."
+  },
+  {
+    "style": "classic_dance",
+    "sourceFile": "codex-clipboard-5156ae76-5461-4cdb-bbe8-154b6c8601fa.png",
+    "sourceSHA256": "747bf98c6f592ba30468fff231b4d43b00daddae65463cc25457a5baf9142f0c",
+    "atlasSHA256": "0fc0a9329d110ef778273b5444d2610613e4af0aecd63f2273fc9fd56afd99ee",
+    "frames": 6,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "casual_stand",
+    "sourceFile": "a3b31c21-5743-4b79-8a74-0a2eb2b92198.png",
+    "sourceSHA256": "93a2d09091a981ff9b7b8c119340ef1fabef6762acae17deaac653ac5455ca96",
+    "atlasSHA256": "8e1b5e8fb9b44fcf9bdbd3457ce26d2f6c6ac47f93731c72b65e6c4791d593fc",
+    "frames": 5,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "casual_pickup",
+    "sourceFile": "b8290043-7e57-499a-84f0-7b675e0d832d.png",
+    "sourceSHA256": "56b17151dad2939008280f5d3986a3baf80402c34bc7837c998f04fd331e1c90",
+    "atlasSHA256": "68182fde64b126ef0a911d8f5535adca70752a200c53ba5b1b965361b4ec6dc3",
+    "frames": 6,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "casual_pickup_back",
+    "sourceFile": "f593c4ef-0dd7-410a-a5bc-fca3261fb1a5.png",
+    "sourceSHA256": "a49c3e794e9025f86f933213783e786bbeeb3338b112d72d41ef2ed03c5be224",
+    "atlasSHA256": "55fd21d70092c8570bf5800bc760a2405ff43925265b26ecf8e77f44470c2516",
+    "frames": 6,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "casual_stretch",
+    "sourceFile": "4e03e9d0-a885-476b-88e6-4d7ae584e9ce.png",
+    "sourceSHA256": "03c095b224c23016f10503f74b3126da626eefdfc3e4aff31c3226d564d00932",
+    "atlasSHA256": "9eed7254fada1d5a3139e42d36d110c6b82cc887acaa86992455173883e18f19",
+    "frames": 6,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "casual_stretch_back",
+    "sourceFile": "f3ca8624-75b5-4602-a7fe-119585022ff5.png",
+    "sourceSHA256": "23a41a8dc0c6a7f4edc967888a1f99cf422339ef24118bc82021e308775a4739",
+    "atlasSHA256": "6cbd2ffd660dcedda38b51695fc8bc26d322e15469c561d8b275ebe4547e56bd",
+    "frames": 6,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "casual_rest",
+    "sourceFile": "08b00b59-0790-4f40-8745-d0e5a1affe5d.png",
+    "sourceSHA256": "f3fbfa8089f265c1a3ef8aacda82b1a3076efb062924c1d3cd1391916120946d",
+    "atlasSHA256": "36e7034f96b490a6325c8b49e7aeb1cb0bdae1c17c6fb594a7e1cbfaa28cdb5c",
+    "frames": 1,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "casual_rest_alt",
+    "sourceFile": "14b6a410-2283-4293-8f94-9eb0cadf2aea.png",
+    "sourceSHA256": "1bb0ecfaa2c9ba9e273cfa80472213b50d6a8c3649f4d5fe5476539c19a46085",
+    "atlasSHA256": "1a6f637e8a2cc4c0ef86ebb7af8bd2db6d65fddecf7d68d273d5ae61e1a0af4d",
+    "frames": 1,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "classic_stretch",
+    "sourceFile": "4be5a444-d0a2-4af1-84eb-4790388e925a.png",
+    "sourceSHA256": "8960bac9a4537b024c51851384f86945d8268e53a06875a1f102d8972cfdbd8d",
+    "atlasSHA256": "4dc309d462f2f58991ab454bbeda2b0f358f3a90937560c95fe78516a4a07c2e",
+    "frames": 6,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "office_clean",
+    "sourceFile": "23511d62-7a66-44f5-ad49-45f0381a348f.png",
+    "sourceSHA256": "0b5597377bdec53e5ea328ac179a28708d3f263e71fea3f7601546eefdb55604",
+    "atlasSHA256": "91f0b09df05ee8ae5339433bc922bc1b7c4fc9ee2b05c0c6d85a2ce3d88364c8",
+    "frames": 5,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "office_relax",
+    "sourceFile": "c78e21ce-af2d-4c63-b649-80b99796c4f9.png",
+    "sourceSHA256": "eaf395c63308f6dee275a9f88ba933667f1dfb73866c294dbc9cb452f065a12c",
+    "atlasSHA256": "a23dd459c2a9f965ad33f7cc372136529d3cbca054964b807a772f0587462382",
+    "frames": 5,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "office_idle",
+    "sourceFile": "e3814f90-4b0d-41d1-ba9c-f01e6b885542.png",
+    "sourceSHA256": "e3ba12528bd1d0361c5ca0b4f29cd9e323d73cf78a26c394f4c39e2e2030de84",
+    "atlasSHA256": "68ed5597e68b28f613c61c293d20f61a3047fe81d6839ae2c6bbedfb0d19adb3",
+    "frames": 6,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  },
+  {
+    "style": "office_idle_alt",
+    "sourceFile": "bf32161c-e52a-4e67-9c49-191a0a15822f.png",
+    "sourceSHA256": "0f4e2a7c8d4bfd72f3053ab604effb6899d1a2e700db7318134b34f2a39ca8b2",
+    "atlasSHA256": "6c8f5040a415f82db6bda890c036a565df31d54b9c8fd95695386f587db8c43f",
+    "frames": 6,
+    "cleanup": "Deterministic transparency/fringe cleanup. Merged adjacent chair-frame silhouettes separated at their original middle boundary. Clean six-frame section used from the combined montage."
+  }
+]

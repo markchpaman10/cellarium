@@ -44,6 +44,12 @@ local function loadSave()
  msg('Save could not load: '..tostring(why));return false
 end
 function love.load()
+ for _,v in ipairs(arg or {}) do if v=='--assistant-holdout' then local ok,r=xpcall(function() return require('assistant_holdout').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
+ for _,v in ipairs(arg or {}) do if v=='--assistant-native-test' then local ok,r=xpcall(function() return require('assistant_native_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
+ for _,v in ipairs(arg or {}) do if v=='--assistant-test' then local ok,r=xpcall(function() return require('assistant_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
+ for _,v in ipairs(arg or {}) do if v=='--assistant-eval' then local ok,r=xpcall(function() return require('assistant_eval').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
+ for _,v in ipairs(arg or {}) do if v=='--assistant-index' then local ok,r=xpcall(function() return require('assistant_index_builder') end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
+ for _,v in ipairs(arg or {}) do if v=='--assistant-probe' then local ok,r=xpcall(function() return require('assistant_nlu_probe') end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
  for _,v in ipairs(arg or {}) do if v=='--workshop-dna-test' then local ok,r=xpcall(function() return require('workshop_dna_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
  for _,v in ipairs(arg or {}) do if v=='--equipment-test' then local ok,r=xpcall(function() return require('equipment_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
  for _,v in ipairs(arg or {}) do if v=='--growth-source-test' then local ok,r=xpcall(function() require('growth_lab_smoke');require('growth_lab_validate');return 'Upstream growth source checks passed.' end,debug.traceback);local root=love.filesystem.isFused() and love.filesystem.getSourceBaseDirectory() or love.filesystem.getSource();local f=assert(io.open(root..'/growth-source-test-results.txt','wb'));f:write(tostring(r));f:close();print(r);love.event.quit(ok and 0 or 1);return end end
@@ -72,7 +78,7 @@ function love.load()
    openGenome=function(value) if not s.desktop.settings.classicUI then DesktopApp.openGenome(value) else require('genome_editor').begin(value);U.view='Genome Edit';tab=5 end;Host.panelVisible=true;require('native_windows').panel(true) end,
    open=function(mode,id)
     selected=nil
-    if not s.desktop.settings.classicUI then DesktopApp.open(mode,id,s);return end
+    if mode=='assistant' or not s.desktop.settings.classicUI then DesktopApp.open(mode,id,s);return end
     if mode=='workstation' then tab=1 elseif mode=='forge' then tab=2 elseif mode=='research' then tab=4 elseif mode=='genomes' then tab=5;U.view='Genome';U.source='materials';U.index=1
     elseif mode=='organisms' or mode=='organism' then tab=5;U.view='Physiology';U.source='organisms';U.index=1;for i,v in ipairs(s.organisms) do if v.id==id then U.index=i end end
     else tab=6 end
@@ -167,7 +173,7 @@ end
 function love.draw()
  if not s then return end
  love.graphics.push();love.graphics.scale(love.graphics.getWidth()/W,love.graphics.getHeight()/H);buttons={}
- if desktopActive and not s.desktop.settings.classicUI then DesktopApp.draw(s,{register=function(x,y,w,h,fn,label) buttons[#buttons+1]={x=x,y=y,w=w,h=h,fn=fn,label=label} end});love.graphics.pop();return end
+ if desktopActive and (not s.desktop.settings.classicUI or Host.mode=='assistant') then DesktopApp.draw(s,{register=function(x,y,w,h,fn,label) buttons[#buttons+1]={x=x,y=y,w=w,h=h,fn=fn,label=label} end});love.graphics.pop();return end
  if not gallery then header() end
  if gallery then drawGallery() elseif tab==1 then cultivation() elseif tab==2 then forge() elseif tab==3 then habitat() elseif tab==4 then records() elseif tab==6 then DesktopPanel.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B}) else U.draw(s,{text=text,button=button,panel=panel,col=col,msg=msg,C=C,B=B}) end
  if not gallery then text('PC real time   ·   1–5 workspaces   ·   S save   ·   Click creatures to inspect',34,875,11,C.muted);text('PROCEDURAL LIFE / SEEDED GENETICS',1110,875,11,C.muted) end
@@ -178,13 +184,13 @@ end
 function love.mousepressed(mx,my,b)
  if b~=1 then return end;local x,y=mx/love.graphics.getWidth()*W,my/love.graphics.getHeight()*H
  for i=#buttons,1,-1 do local v=buttons[i];if x>=v.x and x<=v.x+v.w and y>=v.y and y<=v.y+v.h then if not RealClock.sync(s,B.update) then msg('Synchronizing elapsed PC time. Please wait.') else v.fn() end;return end end
- if desktopActive and not s.desktop.settings.classicUI then return end
+ if desktopActive and (not s.desktop.settings.classicUI or Host.mode=='assistant') then return end
  if tab==5 then U.mousepressed(x,y) end
  if tab==3 then local dist=50^2;selected=nil;for i,o in ipairs(s.organisms) do local d=(x-(49+o.x*981))^2+(y-(256+o.y*576-(o.altitude or 0)*65))^2;if d<dist then selected=i;dist=d end end end
 end
-function love.textinput(t) if desktopActive and not s.desktop.settings.classicUI then DesktopApp.textinput(t) elseif tab==6 then DesktopPanel.textinput(t) elseif tab==5 then U.textinput(t) end end
+function love.textinput(t) if desktopActive and (not s.desktop.settings.classicUI or Host.mode=='assistant') then DesktopApp.textinput(t) elseif tab==6 then DesktopPanel.textinput(t) elseif tab==5 then U.textinput(t) end end
 function love.keypressed(k)
- if desktopActive and not s.desktop.settings.classicUI then if DesktopApp.keypressed(k) then return end
+ if desktopActive and (not s.desktop.settings.classicUI or Host.mode=='assistant') then if DesktopApp.keypressed(k) then return end
  elseif tab==6 and DesktopPanel.keypressed(k,s) then return elseif tab==5 and U.keypressed(k,s) then return end
  if k=='q' and love.keyboard.isDown('lctrl','rctrl') then Host.exiting=true;love.event.quit();return end
  if k=='escape' and desktopActive then Host.hidePanel();return end
@@ -220,3 +226,5 @@ function love.run()
  end
 end
 
+
+function love.wheelmoved(x,y) if desktopActive and require("desktop_app").page=="Assistant" then require("assistant_ui").scroll(y) end end
