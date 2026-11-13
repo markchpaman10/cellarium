@@ -6,6 +6,7 @@ local Build = require('reconstruction')
 local Develop = require('anatomical_development')
 local Render = require('reconstruction_rendering')
 local Embryology = require('embryology')
+local Physiology = require('physiology')
 
 local WIDTH, HEIGHT = 1360, 860
 local seed, genome, adult, embryo = 20365841, nil, nil, nil
@@ -15,6 +16,13 @@ local changingSeed, seedText = false, ''
 local status = 'Ready'
 local dirty, images = true, {}
 local viewZoom={side=1,top=1}
+local viewPan={side={x=0,y=0},top={x=0,y=0}}
+local dragging=nil
+local showStats=false
+local statDetail=nil
+local simulating=false
+local simulationTime=0
+local condition={energy=1,hydration=1,oxygen=1,temperature=37,tissue=1,fatigue=0}
 local cellState = nil
 local buttons = {}
 local palette = {
@@ -66,6 +74,9 @@ local function generate(nextSeed)
   if not ok then status='Generation failed: '..tostring(result);return end
   seed=newSeed;genome=result.genome;adult=result.adult;embryo=result.embryo
   progress=0;playing=false;selected=nil;dirty=true
+  simulating=false;simulationTime=0
+  condition={energy=1,hydration=1,oxygen=1,temperature=37,tissue=1,fatigue=0}
+  viewPan={side={x=0,y=0},top={x=0,y=0}};viewZoom={side=1,top=1}
   cellState=Embryology.evaluate(seed,0)
   status='New cell generated from seed '..seed
 end
@@ -86,7 +97,8 @@ local function viewTransform(top,w,h)
   local ax,ay,bx,by=bounds(top)
   local fit=math.min((w-65)/math.max(1,bx-ax),(h-65)/math.max(1,by-ay),5)
   local zoom=fit*(top and viewZoom.top or viewZoom.side)
-  return w*.5-(ax+bx)*.5*zoom,h*.5-(ay+by)*.5*zoom,zoom
+  local pan=top and viewPan.top or viewPan.side
+  return w*.5-(ax+bx)*.5*zoom+pan.x,h*.5-(ay+by)*.5*zoom+pan.y,zoom
 end
 local function renderCanvas(top,w,h)
   local canvas=love.graphics.newCanvas(w,h)
@@ -143,6 +155,12 @@ function love.load()
   generate(seed)
 end
 function love.update(dt)
+  if simulating and progress>=1 then
+    local metrics=Physiology.evaluate(embryo,progress,condition)
+    local effort=metrics.movementCapacity
+    Physiology.advance(condition,dt,effort)
+    simulationTime=simulationTime+dt
+  end
   if playing then
     setProgress(progress+dt*speed/24)
     if progress>=1 then playing=false end
@@ -206,8 +224,33 @@ function love.draw()
     button(name,x,807,160,35,function()layer=name;dirty=true end,layer==name)
     x=x+170
   end
-  button('Play / pause: Space',1050,807,290,35,function()playing=not playing end)
+  button('Stats: '..(showStats and 'ON' or 'OFF'),1050,807,130,35,function()showStats=not showStats end,showStats)
+  button('Motion: '..(simulating and 'ON' or 'OFF'),1190,807,150,35,function()
+    if progress>=1 then simulating=not simulating else status='Mature organism required for motion simulation' end
+  end,simulating)
   printText(status:sub(1,150),1060,689,small,palette.muted)
+  if showStats and embryo then
+    local metrics=Physiology.evaluate(embryo,progress,condition)
+    panel(880,172,458,470)
+    printText('LIVE BIOLOGICAL STATISTICS',895,185,font,palette.accent)
+    printText('STAT              POTENTIAL    CURRENT',895,214,small,palette.muted)
+    local names={'Strength','Defense','Dexterity','Intelligence','Vitality','Endurance','Speed'}
+    for i,name in ipairs(names) do
+      local yy=234+(i-1)*29
+      printText(string.format('%-14s %6.1f       %6.1f',name,metrics.potential[name],metrics.current[name]),895,yy,small)
+    end
+    printText('VITALS',895,451,font,palette.accent)
+    local v=metrics.vitals
+    printText(string.format('Energy %.0f%%  Water %.0f%%  Oxygen %.0f%%',v.Energy*100,v.Hydration*100,v.Oxygen*100),895,480,small)
+    printText(string.format('Tissue %.0f%%  Fatigue %.0f%%  Health %.0f%%',v.Tissue*100,v.Fatigue*100,v.Health*100),895,504,small)
+    printText(string.format('Temperature %.1f C  Mass index %.2f',v.Temperature,metrics.massIndex),895,528,small)
+    printText(string.format('Motion readiness %.0f%% | simulated %.1fs',metrics.movementCapacity*100,simulationTime),895,552,small)
+    printText('Select a stat: 1-7 while panel is open',895,583,small,palette.muted)
+    if statDetail then
+      local name=names[statDetail]
+      printText(name..': '..metrics.sources[name],895,610,small,palette.accent)
+    end
+  end
   love.graphics.pop()
 end
 -- Zoom the panel under the pointer. Each anatomical view retains its own
@@ -226,14 +269,31 @@ function love.wheelmoved(dx,dy)
   dirty=true
 end
 function love.mousepressed(x,y,mouseButton)
-  if mouseButton~=1 then return end
   local w,h=love.graphics.getDimensions();x=x/w*WIDTH;y=y/h*HEIGHT
+  if mouseButton==3 then
+    if x>=25 and x<=875 and y>=159 and y<=669 then dragging='side'
+    elseif x>=890 and x<=1335 and y>=159 and y<=669 then dragging='top' end
+    return
+  end
+  if mouseButton~=1 then return end
   for _,b in ipairs(buttons) do
     if x>=b.x and x<=b.x+b.w and y>=b.y and y<=b.y+b.h then b.action();return end
   end
   if y>=755 and y<=770 then playing=false;setProgress((x-20)/1320);return end
   if x>=25 and x<=875 and y>=159 and y<=669 then selectPart(x-25,y-159,false,850,510)
   elseif x>=890 and x<=1335 and y>=159 and y<=669 then selectPart(x-890,y-159,true,445,510) end
+end
+function love.mousereleased(x,y,button)
+  if button==3 then dragging=nil end
+end
+function love.mousemoved(x,y,dx,dy)
+  if not dragging then return end
+  local w,h=love.graphics.getDimensions()
+  if w<=0 or h<=0 then return end
+  local pan=viewPan[dragging]
+  pan.x=pan.x+dx*WIDTH/w
+  pan.y=pan.y+dy*HEIGHT/h
+  dirty=true
 end
 function love.textinput(t)
   if changingSeed then seedText=seedText..t:gsub('[^0-9]','');seedText=seedText:sub(1,10) end
@@ -245,6 +305,9 @@ function love.keypressed(key)
     elseif key=='backspace' then seedText=seedText:sub(1,-2) end
     return
   end
+  if showStats and key>='1' and key<='7' then statDetail=tonumber(key);return end
+  if key=='tab' then showStats=not showStats;return end
+  if key=='m' then if progress>=1 then simulating=not simulating end;return end
   if key=='space' then playing=not playing
   elseif key=='right' then playing=false;setProgress(progress+.025)
   elseif key=='left' then playing=false;setProgress(progress-.025)
