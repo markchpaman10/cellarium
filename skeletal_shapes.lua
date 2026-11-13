@@ -40,9 +40,9 @@ local function capsule(ax,ay,bx,by,width,color,kind)
  if len<.00001 then return end
  local nx,ny=-dy/len,dx/len
  local ux,uy=dx/len,dy/len
- local w=math.min(width,len*.24)
- local shaft=w*(kind=='digit' and .53 or .43)
- local endW=w*(kind=='digit' and .78 or 1)
+ local w=math.min(width,len*.18)
+ local shaft=w*(kind=='digit' and .55 or .50)
+ local endW=w*(kind=='digit' and .72 or .88)
  local s=len*.18
  strip(ax,ay,ax+dx*.20,ay+dy*.20,endW,shaft,color)
  strip(ax+dx*.20,ay+dy*.20,bx-dx*.20,by-dy*.20,shaft,shaft*.95,color)
@@ -70,7 +70,7 @@ function B.draw(c,top,color)
  local kind=classify(c)
  local grow=math.max(0,math.min(1,c.growth or 1))
  if grow<.02 then return end
- local width=math.max(.16,math.min(3.8,(c.thickness or .1)*8))*(.3+.7*grow)
+ local width=math.max(.12,math.min(2.7,(c.thickness or .1)*6))*(.3+.7*grow)
  if kind=='rib' or kind=='girdle' or kind=='orbital' or kind=='jaw' then
   curved(pts,top,width,color)
  elseif kind=='skull' then
@@ -94,5 +94,31 @@ function B.draw(c,top,color)
    capsule(ax,ay,bx,by,width,color,kind)
   end
  end
+end
+-- Joint anchors use the generated parent and child bone paths.
+-- This is visual geometry only; development and physics remain unchanged.
+function B.jointAnchor(parent,child,joint,top)
+ local function nearest(path,point)
+  if not path or #path==0 then return nil end
+  local best,bestDist
+  for _,p in ipairs(path) do
+   local dx=(p.x or 0)-(point.cx or 0)
+   local dy=(p.y or 0)-(point.cy or 0)
+   local dz=(p.z or 0)-(point.cz or 0)
+   local d=dx*dx+dy*dy+dz*dz
+   if not bestDist or d<bestDist then best,bestDist=p,d end
+  end
+  return best
+ end
+ local p=nearest(parent.path,joint)
+ local q=nearest(child.path,joint)
+ if not p or not q then return nil end
+ local ax,ay=project(p,top)
+ local bx,by=project(q,top)
+ local gap=math.sqrt((ax-bx)^2+(ay-by)^2)
+ local thickness=math.min(parent.thickness or .1,child.thickness or .1)
+ local size=math.max(.08,math.min(.34,thickness*3))
+ if gap>math.max(1.2,size*5) then return nil end
+ return (ax+bx)*.5,(ay+by)*.5,size
 end
 return B

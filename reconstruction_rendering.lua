@@ -93,60 +93,17 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
  local external=on('External') or on('Skin');if external and o.alive and o.behavior and o.behavior~='Resting' then a=require('anatomical_rendering').pose(a,t or 0) end;local tint=require('rendering_legacy').pigment(a.pigment)
  love.graphics.push('all');love.graphics.translate(x,y);if top then love.graphics.rotate(o.angle or 0) end;love.graphics.scale(scale)
  require('tissue_surface').draw(a,tint,top,external and 1 or .09)
- -- Joint cartilage is rendered FIRST, behind all bones. Only small
- -- pads at true articulated anchors are drawn; no broad blue overlays.
+ -- Cartilage is a small socket between nearby bone endpoints, never
+ -- a broad overlay at the anatomical region center.
  if on('Skeleton') then
   for _,j in ipairs(a.joints) do
-   if (j.growth or 0)>.02 then
-    local parent=a.components[j.parent]
-    local child=a.components[j.child]
-    if parent and child and parent.volume>0 and child.volume>0 then
-     local x,y=point(j,top)
-     local px,py=point(parent,top)
-     local cx,cy=point(child,top)
-     local dx,dy=cx-px,cy-py
-     local dist=math.sqrt(dx*dx+dy*dy)
-     if dist>.001 then
-      dx,dy=dx/dist,dy/dist
-     else
-      dx,dy=1,0
-     end
-     local nx,ny=-dy,dx
-     -- The pad width is limited by the smaller supporting bone, not
-     -- the overall body-region width.
-     local boneWidth=math.min(parent.thickness or .1,child.thickness or .1)
-     local halfWidth=math.max(.10,math.min(.38,boneWidth*6))
-     local halfGap=math.max(.08,math.min(.20,halfWidth*.45))
-     local growth=math.min(1,j.growth or 0)
-     love.graphics.setColor(.48,.59,.54,.68)
-     love.graphics.polygon('fill',
-      x-dx*halfGap-nx*halfWidth*growth,y-dy*halfGap-ny*halfWidth*growth,
-      x+dx*halfGap-nx*halfWidth*growth,y+dy*halfGap-ny*halfWidth*growth,
-      x+dx*halfGap+nx*halfWidth*growth,y+dy*halfGap+ny*halfWidth*growth,
-      x-dx*halfGap+nx*halfWidth*growth,y-dy*halfGap+ny*halfWidth*growth)
-    end
-   end
-  end
-  -- Intervertebral discs occupy the gap between consecutive axial
-  -- bone paths. Do not use component centers: those are not disc sites.
-  for _,c in ipairs(a.components) do
-   local name=c.anatomicalName or ''
-   if c.volume>0 and (name:match('^vertebra %d+$') or name:match('^cervical segment %d+$')) then
-    local p=c.parent and a.components[c.parent]
-    local pname=p and p.anatomicalName or ''
-    if p and (pname:match('^vertebra %d+$') or pname:match('^cervical segment %d+$'))
-      and p.regionId==c.regionId and p.path and c.path
-      and #p.path>0 and #c.path>0 then
-     local ax,ay=point(p.path[#p.path],top)
-     local bx,by=point(c.path[1],top)
-     local dx,dy=bx-ax,by-ay
-     local distance=math.sqrt(dx*dx+dy*dy)
-     local thickness=math.max(.12,math.min(.36,math.min(p.thickness or .1,c.thickness or .1)*6))
-     if distance<math.max(2,thickness*6) then
-      love.graphics.setColor(.47,.59,.53,.78)
-      love.graphics.setLineWidth(thickness*1.6)
-      love.graphics.line(ax,ay,bx,by)
-     end
+   local parent=a.components[j.parent]
+   local child=a.components[j.child]
+   if parent and child and parent.volume>0 and child.volume>0 and (j.growth or 0)>.02 then
+    local cx,cy,size=BoneShapes.jointAnchor(parent,child,j,top)
+    if cx then
+     love.graphics.setColor(.47,.55,.49,.64)
+     love.graphics.circle('fill',cx,cy,size*math.min(1,j.growth or 1))
     end
    end
   end
