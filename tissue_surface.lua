@@ -49,8 +49,18 @@ function M.geometry(a,top)
 end
 function M.draw(a,tint,top,alpha)
  shader=shader or love.graphics.newShader(source);local spans,tips=M.geometry(a,top);if #spans==0 then return end
- local b=a.bounds;local minx,miny,maxx,maxy=b.minx,b.miny,b.maxx,b.maxy
- if top then minx,miny,maxx,maxy=1e6,1e6,-1e6,-1e6;for i,p in ipairs(spans) do local q=tips[i];minx=math.min(minx,p[1]-p[3]-3,q[1]-q[3]-3);maxx=math.max(maxx,p[1]+p[3]+3,q[1]+q[3]+3);miny=math.min(miny,p[2]-p[3]-3,q[2]-q[3]-3);maxy=math.max(maxy,p[2]+p[3]+3,q[2]+q[3]+3) end end
+ -- Both projections must derive their shader bounds from the same projected
+ -- tissue spans used to draw the mesh. a.bounds is a legacy world-space
+ -- bounding box and its Y values do not describe the lateral X/-Z view.
+ -- Using it displaced the side-view skin diagonally away from its bones.
+ local minx,miny,maxx,maxy=math.huge,math.huge,-math.huge,-math.huge
+ for i,p in ipairs(spans) do
+  local q=tips[i]
+  minx=math.min(minx,p[1]-p[3]-3,q[1]-q[3]-3)
+  maxx=math.max(maxx,p[1]+p[3]+3,q[1]+q[3]+3)
+  miny=math.min(miny,p[2]-p[3]-3,q[2]-q[3]-3)
+  maxy=math.max(maxy,p[2]+p[3]+3,q[2]+q[3]+3)
+ end
  local data=love.image.newImageData(1024,2,'rgba32f');for i,p in ipairs(spans) do data:setPixel(i-1,0,unpack(p));data:setPixel(i-1,1,unpack(tips[i])) end;local texture=love.graphics.newImage(data);texture:setFilter('nearest','nearest');shader:send('spanCount',#spans);shader:send('anatomyTexture',texture);shader:send('bodyBounds',{minx,miny,maxx-minx,maxy-miny});shader:send('pigment',tint);shader:send('alpha',alpha or 1)
  local mesh=love.graphics.newMesh({{minx,miny,0,0},{maxx,miny,1,0},{maxx,maxy,1,1},{minx,maxy,0,1}},'fan','stream');love.graphics.setShader(shader);love.graphics.setColor(1,1,1);love.graphics.draw(mesh);love.graphics.setShader()
 end
