@@ -108,7 +108,7 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
  require('tissue_surface').draw(a,tint,top,external and 1 or .09)
  -- Cartilage is a small socket between nearby bone endpoints, never
  -- a broad overlay at the anatomical region center.
- if on('Skeleton') then
+ if on('Skeleton') and a.supportStrategy=='articulated endoskeleton' then
   for _,j in ipairs(a.joints) do
    local parent=a.components[j.parent]
    local child=a.components[j.child]

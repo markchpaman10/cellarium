@@ -48,11 +48,11 @@ local function capsule(ax,ay,bx,by,width,color,kind)
  strip(ax+dx*.20,ay+dy*.20,bx-dx*.20,by-dy*.20,shaft,shaft*.95,color)
  strip(bx-dx*.20,by-dy*.20,bx,by,shaft*.95,endW*.86,color)
  shade(color,.78)
- love.graphics.ellipse('fill',ax,ay,endW*.95,endW*.78,math.atan2(dy,dx))
- love.graphics.ellipse('fill',bx,by,endW*.82,endW*.72,math.atan2(dy,dx))
+ love.graphics.ellipse('fill',ax,ay,endW*.95,endW*.78)
+ love.graphics.ellipse('fill',bx,by,endW*.82,endW*.72)
  shade(color,1.12)
- love.graphics.ellipse('fill',ax-ux*s*.12+nx*w*.10,ay-uy*s*.12+ny*w*.10,endW*.65,endW*.53,math.atan2(dy,dx))
- love.graphics.ellipse('fill',bx+ux*s*.10+nx*w*.08,by+uy*s*.10+ny*w*.08,endW*.59,endW*.48,math.atan2(dy,dx))
+ love.graphics.ellipse('fill',ax-ux*s*.12+nx*w*.10,ay-uy*s*.12+ny*w*.10,endW*.65,endW*.53)
+ love.graphics.ellipse('fill',bx+ux*s*.10+nx*w*.08,by+uy*s*.10+ny*w*.08,endW*.59,endW*.48)
 end
 local function curved(points,top,width,color)
  local n=#points
@@ -64,6 +64,45 @@ local function curved(points,top,width,color)
   strip(ax,ay,bx,by,width*(.30+.30*taper),width*(.28+.28*taper),color)
  end
 end
+-- Different genetic support strategies need distinct visual anatomy.
+-- These are structural tissues, not substitutes for the bone generator.
+local function hydrostatic(points,top,width,color)
+ for i=2,#points do
+  local ax,ay=project(points[i-1],top)
+  local bx,by=project(points[i],top)
+  local dx,dy=bx-ax,by-ay
+  local length=math.sqrt(dx*dx+dy*dy)
+  if length>.001 then
+   local nx,ny=-dy/length,dx/length
+   local radius=math.max(.16,width*.82)
+   shade(color,.48,.72)
+   strip(ax,ay,bx,by,radius,radius*.88,color)
+   shade(color,1.25,.72)
+   love.graphics.setLineWidth(math.max(.11,radius*.13))
+   love.graphics.line(ax+nx*radius*.52,ay+ny*radius*.52,bx+nx*radius*.46,by+ny*radius*.46)
+   love.graphics.line(ax-nx*radius*.52,ay-ny*radius*.52,bx-nx*radius*.46,by-ny*radius*.46)
+  end
+ end
+end
+local function exoskeleton(points,top,width,color)
+ for i=2,#points do
+  local ax,ay=project(points[i-1],top)
+  local bx,by=project(points[i],top)
+  local dx,dy=bx-ax,by-ay
+  local length=math.sqrt(dx*dx+dy*dy)
+  if length>.001 then
+   local nx,ny=-dy/length,dx/length
+   local radius=math.max(.18,width*.82)
+   strip(ax,ay,bx,by,radius,radius*.86,color)
+   shade(color,.43,.95)
+   love.graphics.setLineWidth(math.max(.12,radius*.18))
+   for t=.12,.88,.24 do
+    local px,py=ax+dx*t,ay+dy*t
+    love.graphics.line(px+nx*radius,py+ny*radius,px-nx*radius,py-ny*radius)
+   end
+  end
+ end
+end
 function B.draw(c,top,color)
  local pts=c.path
  if not pts or #pts<2 then return end
@@ -71,7 +110,11 @@ function B.draw(c,top,color)
  local grow=math.max(0,math.min(1,c.growth or 1))
  if grow<.02 then return end
  local width=math.max(.12,math.min(2.7,(c.thickness or .1)*6))*(.3+.7*grow)
- if kind=='rib' or kind=='girdle' or kind=='orbital' or kind=='jaw' then
+ if c.type=='Support' then
+  hydrostatic(pts,top,width,color)
+ elseif c.type=='Carapace' then
+  exoskeleton(pts,top,width,color)
+ elseif kind=='rib' or kind=='girdle' or kind=='orbital' or kind=='jaw' then
   curved(pts,top,width,color)
  elseif kind=='skull' then
   -- Cranial vault uses its generated rim; do not replace with a circle.
