@@ -106,20 +106,39 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
      or name=='orbital rim'
      or name=='paired distal support'
    if top or not transverse then
-     -- Intervertebral cartilage sits between adjacent axial supports.
-     -- Draw first so the bone surfaces remain visually dominant.
-     if name:match('^vertebra %d+
-     -- A connector is meaningful only if both supports are visible in
-     -- this projection. Never draw a hidden transverse support's link.
-     if c.parent then
-       local p=a.components[c.parent]
-       if p then
-         local px,py=point(p,top)
-         love.graphics.setColor(color[1],color[2],color[3],.4)
-         love.graphics.setLineWidth(.45)
-         love.graphics.line(px,py,xx,yy)
-       end
+    -- Small intervertebral discs sit behind the ivory bone surfaces.
+    if name:match('^vertebra %d+$') or name:match('^cervical segment %d+$') then
+     local previous=c.parent and a.components[c.parent]
+     local previousName=previous and previous.anatomicalName or ''
+     if previous and (previousName:match('^vertebra %d+$') or previousName:match('^cervical segment %d+$')) then
+      local ax,ay=point(previous,top)
+      local bx,by=point(c,top)
+      local vx,vy=bx-ax,by-ay
+      local dist=math.sqrt(vx*vx+vy*vy)
+      if dist>.05 and dist<math.max(3,(c.length or 1)*4) then
+       local ux,uy=vx/dist,vy/dist
+       local nx,ny=-uy,ux
+       local radius=math.max(.12,math.min(.65,(c.thickness or .1)*4))
+       local mx,my=(ax+bx)*.5,(ay+by)*.5
+       love.graphics.setColor(.38,.55,.53,.78)
+       love.graphics.polygon('fill',
+        mx-ux*.20-nx*radius,my-uy*.20-ny*radius,
+        mx+ux*.20-nx*radius,my+uy*.20-ny*radius,
+        mx+ux*.20+nx*radius,my+uy*.20+ny*radius,
+        mx-ux*.20+nx*radius,my-uy*.20+ny*radius)
+      end
      end
+    end
+    boneShape(c.path or {},top,math.max(.55,(c.thickness or .1)*23),color)
+    if c.parent then
+     local p=a.components[c.parent]
+     if p then
+      local px,py=point(p,top)
+      love.graphics.setColor(color[1],color[2],color[3],.4)
+      love.graphics.setLineWidth(.45)
+      love.graphics.line(px,py,xx,yy)
+     end
+    end
    end
   elseif on('Muscle') and c.type=='Muscle' then
    local p,q=a.components[c.origin],a.components[c.insertion];local px,py=point(p,top);local qx,qy=point(q,top);local width=math.sqrt(c.volume*32^3/math.max(1,math.sqrt((px-qx)^2+(py-qy)^2))*math.pi)*.6
