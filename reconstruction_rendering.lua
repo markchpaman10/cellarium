@@ -106,6 +106,314 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
      or name=='orbital rim'
      or name=='paired distal support'
    if top or not transverse then
+     -- Intervertebral cartilage sits between adjacent axial supports.
+     -- Draw first so the bone surfaces remain visually dominant.
+     if name:match('^vertebra %d+
+     -- A connector is meaningful only if both supports are visible in
+     -- this projection. Never draw a hidden transverse support's link.
+     if c.parent then
+       local p=a.components[c.parent]
+       if p then
+         local px,py=point(p,top)
+         love.graphics.setColor(color[1],color[2],color[3],.4)
+         love.graphics.setLineWidth(.45)
+         love.graphics.line(px,py,xx,yy)
+       end
+     end
+   end
+  elseif on('Muscle') and c.type=='Muscle' then
+   local p,q=a.components[c.origin],a.components[c.insertion];local px,py=point(p,top);local qx,qy=point(q,top);local width=math.sqrt(c.volume*32^3/math.max(1,math.sqrt((px-qx)^2+(py-qy)^2))*math.pi)*.6
+   muscleShape(px,py,xx,yy,qx,qy,width*.58)
+  elseif on('Fat') and c.type=='Fat' then
+   local r=a.regions[c.regionId];fatLayer(a,r,c.volume,top)
+  elseif on('Organs') and (c.type=='Heart' or c.type=='Lung' or c.type=='Stomach' or c.type=='Brain' or c.type=='Kidney' or c.type=='Gonad') then love.graphics.setColor(color);love.graphics.ellipse('fill',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry));love.graphics.setColor(.95,.94,.84,.7);love.graphics.setLineWidth(.3);love.graphics.ellipse('line',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry))
+  elseif on('Organs') and c.type=='Gill' then path({{x=c.cx-c.rx*.4,y=c.cy,z=c.cz},{x=c.cx+c.rx*.4,y=c.cy,z=c.cz}},top,.8,{.35,.75,.91}) end
+  if (on('External') or on('Nervous')) and c.type=='Sensor' then local r=a.regions[c.regionId];if r.partType=='cranium' then love.graphics.setColor(.96,.97,.77);love.graphics.circle('fill',xx,yy,math.max(.15,1.5*c.growth));love.graphics.setColor(.035,.10,.13);love.graphics.circle('fill',xx+.3,yy,math.max(.1,.8*c.growth)) end end
+  if c.condition<.7 then love.graphics.setColor(.8,.15,.17,.8);love.graphics.circle('fill',xx,yy,.8) end
+ end end
+ if on('Nervous') then for _,n in ipairs(a.nerves) do if (n.growth or 1)>.01 then local p,q=a.components[n.from],a.components[n.to];local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.74,.53,.97,.9);love.graphics.setLineWidth(.35+math.min(.45,n.efficiency*.5));love.graphics.line(px,py,(px+qx)/2,(py+qy)/2,qx,qy) end end end
+ if on('Organs') then for _,v in ipairs(a.vessels) do local p,q=a.components[v.from],a.components[v.to];if p.growth>.01 and q.growth>.01 then local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.82,.22,.27,.5);love.graphics.setLineWidth(.4);love.graphics.line(px,py,qx,qy) end end end
+ if external then for _,c in ipairs(a.surfaces) do local r=a.regions[c.regionId];if c.growth>.01 then local host=a.regions[r.parent or r.id];local xx,yy=point(r,top);local px,py=point(host,top);love.graphics.setColor(.42,.75,.73,.35);love.graphics.polygon('fill',px,py,xx,yy,xx+math.sin(r.orientation)*r.width,yy-math.cos(r.orientation)*r.width) end end end
+ if on('Skeleton') then
+  -- Draw cartilage at the existing anatomical joint anchors. These are
+  -- connective tissues, not extra bones or decorative orange debug rings.
+  -- Growth and joint positions are inherited from the anatomy simulation.
+  for _,j in ipairs(a.joints) do
+   if j.growth>.02 then
+    local child=a.regions[j.partId]
+    local parent=child and child.parent and a.regions[child.parent]
+    if child and parent then
+     local x,y=point(j,top)
+     local cx,cy=point(child,top)
+     local px,py=point(parent,top)
+     local dx,dy=cx-px,cy-py
+     local length=math.sqrt(dx*dx+dy*dy)
+     if length<.0001 then dx,dy=1,0 else dx,dy=dx/length,dy/length end
+     local nx,ny=-dy,dx
+     local w=math.max(.12,math.min(.75,math.min(child.width or 1,parent.width or 1)*.065*j.growth))
+     local depth=math.max(.12,w*.50)
+     -- Flexible cartilage bridge with softly rounded articular ends.
+     love.graphics.setColor(.25,.41,.42,.50)
+     love.graphics.polygon('fill',
+       x-dx*depth-nx*w, y-dy*depth-ny*w,
+       x+dx*depth-nx*w, y+dy*depth-ny*w,
+       x+dx*depth+nx*w, y+dy*depth+ny*w,
+       x-dx*depth+nx*w, y-dy*depth+ny*w)
+     love.graphics.setColor(.46,.64,.64,.68)
+     love.graphics.ellipse('fill',x,y,depth,w)
+     love.graphics.setColor(.76,.84,.78,.35)
+     love.graphics.setLineWidth(math.max(.10,w*.15))
+     love.graphics.line(x-nx*w*.75,y-ny*w*.75,x+nx*w*.75,y+ny*w*.75)
+     -- Paired ligament edges retain a visual link without obscuring bone.
+     love.graphics.setColor(.65,.69,.59,.38)
+     love.graphics.setLineWidth(math.max(.12,w*.16))
+     for side=-1,1,2 do
+      love.graphics.line(x-dx*depth*1.4+nx*w*side,y-dy*depth*1.4+ny*w*side,
+        x+dx*depth*1.4+nx*w*side,y+dy*depth*1.4+ny*w*side)
+     end
+    end
+   end
+  end
+ end
+ if selected and a.regions[selected] then local r=a.regions[selected];love.graphics.setColor(.3,.95,.8,.9);love.graphics.setLineWidth(.5);love.graphics.line(r.x-4,r.y,r.x+4,r.y);love.graphics.line(r.x,r.y-4,r.x,r.y+4) end
+ love.graphics.pop()
+end
+return V
+) or name:match('^cervical segment %d+
+     -- A connector is meaningful only if both supports are visible in
+     -- this projection. Never draw a hidden transverse support's link.
+     if c.parent then
+       local p=a.components[c.parent]
+       if p then
+         local px,py=point(p,top)
+         love.graphics.setColor(color[1],color[2],color[3],.4)
+         love.graphics.setLineWidth(.45)
+         love.graphics.line(px,py,xx,yy)
+       end
+     end
+   end
+  elseif on('Muscle') and c.type=='Muscle' then
+   local p,q=a.components[c.origin],a.components[c.insertion];local px,py=point(p,top);local qx,qy=point(q,top);local width=math.sqrt(c.volume*32^3/math.max(1,math.sqrt((px-qx)^2+(py-qy)^2))*math.pi)*.6
+   muscleShape(px,py,xx,yy,qx,qy,width*.58)
+  elseif on('Fat') and c.type=='Fat' then
+   local r=a.regions[c.regionId];fatLayer(a,r,c.volume,top)
+  elseif on('Organs') and (c.type=='Heart' or c.type=='Lung' or c.type=='Stomach' or c.type=='Brain' or c.type=='Kidney' or c.type=='Gonad') then love.graphics.setColor(color);love.graphics.ellipse('fill',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry));love.graphics.setColor(.95,.94,.84,.7);love.graphics.setLineWidth(.3);love.graphics.ellipse('line',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry))
+  elseif on('Organs') and c.type=='Gill' then path({{x=c.cx-c.rx*.4,y=c.cy,z=c.cz},{x=c.cx+c.rx*.4,y=c.cy,z=c.cz}},top,.8,{.35,.75,.91}) end
+  if (on('External') or on('Nervous')) and c.type=='Sensor' then local r=a.regions[c.regionId];if r.partType=='cranium' then love.graphics.setColor(.96,.97,.77);love.graphics.circle('fill',xx,yy,math.max(.15,1.5*c.growth));love.graphics.setColor(.035,.10,.13);love.graphics.circle('fill',xx+.3,yy,math.max(.1,.8*c.growth)) end end
+  if c.condition<.7 then love.graphics.setColor(.8,.15,.17,.8);love.graphics.circle('fill',xx,yy,.8) end
+ end end
+ if on('Nervous') then for _,n in ipairs(a.nerves) do if (n.growth or 1)>.01 then local p,q=a.components[n.from],a.components[n.to];local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.74,.53,.97,.9);love.graphics.setLineWidth(.35+math.min(.45,n.efficiency*.5));love.graphics.line(px,py,(px+qx)/2,(py+qy)/2,qx,qy) end end end
+ if on('Organs') then for _,v in ipairs(a.vessels) do local p,q=a.components[v.from],a.components[v.to];if p.growth>.01 and q.growth>.01 then local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.82,.22,.27,.5);love.graphics.setLineWidth(.4);love.graphics.line(px,py,qx,qy) end end end
+ if external then for _,c in ipairs(a.surfaces) do local r=a.regions[c.regionId];if c.growth>.01 then local host=a.regions[r.parent or r.id];local xx,yy=point(r,top);local px,py=point(host,top);love.graphics.setColor(.42,.75,.73,.35);love.graphics.polygon('fill',px,py,xx,yy,xx+math.sin(r.orientation)*r.width,yy-math.cos(r.orientation)*r.width) end end end
+ if on('Skeleton') then
+  -- Draw cartilage at the existing anatomical joint anchors. These are
+  -- connective tissues, not extra bones or decorative orange debug rings.
+  -- Growth and joint positions are inherited from the anatomy simulation.
+  for _,j in ipairs(a.joints) do
+   if j.growth>.02 then
+    local child=a.regions[j.partId]
+    local parent=child and child.parent and a.regions[child.parent]
+    if child and parent then
+     local x,y=point(j,top)
+     local cx,cy=point(child,top)
+     local px,py=point(parent,top)
+     local dx,dy=cx-px,cy-py
+     local length=math.sqrt(dx*dx+dy*dy)
+     if length<.0001 then dx,dy=1,0 else dx,dy=dx/length,dy/length end
+     local nx,ny=-dy,dx
+     local w=math.max(.22,math.min(child.width or 1,parent.width or 1)*.20*j.growth)
+     local depth=math.max(.20,w*.45)
+     -- Flexible cartilage bridge with softly rounded articular ends.
+     love.graphics.setColor(.20,.39,.44,.82)
+     love.graphics.polygon('fill',
+       x-dx*depth-nx*w, y-dy*depth-ny*w,
+       x+dx*depth-nx*w, y+dy*depth-ny*w,
+       x+dx*depth+nx*w, y+dy*depth+ny*w,
+       x-dx*depth+nx*w, y-dy*depth+ny*w)
+     love.graphics.setColor(.51,.77,.79,.96)
+     love.graphics.ellipse('fill',x,y,depth,w)
+     love.graphics.setColor(.83,.94,.90,.62)
+     love.graphics.setLineWidth(math.max(.10,w*.15))
+     love.graphics.line(x-nx*w*.75,y-ny*w*.75,x+nx*w*.75,y+ny*w*.75)
+     -- Paired ligament edges retain a visual link without obscuring bone.
+     love.graphics.setColor(.70,.76,.66,.63)
+     love.graphics.setLineWidth(math.max(.12,w*.16))
+     for side=-1,1,2 do
+      love.graphics.line(x-dx*depth*1.4+nx*w*side,y-dy*depth*1.4+ny*w*side,
+        x+dx*depth*1.4+nx*w*side,y+dy*depth*1.4+ny*w*side)
+     end
+    end
+   end
+  end
+ end
+ if selected and a.regions[selected] then local r=a.regions[selected];love.graphics.setColor(.3,.95,.8,.9);love.graphics.setLineWidth(.5);love.graphics.line(r.x-4,r.y,r.x+4,r.y);love.graphics.line(r.x,r.y-4,r.x,r.y+4) end
+ love.graphics.pop()
+end
+return V
+) then
+       local previous=c.parent and a.components[c.parent]
+       local previousName=previous and previous.anatomicalName or ''
+       if previous and (previousName:match('^vertebra %d+
+     -- A connector is meaningful only if both supports are visible in
+     -- this projection. Never draw a hidden transverse support's link.
+     if c.parent then
+       local p=a.components[c.parent]
+       if p then
+         local px,py=point(p,top)
+         love.graphics.setColor(color[1],color[2],color[3],.4)
+         love.graphics.setLineWidth(.45)
+         love.graphics.line(px,py,xx,yy)
+       end
+     end
+   end
+  elseif on('Muscle') and c.type=='Muscle' then
+   local p,q=a.components[c.origin],a.components[c.insertion];local px,py=point(p,top);local qx,qy=point(q,top);local width=math.sqrt(c.volume*32^3/math.max(1,math.sqrt((px-qx)^2+(py-qy)^2))*math.pi)*.6
+   muscleShape(px,py,xx,yy,qx,qy,width*.58)
+  elseif on('Fat') and c.type=='Fat' then
+   local r=a.regions[c.regionId];fatLayer(a,r,c.volume,top)
+  elseif on('Organs') and (c.type=='Heart' or c.type=='Lung' or c.type=='Stomach' or c.type=='Brain' or c.type=='Kidney' or c.type=='Gonad') then love.graphics.setColor(color);love.graphics.ellipse('fill',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry));love.graphics.setColor(.95,.94,.84,.7);love.graphics.setLineWidth(.3);love.graphics.ellipse('line',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry))
+  elseif on('Organs') and c.type=='Gill' then path({{x=c.cx-c.rx*.4,y=c.cy,z=c.cz},{x=c.cx+c.rx*.4,y=c.cy,z=c.cz}},top,.8,{.35,.75,.91}) end
+  if (on('External') or on('Nervous')) and c.type=='Sensor' then local r=a.regions[c.regionId];if r.partType=='cranium' then love.graphics.setColor(.96,.97,.77);love.graphics.circle('fill',xx,yy,math.max(.15,1.5*c.growth));love.graphics.setColor(.035,.10,.13);love.graphics.circle('fill',xx+.3,yy,math.max(.1,.8*c.growth)) end end
+  if c.condition<.7 then love.graphics.setColor(.8,.15,.17,.8);love.graphics.circle('fill',xx,yy,.8) end
+ end end
+ if on('Nervous') then for _,n in ipairs(a.nerves) do if (n.growth or 1)>.01 then local p,q=a.components[n.from],a.components[n.to];local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.74,.53,.97,.9);love.graphics.setLineWidth(.35+math.min(.45,n.efficiency*.5));love.graphics.line(px,py,(px+qx)/2,(py+qy)/2,qx,qy) end end end
+ if on('Organs') then for _,v in ipairs(a.vessels) do local p,q=a.components[v.from],a.components[v.to];if p.growth>.01 and q.growth>.01 then local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.82,.22,.27,.5);love.graphics.setLineWidth(.4);love.graphics.line(px,py,qx,qy) end end end
+ if external then for _,c in ipairs(a.surfaces) do local r=a.regions[c.regionId];if c.growth>.01 then local host=a.regions[r.parent or r.id];local xx,yy=point(r,top);local px,py=point(host,top);love.graphics.setColor(.42,.75,.73,.35);love.graphics.polygon('fill',px,py,xx,yy,xx+math.sin(r.orientation)*r.width,yy-math.cos(r.orientation)*r.width) end end end
+ if on('Skeleton') then
+  -- Draw cartilage at the existing anatomical joint anchors. These are
+  -- connective tissues, not extra bones or decorative orange debug rings.
+  -- Growth and joint positions are inherited from the anatomy simulation.
+  for _,j in ipairs(a.joints) do
+   if j.growth>.02 then
+    local child=a.regions[j.partId]
+    local parent=child and child.parent and a.regions[child.parent]
+    if child and parent then
+     local x,y=point(j,top)
+     local cx,cy=point(child,top)
+     local px,py=point(parent,top)
+     local dx,dy=cx-px,cy-py
+     local length=math.sqrt(dx*dx+dy*dy)
+     if length<.0001 then dx,dy=1,0 else dx,dy=dx/length,dy/length end
+     local nx,ny=-dy,dx
+     local w=math.max(.22,math.min(child.width or 1,parent.width or 1)*.20*j.growth)
+     local depth=math.max(.20,w*.45)
+     -- Flexible cartilage bridge with softly rounded articular ends.
+     love.graphics.setColor(.20,.39,.44,.82)
+     love.graphics.polygon('fill',
+       x-dx*depth-nx*w, y-dy*depth-ny*w,
+       x+dx*depth-nx*w, y+dy*depth-ny*w,
+       x+dx*depth+nx*w, y+dy*depth+ny*w,
+       x-dx*depth+nx*w, y-dy*depth+ny*w)
+     love.graphics.setColor(.51,.77,.79,.96)
+     love.graphics.ellipse('fill',x,y,depth,w)
+     love.graphics.setColor(.83,.94,.90,.62)
+     love.graphics.setLineWidth(math.max(.10,w*.15))
+     love.graphics.line(x-nx*w*.75,y-ny*w*.75,x+nx*w*.75,y+ny*w*.75)
+     -- Paired ligament edges retain a visual link without obscuring bone.
+     love.graphics.setColor(.70,.76,.66,.63)
+     love.graphics.setLineWidth(math.max(.12,w*.16))
+     for side=-1,1,2 do
+      love.graphics.line(x-dx*depth*1.4+nx*w*side,y-dy*depth*1.4+ny*w*side,
+        x+dx*depth*1.4+nx*w*side,y+dy*depth*1.4+ny*w*side)
+     end
+    end
+   end
+  end
+ end
+ if selected and a.regions[selected] then local r=a.regions[selected];love.graphics.setColor(.3,.95,.8,.9);love.graphics.setLineWidth(.5);love.graphics.line(r.x-4,r.y,r.x+4,r.y);love.graphics.line(r.x,r.y-4,r.x,r.y+4) end
+ love.graphics.pop()
+end
+return V
+) or previousName:match('^cervical segment %d+
+     -- A connector is meaningful only if both supports are visible in
+     -- this projection. Never draw a hidden transverse support's link.
+     if c.parent then
+       local p=a.components[c.parent]
+       if p then
+         local px,py=point(p,top)
+         love.graphics.setColor(color[1],color[2],color[3],.4)
+         love.graphics.setLineWidth(.45)
+         love.graphics.line(px,py,xx,yy)
+       end
+     end
+   end
+  elseif on('Muscle') and c.type=='Muscle' then
+   local p,q=a.components[c.origin],a.components[c.insertion];local px,py=point(p,top);local qx,qy=point(q,top);local width=math.sqrt(c.volume*32^3/math.max(1,math.sqrt((px-qx)^2+(py-qy)^2))*math.pi)*.6
+   muscleShape(px,py,xx,yy,qx,qy,width*.58)
+  elseif on('Fat') and c.type=='Fat' then
+   local r=a.regions[c.regionId];fatLayer(a,r,c.volume,top)
+  elseif on('Organs') and (c.type=='Heart' or c.type=='Lung' or c.type=='Stomach' or c.type=='Brain' or c.type=='Kidney' or c.type=='Gonad') then love.graphics.setColor(color);love.graphics.ellipse('fill',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry));love.graphics.setColor(.95,.94,.84,.7);love.graphics.setLineWidth(.3);love.graphics.ellipse('line',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry))
+  elseif on('Organs') and c.type=='Gill' then path({{x=c.cx-c.rx*.4,y=c.cy,z=c.cz},{x=c.cx+c.rx*.4,y=c.cy,z=c.cz}},top,.8,{.35,.75,.91}) end
+  if (on('External') or on('Nervous')) and c.type=='Sensor' then local r=a.regions[c.regionId];if r.partType=='cranium' then love.graphics.setColor(.96,.97,.77);love.graphics.circle('fill',xx,yy,math.max(.15,1.5*c.growth));love.graphics.setColor(.035,.10,.13);love.graphics.circle('fill',xx+.3,yy,math.max(.1,.8*c.growth)) end end
+  if c.condition<.7 then love.graphics.setColor(.8,.15,.17,.8);love.graphics.circle('fill',xx,yy,.8) end
+ end end
+ if on('Nervous') then for _,n in ipairs(a.nerves) do if (n.growth or 1)>.01 then local p,q=a.components[n.from],a.components[n.to];local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.74,.53,.97,.9);love.graphics.setLineWidth(.35+math.min(.45,n.efficiency*.5));love.graphics.line(px,py,(px+qx)/2,(py+qy)/2,qx,qy) end end end
+ if on('Organs') then for _,v in ipairs(a.vessels) do local p,q=a.components[v.from],a.components[v.to];if p.growth>.01 and q.growth>.01 then local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.82,.22,.27,.5);love.graphics.setLineWidth(.4);love.graphics.line(px,py,qx,qy) end end end
+ if external then for _,c in ipairs(a.surfaces) do local r=a.regions[c.regionId];if c.growth>.01 then local host=a.regions[r.parent or r.id];local xx,yy=point(r,top);local px,py=point(host,top);love.graphics.setColor(.42,.75,.73,.35);love.graphics.polygon('fill',px,py,xx,yy,xx+math.sin(r.orientation)*r.width,yy-math.cos(r.orientation)*r.width) end end end
+ if on('Skeleton') then
+  -- Draw cartilage at the existing anatomical joint anchors. These are
+  -- connective tissues, not extra bones or decorative orange debug rings.
+  -- Growth and joint positions are inherited from the anatomy simulation.
+  for _,j in ipairs(a.joints) do
+   if j.growth>.02 then
+    local child=a.regions[j.partId]
+    local parent=child and child.parent and a.regions[child.parent]
+    if child and parent then
+     local x,y=point(j,top)
+     local cx,cy=point(child,top)
+     local px,py=point(parent,top)
+     local dx,dy=cx-px,cy-py
+     local length=math.sqrt(dx*dx+dy*dy)
+     if length<.0001 then dx,dy=1,0 else dx,dy=dx/length,dy/length end
+     local nx,ny=-dy,dx
+     local w=math.max(.22,math.min(child.width or 1,parent.width or 1)*.20*j.growth)
+     local depth=math.max(.20,w*.45)
+     -- Flexible cartilage bridge with softly rounded articular ends.
+     love.graphics.setColor(.20,.39,.44,.82)
+     love.graphics.polygon('fill',
+       x-dx*depth-nx*w, y-dy*depth-ny*w,
+       x+dx*depth-nx*w, y+dy*depth-ny*w,
+       x+dx*depth+nx*w, y+dy*depth+ny*w,
+       x-dx*depth+nx*w, y-dy*depth+ny*w)
+     love.graphics.setColor(.51,.77,.79,.96)
+     love.graphics.ellipse('fill',x,y,depth,w)
+     love.graphics.setColor(.83,.94,.90,.62)
+     love.graphics.setLineWidth(math.max(.10,w*.15))
+     love.graphics.line(x-nx*w*.75,y-ny*w*.75,x+nx*w*.75,y+ny*w*.75)
+     -- Paired ligament edges retain a visual link without obscuring bone.
+     love.graphics.setColor(.70,.76,.66,.63)
+     love.graphics.setLineWidth(math.max(.12,w*.16))
+     for side=-1,1,2 do
+      love.graphics.line(x-dx*depth*1.4+nx*w*side,y-dy*depth*1.4+ny*w*side,
+        x+dx*depth*1.4+nx*w*side,y+dy*depth*1.4+ny*w*side)
+     end
+    end
+   end
+  end
+ end
+ if selected and a.regions[selected] then local r=a.regions[selected];love.graphics.setColor(.3,.95,.8,.9);love.graphics.setLineWidth(.5);love.graphics.line(r.x-4,r.y,r.x+4,r.y);love.graphics.line(r.x,r.y-4,r.x,r.y+4) end
+ love.graphics.pop()
+end
+return V
+)) then
+         local ax,ay=point(previous,top)
+         local bx,by=point(c,top)
+         local vx,vy=bx-ax,by-ay
+         local dist=math.sqrt(vx*vx+vy*vy)
+         if dist>.05 and dist<math.max(3,(c.length or 1)*4) then
+           local ux,uy=vx/dist,vy/dist
+           local nx,ny=-uy,ux
+           local radius=math.max(.12,math.min(.65,(c.thickness or .1)*4))
+           local cx,cy=(ax+bx)*.5,(ay+by)*.5
+           love.graphics.setColor(.38,.55,.53,.78)
+           love.graphics.polygon('fill',
+             cx-ux*.20-nx*radius,cy-uy*.20-ny*radius,
+             cx+ux*.20-nx*radius,cy+uy*.20-ny*radius,
+             cx+ux*.20+nx*radius,cy+uy*.20+ny*radius,
+             cx-ux*.20+nx*radius,cy-uy*.20+ny*radius)
+         end
+       end
+     end
      boneShape(c.path or {},top,math.max(.55,(c.thickness or .1)*23),color)
      -- A connector is meaningful only if both supports are visible in
      -- this projection. Never draw a hidden transverse support's link.
