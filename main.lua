@@ -14,6 +14,7 @@ local layer, selected = 'External', nil
 local changingSeed, seedText = false, ''
 local status = 'Ready'
 local dirty, images = true, {}
+local viewZoom={side=1,top=1}
 local cellState = nil
 local buttons = {}
 local palette = {
@@ -83,7 +84,8 @@ local function bounds(top)
 end
 local function viewTransform(top,w,h)
   local ax,ay,bx,by=bounds(top)
-  local zoom=math.min((w-65)/math.max(1,bx-ax),(h-65)/math.max(1,by-ay),5)
+  local fit=math.min((w-65)/math.max(1,bx-ax),(h-65)/math.max(1,by-ay),5)
+  local zoom=fit*(top and viewZoom.top or viewZoom.side)
   return w*.5-(ax+bx)*.5*zoom,h*.5-(ay+by)*.5*zoom,zoom
 end
 local function renderCanvas(top,w,h)
@@ -207,6 +209,21 @@ function love.draw()
   button('Play / pause: Space',1050,807,290,35,function()playing=not playing end)
   printText(status:sub(1,150),1060,689,small,palette.muted)
   love.graphics.pop()
+end
+-- Zoom the panel under the pointer. Each anatomical view retains its own
+-- magnification, and selection uses the same viewTransform.
+function love.wheelmoved(dx,dy)
+  if dy==0 then return end
+  local mx,my=love.mouse.getPosition()
+  local w,h=love.graphics.getDimensions()
+  if w<=0 or h<=0 then return end
+  mx=mx/w*WIDTH;my=my/h*HEIGHT
+  local key
+  if mx>=25 and mx<=875 and my>=159 and my<=669 then key='side'
+  elseif mx>=890 and mx<=1335 and my>=159 and my<=669 then key='top'
+  else return end
+  viewZoom[key]=math.max(.2,math.min(12,viewZoom[key]*1.15^dy))
+  dirty=true
 end
 function love.mousepressed(x,y,mouseButton)
   if mouseButton~=1 then return end
