@@ -41,8 +41,25 @@ function M.geometry(a,top)
    local dx,dy=math.cos(angle)*extent,math.sin(angle)*extent;local taper=r.partType=='claw' or r.partType=='tail' or r.partType=='horn' or r.partType=='spike'
    add(x-dx,y-dy,x+dx,y+dy,radius,radius*(taper and .15 or r.partType=='snout' and .55 or .9),armor[r.id] or 0,r.cy);byRegion[r.id]={x=x,y=y,radius=radius}
    local parent=r.parent and byRegion[r.parent]
-   if parent then local at=r.attachment;local p=a.regions[r.parent];local ax,ay=p.cx+at.x,top and p.cy+at.y or -p.cz-at.z
-    local trunk=(r.partType=='abdomen' or r.partType=='pelvis' or r.partType=='trunk');if trunk then add(parent.x,parent.y,x,y,parent.radius*.95,radius*.95) else local bridge=math.min(parent.radius,radius)*.8;add(parent.x,parent.y,ax,ay,bridge,bridge);add(ax,ay,x-dx,y-dy,bridge,radius*.85) end
+   if parent then
+    local at=r.attachment or {x=0,y=0,z=0}
+    local p=a.regions[r.parent]
+    local ax,ay=p.cx+(at.x or 0),top and p.cy+(at.y or 0) or -p.cz-(at.z or 0)
+    local trunk=(r.partType=='abdomen' or r.partType=='pelvis' or r.partType=='trunk')
+    if trunk then
+     local waist=math.min(parent.radius,radius)
+     add(parent.x,parent.y,ax,ay,parent.radius*.78,waist*.92)
+     add(ax,ay,x,y,waist*.92,radius*.86)
+    else
+     -- Keep joint skin close to the actual attachment instead of
+     -- expanding a full parent-width wedge into a narrow appendage.
+     local bridge=math.min(parent.radius,radius)*.66
+     local distance=math.sqrt((parent.x-ax)^2+(parent.y-ay)^2)
+     if distance>parent.radius*.75 then
+      add(parent.x,parent.y,ax,ay,math.min(parent.radius*.55,bridge*1.2),bridge)
+     end
+     add(ax,ay,x-dx,y-dy,bridge,radius*.78)
+    end
    end
   end
  end;return spans,tips
