@@ -115,16 +115,10 @@ function B.jointAnchor(parent,child,joint,top)
  if not p or not q then return nil end
  local ax,ay=project(p,top)
  local bx,by=project(q,top)
- -- Reject joints separated in actual 3-D space. Projection alone
- -- can make unrelated bones appear to touch in either camera.
- local dx=(p.x or 0)-(q.x or 0)
- local dy=(p.y or 0)-(q.y or 0)
- local dz=(p.z or 0)-(q.z or 0)
- local spatialGap=math.sqrt(dx*dx+dy*dy+dz*dz)
  local gap=math.sqrt((ax-bx)^2+(ay-by)^2)
  local thickness=math.min(parent.thickness or .1,child.thickness or .1)
  local size=math.max(.08,math.min(.34,thickness*3))
- if spatialGap>math.max(1.2,size*5) or gap>math.max(1.2,size*5) then return nil end
+ if gap>math.max(1.2,size*5) then return nil end
  return (ax+bx)*.5,(ay+by)*.5,size
 end
 return B

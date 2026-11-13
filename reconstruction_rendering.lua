@@ -13,6 +13,32 @@ local function path(points,top,width,color)
  local coords={};for _,pt in ipairs(points) do coords[#coords+1]=pt.x;coords[#coords+1]=top and pt.y or -pt.z end
  if #coords>=4 then love.graphics.setColor(color);love.graphics.setLineWidth(math.max(.2,width));love.graphics.setLineJoin('bevel');love.graphics.line(coords) end
 end
+-- Volumetric bone and soft-tissue silhouettes are derived from the same
+-- support paths / muscle attachments as the anatomical graph.
+local function boneShape(points,top,width,color)
+ if not points or #points<2 then return end
+ local n=#points
+ local px,py=point(points[1],top)
+ for i=2,n do
+  local qx,qy=point(points[i],top)
+  local dx,dy=qx-px,qy-py
+  local length=math.sqrt(dx*dx+dy*dy)
+  if length>.0001 then
+   local nx,ny=-dy/length,dx/length
+   local w=math.max(.3,width)
+   local head=w*(i==2 and 1.30 or .85)
+   local tip=w*(i==n and 1.27 or .85)
+   love.graphics.setColor(.65,.59,.45,.92)
+   love.graphics.polygon('fill',px+nx*head*.62,py+ny*head*.62,qx+nx*tip*.55,qy+ny*tip*.55,qx-nx*tip*.55,qy-ny*tip*.55,px-nx*head*.62,py-ny*head*.62)
+   love.graphics.setColor(color[1],color[2],color[3],1)
+   love.graphics.polygon('fill',px+nx*head*.43,py+ny*head*.43,qx+nx*tip*.38,qy+ny*tip*.38,qx-nx*tip*.38,qy-ny*tip*.38,px-nx*head*.43,py-ny*head*.43)
+   love.graphics.setColor(1,.97,.83,.65)
+   love.graphics.setLineWidth(math.max(.15,w*.11))
+   love.graphics.line(px+nx*w*.26,py+ny*w*.26,qx+nx*w*.22,qy+ny*w*.22)
+  end
+  px,py=qx,qy
+ end
+end
 local function muscleShape(px,py,mx,my,qx,qy,width)
  local dx,dy=qx-px,qy-py
  local length=math.sqrt(dx*dx+dy*dy)
