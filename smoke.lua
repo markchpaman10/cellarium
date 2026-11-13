@@ -2,6 +2,7 @@ package.path='./?.lua;'..package.path
 local G=require('genome')
 local R=require('reconstruction')
 local D=require('anatomical_development')
+local E=require('embryology')
 local function check(seed)
   local g=G.new(G.rng(seed))
   local a=R.generate(g,{seed=seed,nutrition=1,temperature=37,minerals=1,oxygen=1})
@@ -27,3 +28,24 @@ for _,seed in ipairs({20365841,1,1001,20001,700123}) do
   print(string.format('PASS %d: %d regions / %d components',seed,#a.regions,#a.components))
 end
 print('Organism growth baseline checks passed.')
+
+-- Early cleavage must be reproducible and progress through individual cells
+-- before switching to tissue populations.
+for _,seed in ipairs({1,1001,20365841}) do
+ local previous=0
+ for i=0,100 do
+  local t=i/100
+  local a=E.evaluate(seed,t)
+  local b=E.evaluate(seed,t)
+  assert(a.cellCount==b.cellCount and a.stage==b.stage,'Nondeterministic embryo')
+  assert(a.cellCount>=previous,'Cell count decreased')
+  previous=a.cellCount
+  if a.individual then
+   assert(#a.cells==a.cellCount,'Cleavage cell count mismatch')
+   for j,c in ipairs(a.cells) do
+    assert(c.x==b.cells[j].x and c.y==b.cells[j].y,'Cell positions not deterministic')
+   end
+  else assert(#a.populations>0,'Missing tissue populations') end
+ end
+end
+print('Early embryology checks passed.')
