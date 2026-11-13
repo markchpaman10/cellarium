@@ -1,3 +1,4 @@
+local BoneShapes=require('skeletal_shapes')
 local V={};local colors={Bone={.92,.86,.67},Support={.44,.76,.70},Carapace={.68,.75,.56},Muscle={.76,.24,.32},Fat={.96,.76,.37},Heart={.9,.25,.32},Lung={.89,.57,.68},Stomach={.55,.74,.46},Brain={.77,.58,.94},Kidney={.68,.36,.32},Gonad={.85,.66,.39}}
 local function point(p,top)
  -- Anatomy components have cx/cy/cz; bone path vertices have x/y/z.
@@ -153,28 +154,9 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
  for _,c in ipairs(a.components) do if c.volume>.0000000001 then
   local xx,yy=point(c,top);local color=colors[c.type] or {.58,.69,.71};local isSupport=c.type=='Bone' or c.type=='Support' or c.type=='Carapace'
   if on('Skeleton') and isSupport then
-   -- Each camera needs its own projection. A transverse rib, girdle or
-   -- paired support cannot be drawn as a lateral bone by projecting its
-   -- complete plan-view path: doing so produces the false stacked bars
-   -- and the apparent top-down skeleton on the side-view organism.
-   local name=c.anatomicalName or ''
-   local transverse=name=='protective rib arch'
-     or name=='shoulder / axial girdle'
-     or name=='pelvic girdle'
-     or name=='orbital rim'
-     or name=='paired distal support'
-   if top or not transverse then
-    boneShape(c.path or {},top,math.max(.55,(c.thickness or .1)*23),color)
-    if c.parent then
-     local p=a.components[c.parent]
-     if p then
-      local px,py=point(p,top)
-      love.graphics.setColor(color[1],color[2],color[3],.4)
-      love.graphics.setLineWidth(.45)
-      love.graphics.line(px,py,xx,yy)
-     end
-    end
-   end
+   -- Both cameras draw the SAME 3-D skeletal geometry, independently
+   -- projected by skeletal_shapes. Never hide ribs to disguise bad projection.
+   BoneShapes.draw(c,top,color)
   elseif on('Muscle') and c.type=='Muscle' then
    local p,q=a.components[c.origin],a.components[c.insertion];local px,py=point(p,top);local qx,qy=point(q,top);local width=math.sqrt(c.volume*32^3/math.max(1,math.sqrt((px-qx)^2+(py-qy)^2))*math.pi)*.6
    muscleShape(px,py,xx,yy,qx,qy,width*.58)
