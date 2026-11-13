@@ -41,3 +41,7 @@ This branch holds only the self-contained organism subsystem and its immediate d
 Run `lua smoke.lua` if Lua is installed. It generates seeded specimens, advances the organism from 0 to 100%, checks for non-finite dimensions and disconnected parent indices, and verifies deterministic regeneration.
 
 **Note:** the full graphical LÖVE application has not yet been run in this environment.
+
+## Development work in progress
+
+The early embryo now shows individually tracked cleavage cells and transitions into tissue-population counts. This is a **first implementation**, not a complete cell-mechanics solver. The existing anatomical system still uses adult-target geometry during later growth; that needs a separate morphogenesis rewrite. Bone, muscle and fat rendering are being improved independently. Do not treat this baseline as complete embryology.

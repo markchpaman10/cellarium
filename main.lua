@@ -5,6 +5,7 @@ local Genome = require('genome')
 local Build = require('reconstruction')
 local Develop = require('anatomical_development')
 local Render = require('reconstruction_rendering')
+local Embryology = require('embryology')
 
 local WIDTH, HEIGHT = 1360, 860
 local seed, genome, adult, embryo = 20365841, nil, nil, nil
@@ -13,6 +14,7 @@ local layer, selected = 'External', nil
 local changingSeed, seedText = false, ''
 local status = 'Ready'
 local dirty, images = true, {}
+local cellState = nil
 local buttons = {}
 local palette = {
   background={.035,.055,.070}, panel={.070,.102,.123},
@@ -48,6 +50,7 @@ local function setProgress(nextProgress)
   if not embryo then return end
   progress=math.max(0,math.min(1,nextProgress))
   Develop.setProgress(embryo,progress,{fatFraction=.7})
+  cellState=Embryology.evaluate(seed,progress)
   dirty=true
 end
 local function generate(nextSeed)
@@ -62,6 +65,7 @@ local function generate(nextSeed)
   if not ok then status='Generation failed: '..tostring(result);return end
   seed=newSeed;genome=result.genome;adult=result.adult;embryo=result.embryo
   progress=0;playing=false;selected=nil;dirty=true
+  cellState=Embryology.evaluate(seed,0)
   status='New cell generated from seed '..seed
 end
 local function bounds(top)
@@ -92,12 +96,16 @@ local function renderCanvas(top,w,h)
   love.graphics.line(0,h/2,w,h/2)
   if embryo then
     local x,y,zoom=viewTransform(top,w,h)
+    if cellState and (cellState.individual or progress<.23) then
+      Embryology.draw(cellState,w*.5,h*.5,math.min(w,h)/38)
+    else
     local ok,err=pcall(Render.draw,
       {anatomy=embryo,genome=genome,alive=true,behavior='Resting',angle=0},
       x,y,zoom,0,layer,selected,top)
     if not ok then
       status='Render error: '..tostring(err)
       color({.95,.45,.41}); love.graphics.print('Render error, see status below',15,15)
+    end
     end
   end
   love.graphics.setCanvas()
@@ -175,6 +183,7 @@ function love.draw()
     or 'Mature anatomy'
   printText('DEVELOPMENT  '..string.format('%5.1f%%',progress*100)..'     '..stage,20,689,font)
   printText('Genome seed '..seed..'   /   '..active..' active of '..(adult and #adult.regions or 0)..' anatomical regions',20,718,small,palette.muted)
+  if cellState then printText(cellState.stage..'  |  cells: '..cellState.cellCount..'  |  '..(cellState.individual and 'individual cells' or 'tissue populations'),640,689,small,palette.accent) end
   if selected and embryo and embryo.regions[selected] then
     local r=embryo.regions[selected]
     printText('Selected # '..r.id..'  '..r.partType..'  |  growth '..string.format('%.1f%%',(r.growth or 0)*100),760,718,small,palette.muted)
