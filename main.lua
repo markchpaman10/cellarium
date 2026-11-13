@@ -281,23 +281,23 @@ function love.draw()
     printText('Select an applicable animation:',895,247,small,palette.muted)
     for i,name in ipairs(Motion.names) do
       local enabled=available[name]
-      local yy=278+(i-1)*43
+      local yy=270+(i-1)*37
       if enabled then
-        button(name,895,yy,420,35,function()
+        button(name,895,yy,420,32,function()
           animation=name;animationTime=0;animationPaused=false;dirty=true
         end,animation==name)
       else
-        printText(name..'   (anatomy not compatible)',905,yy+9,small,palette.muted)
+        printText(name..'   (anatomy not compatible)',905,yy+7,small,palette.muted)
       end
     end
-    printText('Current: '..(animation or 'None'),895,554,small,palette.accent)
-    button(animationPaused and 'Resume' or 'Pause',895,586,130,35,function()
+    printText('Current: '..(animation or 'None'),895,568,small,palette.accent)
+    button(animationPaused and 'Resume' or 'Pause',895,591,130,35,function()
       animationPaused=not animationPaused
     end,animationPaused)
-    button('Stop',1040,586,130,35,function()
+    button('Stop',1040,591,130,35,function()
       animation=nil;animationTime=0;dirty=true
     end)
-    printText('Preview only; no locomotion physics yet.',895,630,small,palette.muted)
+    printText('Preview only; no locomotion physics yet.',895,632,small,palette.muted)
   end
   love.graphics.pop()
 end
