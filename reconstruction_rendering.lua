@@ -1,5 +1,9 @@
 local V={};local colors={Bone={.92,.86,.67},Support={.44,.76,.70},Carapace={.68,.75,.56},Muscle={.76,.24,.32},Fat={.96,.76,.37},Heart={.9,.25,.32},Lung={.89,.57,.68},Stomach={.55,.74,.46},Brain={.77,.58,.94},Kidney={.68,.36,.32},Gonad={.85,.66,.39}}
-local function point(p,top) return p.cx or p.x,top and (p.cy or 0) or -(p.cz or -p.y) end
+local function point(p,top)
+ local x=p.cx or p.x or 0
+ local y=top and (p.cy or p.y or 0) or -(p.cz or (p.y and -p.y) or 0)
+ return x,y
+end
 local function path(points,top,width,color)
  local coords={};for _,pt in ipairs(points) do coords[#coords+1]=pt.x;coords[#coords+1]=top and pt.y or -pt.z end
  if #coords>=4 then love.graphics.setColor(color);love.graphics.setLineWidth(math.max(.2,width));love.graphics.setLineJoin('bevel');love.graphics.line(coords) end
@@ -87,7 +91,18 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
  for _,c in ipairs(a.components) do if c.volume>.0000000001 then
   local xx,yy=point(c,top);local color=colors[c.type] or {.58,.69,.71};local isSupport=c.type=='Bone' or c.type=='Support' or c.type=='Carapace'
   if on('Skeleton') and isSupport then
-   boneShape(c.path or {},top,math.max(.55,(c.thickness or .1)*23),color)
+   -- Rib arches and girdles are transverse 3-D structures. Their top-view
+   -- outlines collapse into overlapping spikes in the side projection.
+   -- Render those structures in plan view only until a dedicated lateral
+   -- rib/girdle silhouette is available. Never reuse top-view geometry
+   -- as if it were a side-view bone.
+   local transverse=c.anatomicalName=='protective rib arch'
+      or c.anatomicalName=='shoulder / axial girdle'
+      or c.anatomicalName=='pelvic girdle'
+      or c.anatomicalName=='orbital rim'
+   if top or not transverse then
+    boneShape(c.path or {},top,math.max(.55,(c.thickness or .1)*23),color)
+   end
    if c.parent then local p=a.components[c.parent];local px,py=point(p,top);love.graphics.setColor(color[1],color[2],color[3],.4);love.graphics.setLineWidth(.45);love.graphics.line(px,py,xx,yy) end
   elseif on('Muscle') and c.type=='Muscle' then
    local p,q=a.components[c.origin],a.components[c.insertion];local px,py=point(p,top);local qx,qy=point(q,top);local width=math.sqrt(c.volume*32^3/math.max(1,math.sqrt((px-qx)^2+(py-qy)^2))*math.pi)*.6
