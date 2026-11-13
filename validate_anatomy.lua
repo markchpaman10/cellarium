@@ -9,6 +9,7 @@ local samples={427617155,139300861,151974243,1240970924,20365841}
 for i=1,100 do samples[#samples+1]=i*19739+101 end
 local strategies={}
 local failures={}
+local audit={warnings={}}
 local function finite(x) return type(x)=='number' and x==x and x~=math.huge and x~=-math.huge end
 local function validate(seed)
  local function make()
@@ -43,6 +44,50 @@ local function validate(seed)
  for _,j in ipairs(a.joints) do
   assert(a.components[j.parent] and a.components[j.child],'orphaned joint')
  end
+ -- Mechanical audit: report questionable attachments without forcing
+ -- Earth-like muscle layouts onto unfamiliar support strategies.
+ local jointPairs={}
+ local jointsByRegion={}
+ for _,j in ipairs(a.joints) do
+  jointPairs[tostring(j.parent)..':'..tostring(j.child)]=true
+  jointsByRegion[j.partId]=(jointsByRegion[j.partId] or 0)+1
+ end
+ local muscleCoverage={}
+ local musclesByRegion={}
+ for _,m in ipairs(a.muscles) do
+  assert(a.components[m.origin] and a.components[m.insertion],
+    'muscle has missing origin or insertion')
+  local o,i=a.components[m.origin],a.components[m.insertion]
+  assert(o.type==support and i.type==support,
+    'muscle attaches to non-support tissue')
+  assert(finite(m.force) and m.force>=0,'invalid muscle force')
+  assert(finite(m.leverage) and m.leverage>=0,'invalid muscle leverage')
+  assert(m.muscleSide==-1 or m.muscleSide==1,'missing antagonist side')
+  local key=tostring(m.origin)..':'..tostring(m.insertion)
+  muscleCoverage[key]=muscleCoverage[key] or {}
+  muscleCoverage[key][m.muscleSide]=true
+  musclesByRegion[m.regionId]=(musclesByRegion[m.regionId] or 0)+1
+  -- A muscle spanning unrelated support branches is suspect, not
+  -- automatically impossible in a novel organism.
+  if m.origin~=m.insertion and not jointPairs[key] and
+     o.regionId~=i.regionId then
+   audit.warnings[#audit.warnings+1]=
+    'seed '..seed..' muscle '..m.id..' crosses no direct joint'
+  end
+ end
+ for key,sides in pairs(muscleCoverage) do
+  if not (sides[-1] and sides[1]) then
+   audit.warnings[#audit.warnings+1]=
+    'seed '..seed..' missing antagonist for '..key
+  end
+ end
+ for _,r in ipairs(a.regions) do
+  if r.parent and (jointsByRegion[r.id] or 0)>0 and
+     (musclesByRegion[r.id] or 0)==0 then
+   audit.warnings[#audit.warnings+1]=
+    'seed '..seed..' jointed region '..r.id..' has no muscles'
+  end
+ end
  for _,n in ipairs(a.nerves) do
   assert(a.components[n.from] and a.components[n.to],'orphaned nerve')
  end
@@ -70,6 +115,9 @@ for _,seed in ipairs(samples) do
 end
 print('Validated '..#samples..' seeds across '..#stages..' stages each')
 for strategy,count in pairs(strategies) do print(strategy..': '..count) end
+print('Mechanical audit warnings: '..#audit.warnings)
+for i=1,math.min(30,#audit.warnings) do print('WARN '..audit.warnings[i]) end
+if #audit.warnings>30 then print('... '..(#audit.warnings-30)..' additional warnings') end
 for _,f in ipairs(failures) do print('FAIL seed '..f.seed..': '..f.error) end
 assert(#failures==0,#failures..' anatomy validation failures')
 print('PASS: anatomy integrity checks')
