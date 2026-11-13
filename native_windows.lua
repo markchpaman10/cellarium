@@ -108,7 +108,7 @@ end
 function W.present(win,data,x,y,topmost,layer)
  local width,height=data:getDimensions()
  if win.w~=width or win.h~=height then
-  releaseBitmap(win);local dc=gdi.CreateCompatibleDC(nil);local info=ffi.new('BITMAPINFO');info.bmiHeader.biSize=ffi.sizeof('BITMAPINFOHEADER');info.bmiHeader.biWidth=width;info.bmiHeader.biHeight=-height;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32
+  W.orderDirty=true;releaseBitmap(win);local dc=gdi.CreateCompatibleDC(nil);local info=ffi.new('BITMAPINFO');info.bmiHeader.biSize=ffi.sizeof('BITMAPINFOHEADER');info.bmiHeader.biWidth=width;info.bmiHeader.biHeight=-height;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32
   local bits=ffi.new('void*[1]');local bmp=gdi.CreateDIBSection(dc,info,0,bits,nil,0);assert(bmp~=nil,'DIB allocation failed');win.dc=dc;win.bitmap=bmp;win.data=ffi.cast('uint8_t*',bits[0]);win.oldBitmap=gdi.SelectObject(dc,bmp);win.w=width;win.h=height
  end
  local src=ffi.cast('uint8_t*',data:getFFIPointer());local dst=win.data
@@ -117,14 +117,21 @@ function W.present(win,data,x,y,topmost,layer)
  local point=ffi.new('POINT[1]',{{math.floor(x),math.floor(y)}});local size=ffi.new('SIZE[1]',{{width,height}});local origin=ffi.new('POINT[1]');local blend=ffi.new('BLENDFUNCTION[1]',{{0,0,255,1}})
  assert(user.UpdateLayeredWindow(win.hwnd,nil,point,size,win.dc,origin,0,blend,2)~=0,'UpdateLayeredWindow failed: '..tonumber(kernel.GetLastError()))
  local mode=topmost and -1 or -2
- if win.topmost~=topmost or win.layer~=layer then user.SetWindowPos(win.hwnd,ffi.cast('HWND',layer<0 and 1 or mode),0,0,0,0,bit.bor(1,2,0x10));win.topmost=topmost;win.layer=layer end
- if not win.visible then user.ShowWindow(win.hwnd,4);win.visible=true end
+ if win.topmost~=topmost or win.layer~=layer then W.orderDirty=true;user.SetWindowPos(win.hwnd,ffi.cast('HWND',mode),0,0,0,0,bit.bor(1,2,0x10));win.topmost=topmost;win.layer=layer end
+ if not win.visible then W.orderDirty=true;user.ShowWindow(win.hwnd,4);win.visible=true end
+end
+function W.order(windows,topmost)
+ local parts={tostring(topmost)};for _,win in ipairs(windows) do parts[#parts+1]=tostring(win.hwnd) end;local signature=table.concat(parts,'/')
+ if signature==W.orderSignature and not W.orderDirty then return end
+ local previous=ffi.cast('HWND',topmost and -1 or -2)
+ for i=#windows,1,-1 do local win=windows[i];assert(user.SetWindowPos(win.hwnd,previous,0,0,0,0,bit.bor(1,2,0x10))~=0,'Desktop z-order update failed');previous=win.hwnd end
+ W.orderSignature=signature;W.orderDirty=false
 end
 function W.move(win,x,y) user.SetWindowPos(win.hwnd,nil,math.floor(x),math.floor(y),0,0,bit.bor(1,4,0x10)) end
 function W.pointer() return cursor(),bit.band(tonumber(user.GetAsyncKeyState(1)),0x8000)~=0 end
 function W.endPointer() W.pointerOwner=nil;if not W.testing then user.ReleaseCapture() end end
-function W.hide(win) if win.visible then user.ShowWindow(win.hwnd,0);win.visible=false end end
-function W.destroy(win) releaseBitmap(win);W.windows[key(win.hwnd)]=nil;user.DestroyWindow(win.hwnd) end
+function W.hide(win) if win.visible then W.orderDirty=true;user.ShowWindow(win.hwnd,0);win.visible=false end end
+function W.destroy(win) W.orderDirty=true;releaseBitmap(win);W.windows[key(win.hwnd)]=nil;user.DestroyWindow(win.hwnd) end
 function W.pump()
  local msg=ffi.new('MSG[1]');local count=0
  -- Filter to our HWNDs. Never consume SDL's messages.

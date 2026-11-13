@@ -1,5 +1,6 @@
 local G=require('genome');local Eco=require('adaptation');local F=require('growth');local Legacy=require('anatomy_legacy');local certificate=require('generator_certificate');local A={legacy=Legacy}
 function A.capabilities(a,g)
+ if a.anatomicalVersion==2 then return require('growth_capabilities').capabilities(a,g) end
  if a.anatomicalVersion==1 then return require('anatomical_physiology_v1').capabilities(a,g) end
  if a.anatomicalVersion then return require('anatomical_physiology').capabilities(a,g) end
  if a.version~=3 then return Eco.capabilities(a,g,Legacy.capabilities(a,g)) end
@@ -58,7 +59,7 @@ function A.procedural(g,conditions)
  g=G.upgrade(g);local a=F.generate(g,conditions);Eco.enrich(a,g,conditions);a.caps=A.capabilities(a,g);a.viable,a.failures=A.validate(a);return a
 end
 function A.blocks(g,conditions)
- g=G.upgrade(g);local a=require('reconstruction').generate(g,conditions);a.caps=A.capabilities(a,g);a.viable,a.failures=A.validate(a);a.limitations={'Experimental anatomy: inspect structural tradeoffs'};return a
+ g=G.upgrade(g);local a=require('reconstruction').generate(g,conditions);a.organismSystem='organism-growth-lab';a.sourceCommit=require('growth_lab_provenance').commit;a.caps=A.capabilities(a,g);a.viable,a.failures=A.validate(a);a.limitations={'Experimental anatomy: inspect structural tradeoffs'};return a
 end
 function A.generate(g,conditions)
  if not conditions or not conditions.generator or conditions.generator=='anatomical' then return A.blocks(g,conditions) end

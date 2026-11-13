@@ -68,8 +68,30 @@ function F.generate(g,conditions)
  local occupied={};local quality=math.max(.02,math.min(1.4,(conditions and conditions.nutrition or 1)*(conditions and conditions.oxygen or 1)*(1-math.abs((conditions and conditions.temperature or 37)-37)/40)))
  local function organ(kind,r,locus,serial)
   local radius=math.min(r.rx,r.ry,r.rz)*(.17+e[locus]*.07);local v=4/3*math.pi*(radius/32)^3
-  for attempt=0,25 do local t=(attempt+serial)*2.399;local f=attempt==0 and 0 or .45;local pt=localPoint(r,math.cos(t)*r.length*.23*f,math.sin(t)*r.width*.26,math.sin(t*.7)*r.thickness*.22);local fit=v<r.freeVolume
-   for _,o in ipairs(occupied) do if o.regionId==r.id and (pt.x-o.cx)^2+(pt.y-o.cy)^2+(pt.z-o.cz)^2<(radius+o.rx)^2 then fit=false end end
+  -- Deterministic cavity search: keep each organ inside its host's
+  -- ellipsoidal cavity and separate organs in full 3-D, not by a flat
+  -- screen-space overlap. No random draws or growth-system changes.
+  local clearance=radius*.92
+  local maxX=math.max(0,r.length*.43-clearance)
+  local maxY=math.max(0,r.width*.43-clearance)
+  local maxZ=math.max(0,r.thickness*.43-clearance)
+  for attempt=0,35 do
+   local t=(attempt+serial)*2.39996322972865
+   local ring=attempt==0 and 0 or math.sqrt(attempt/35)*.82
+   local axial=attempt==0 and 0 or math.sin(t*.73)*ring
+   local lateral=attempt==0 and 0 or math.cos(t)*ring
+   local vertical=attempt==0 and 0 or math.sin(t)*ring
+   local pt=localPoint(r,axial*maxX,lateral*maxY,vertical*maxZ)
+   local fit=v<r.freeVolume
+   for _,o in ipairs(occupied) do
+    if o.regionId==r.id then
+     local dx=pt.x-o.cx
+     local dy=pt.y-o.cy
+     local dz=pt.z-o.cz
+     local separation=radius+(o.rx or radius)
+     if dx*dx+dy*dy+dz*dz<separation*separation*.72 then fit=false;break end
+    end
+   end
    if fit then local scale=kind=='Lung' and 350 or kind=='Heart' and 300 or kind=='Stomach' and 320 or 120;local capacity=v*scale*(.4+e[locus]*.6)*quality
     local c=P.component(a,r,kind,r.structure,v,{cx=pt.x,cy=pt.y,cz=pt.z,x=pt.x,y=-pt.z,rx=radius,ry=radius,rz=radius,capacity=capacity,efficiency=.4+e[locus]*.55,wasteCapacity=kind=='Kidney' and capacity or 0,airExchange=kind=='Lung' and capacity*(.2+q[1]*1.8) or nil,anatomicalName=kind=='Heart' and a.supportStrategy=='hydrostatic axial framework' and 'peristaltic circulatory pump' or kind=='Brain' and a.headCount==0 and 'distributed central ganglion' or kind})
     a.organs[#a.organs+1]=c;occupied[#occupied+1]=c;return c

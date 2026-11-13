@@ -1,6 +1,7 @@
 local T={}
 local function avg(parts,key) local n=0;for _,p in ipairs(parts or {}) do n=n+(p[key] or 0)*p.condition end;return n/math.max(1,#(parts or {})) end
 function T.calculate(o)
+ if o.anatomy.anatomicalVersion==2 then local m=require('growth_capabilities').metrics(o.anatomy,{energy=(o.energy or 0)/100,hydration=(o.hydration or 0)/100,oxygen=o.oxygen or 1,fatigue=o.motion and o.motion.fatigue or 1-(o.stamina or 0)/100,tissue=(o.health or 0)/100});o.growthLabMetrics=m;local c=m.current;return {STR=c.Strength,DEF=c.Defense,DEX=c.Dexterity,INT=c.Intelligence,VIT=c.Vitality,END=c.Endurance} end
  local a,c=o.anatomy,o.caps;local growth=.35+.65*(o.maturity or 0);local energy=math.max(.05,(o.energy or 0)/100);local stamina=math.max(.05,(o.stamina or 0)/100);local oxygen=o.oxygen or 1
  if a.anatomicalVersion==2 then growth=1 end
  local muscle=avg(a.muscles,'efficiency');local neural=0;for _,p in ipairs(a.organs) do if p.type=='Brain' then neural=neural+p.capacity*p.efficiency*p.condition end end

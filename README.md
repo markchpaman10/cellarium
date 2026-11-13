@@ -1,29 +1,29 @@
-# Cellarium: Physical Cell Workshop
+# Cellarium: Desktop Laboratory + Organism Growth Lab
 
-Desktop laboratory development branch. The cell workshop now processes physical attached containers, with a terminal for results and no internal cell inventory.
+[Download Windows build](builds/Cellarium-Growth-Integrated-Windows.zip). Extract the ZIP and run **Cellarium-Growth-Integrated.exe**, keeping the DLLs beside it. Exit the older Cellarium build through its tray icon first. The previous workshop build remains available in `builds/`.
 
-[Download the complete Windows build](builds/Cellarium-Cell-Workshop-Windows.zip). Extract it and open **Cellarium-Cell-Workshop.exe** with the DLLs beside it. Exit any older Cellarium desktop build through its tray icon first.
+## Desktop depth
 
-## Use the new system
+Right-click **any desktop item** for **Bring to front**, **Raise one layer**, **Lower one layer**, or **Send to back**. Higher items receive input first. The workstation and its attached containers move through depth together, and both docked containers always appear above their workstation. Saved layouts retain depth. Laboratory hiding/restoration retains the group.
 
-1. A new experiment starts with no cells. Right-click the Cellarium tray/taskbar icon > **Buy supplies…**.
-2. Buy one ordinary or blank cell for **1 credit**, supplied in its own vial. Separately purchased containers arrive empty.
-3. Click the workstation to open its desktop controls. Drag a cell container onto **INPUT** and an empty container onto **OUTPUT**.
-4. Extract DNA into the genome archive, install archived DNA using one blank cell, or prepare one egg/sperm precursor using one stem cell. Results go to the attached output; messages appear on the terminal. Extraction retains its source and needs no physical output.
-5. Cultivate inside the containers and transfer with the dropper. Freeze a loaded dropper's contents through its context menu. Retrieve samples into containers through the tray/dropper frozen-storage menu.
+## Organisms
 
-Read the [complete workshop guide](docs/CELL_WORKSHOP_GUIDE.md) for docking, the Forge-to-workshop workflow, incubation, preservation and migration. The [delivery report](CELL-WORKSHOP-REPORT.md) records actual tests and limitations.
+The default generator, development, anatomical tissue renderers, early embryology, physiological metrics and named diagnostic animations now use [organism-growth-lab at 88c062b](https://github.com/markchpaman10/cellarium/tree/88c062bebf1ae6e54b714d8fab461b22ff547824). Its standalone main/conf were kept out of the desktop runtime. Exact upstream files are under [vendor/organism-growth-lab](vendor/organism-growth-lab); the source branch is unchanged.
 
-![Workshop with physical attached vials](docs/desktop/Cellarium-Workshop.png)
+Open **Settings > Anatomy Generator / developer tool**. Generate or enter a seed; inspect layers and side/top projections; use **Motion** to select available actions, pause/resume, or stop. Walking uses generated joints, supports, muscles, nerve connections, body mass and ground contacts. Limbless anatomy can undulate. Some viable organisms cannot move. Preview playback controls affect only this diagnostic view; living organisms still follow elapsed PC time. Seed **22250963** is a reproducible viable legged example.
 
-## Label your containers
+The 1,000-genome audit found **79 viable, 921 biological failures, zero technical errors**. Among viable organisms, 49 were immobile, 18 legged and 12 undulating. Across all generated bodies, four-appendage plans were 245/1,000. [Read the integration guide and limitations](docs/GROWTH_LAB_INTEGRATION.md), [actual anatomy audit](docs/RECONSTRUCTION_AUDIT_1000.md), and [movement audit](docs/GROWTH_LAB_MOVEMENT_AUDIT.md).
 
-Right-click a vial, flask, dish or plate > **Label container…**, or use its **Label…** button. Enter saves; Escape cancels; Clear label restores the default. Labels persist and appear on the desktop.
+## Cell workshop and containers
 
-## Compatibility and verification
+1. New experiments start with no cells. Right-click the Cellarium tray icon > **Buy supplies...**. An ordinary or blank cell costs **1 credit**, supplied in its own vial; separately purchased containers are empty.
+2. Click the workstation, then drag a cell container onto **INPUT** and an empty container onto **OUTPUT**.
+3. Extract DNA into the archive while retaining its source; install archived DNA using one blank cell; or prepare an egg/sperm precursor using one stem cell. Physical results go into the attached output, messages into the machine's terminal.
+4. Cultivate inside containers. Transfer with the dropper. Its context menu freezes contents into storage and retrieves frozen samples into containers.
+5. Right-click a container > **Label container...** or use **Label...**. Enter saves; Escape cancels. Labels follow persistent container IDs.
 
-Existing specimens are preserved and moved from loose stock into physical vials. Existing organism anatomy is retained. If an older save restores stock, use Settings > Start a new experiment to see the new cell-free starting state. Desktop persistence, PC-linked life timing, Fahrenheit display and right-click context menus remain.
+[Complete workshop guide](docs/CELL_WORKSHOP_GUIDE.md). Existing specimen identities, genomes, records, container contents and layouts are preserved; existing grown anatomical records remain compatible. Newly generated and incubated organisms use the imported generator. Legacy generator code remains available explicitly, not as an automatic replacement for biological failures. Desktop exit-save/launch-restore and PC-linked life timing remain. Classic UI requires an explicit Settings choice.
 
-Latest label revision: **28 workshop groups and 53 desktop regression groups passed**. Earlier workshop verification also includes 65 desktop/native and 30 reconstruction groups. The native checks include actual Windows-event docking and direct workshop operations. The old monolithic tests.lua baseline assertion documented in prior revisions is not included among these passes.
+## Verification
 
-Anatomical research and its historical development artifacts remain in the repository. The current cell-workshop instructions supersede older descriptions of loose-cell inventories and workshop cultivation controls.
+See [current delivery report](GROWTH-INTEGRATION-REPORT.md) and included test results. Earlier anatomy/workshop reports describe their historical revisions. This is an experimental artificial-life model: later growth still uses genetically planned adult targets, and movement uses constrained kinematics rather than a full rigid-body physics solver.

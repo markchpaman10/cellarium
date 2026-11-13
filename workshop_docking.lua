@@ -51,7 +51,7 @@ function D.layout(s,station,monitors)
  end end
 end
 function D.drop(s,object,cursor,monitors)
- for _,station in ipairs(s.desktop.objects) do if station.kind=='workstation' and M.isVisible(s.desktop,station) then
+ local ordered=require('desktop_depth').ordered(s);for i=#ordered,1,-1 do local station=ordered[i];if station.kind=='workstation' and M.isVisible(s.desktop,station) then
   local x,y=M.localPoint(station,M.monitorAt(monitors,station.x,station.y),cursor.x,cursor.y)
   for slot,r in pairs(D.slotRects(station)) do if x>=r.x and y>=r.y and x<r.x+r.w and y<r.y+r.h then
    local ok,why=D.attach(s,station.id,object.id,slot);if ok then require('desktop_controls').collapse(s,object);D.layout(s,station,monitors) end;return true,ok,why

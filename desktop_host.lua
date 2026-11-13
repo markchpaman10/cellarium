@@ -75,13 +75,13 @@ function Host.objectMenu(o)
   if T.vessel(s,o.entityId) then items[#items+1]={label=s.desktop.pipette.sample and 'Add held sample here' or 'Take sample from this container',action=function() if s.desktop.pipette.sample then Host.beginDispense(o) else local _,why=T.collect(s,o.entityId);Host.message(why) end end} end
   items[#items+1]={label=o.locked and 'Unlock position' or 'Lock position',checked=o.locked,action=function() o.locked=not o.locked end}
   items[#items+1]={label='Put away this container',action=function() o.stored=true end}
-  local action=Native.menu(items);if action then if not require('realtime').sync(s,require('biology').update) then Host.message('Synchronizing elapsed PC time. Please wait.') else action() end end;return
+  for _,entry in ipairs(require('desktop_depth').menu(s,o)) do items[#items+1]=entry end
+ local action=Native.menu(items);if action then if not require('realtime').sync(s,require('biology').update) then Host.message('Synchronizing elapsed PC time. Please wait.') else action() end end;return
  end
  local s=Host.state();local v=T.vessel(s,o.entityId);local items={{label='Inspect / Open',action=function() if o.kind=='forge' or o.kind=='workstation' or v then require('desktop_controls').expand(s,o);Host.render(true) else Host.open('inspect',o.id) end end},
   {label=o.locked and 'Unlock position' or 'Lock position',checked=o.locked,action=function() o.locked=not o.locked end},
   {label='Scale +',action=function() o.scale=math.min(1.8,o.scale+.1);M.restore(o,Host.monitors) end},{label='Scale -',action=function() o.scale=math.max(.5,o.scale-.1) end},
-  {label='Bring forward',action=function() local n=0;for _,other in ipairs(s.desktop.objects) do n=math.max(n,other.layer) end;o.layer=n+1 end},
-  {label='Send backward',action=function() o.layer=-1 end},{label='Return to storage',action=function() o.stored=true end}}
+  {label='Return to storage',action=function() o.stored=true end}}
  if v then
   table.insert(items,1,{label='Use dropper: '..(s.desktop.pipette.sample and 'dispense here' or 'collect 1 cell eq.'),action=function() if s.desktop.pipette.sample then Host.beginDispense(o) else local _,why=T.collect(s,v.id);Host.message(why) end end})
   items[#items+1]={label=v.closed and 'Open container' or 'Close container',action=function() v.closed=not v.closed end}
@@ -90,11 +90,12 @@ function Host.objectMenu(o)
   items[#items+1]={label='Collect sample beneath tip',action=function() local target=Host.targetAtTip(o);if target then local _,why=T.collect(s,target.entityId);Host.message(why) else Host.message('Position the tip inside an open cell container first.') end end}
   items[#items+1]={label='Sterilize dropper',action=function() local _,why=T.clean(s);Host.message(why) end};items[#items+1]={label='Discard loaded sample...',action=function() if Native.confirm('Dispose of the loaded biological sample?') then s.desktop.pipette.sample=nil;Host.message('Sample discarded. Sterilize before reuse.') end end}
  end
+ for _,entry in ipairs(require('desktop_depth').menu(s,o)) do items[#items+1]=entry end
  local action=Native.menu(items);if action then if not require('realtime').sync(s,require('biology').update) then Host.message('Synchronizing elapsed PC time. Please wait.') else action() end end
 end
 function Host.targetAtTip(o)
  local s=Host.state();local mon=M.monitorAt(Host.monitors,o.x,o.y);local factor=o.scale*mon.dpi/96;local tipx,tipy=o.x+44*factor,o.y+214*factor;local target
- for _,candidate in ipairs(s.desktop.objects) do if candidate.id~=o.id and T.vessel(s,candidate.entityId) and M.isVisible(s.desktop,candidate) then local m=M.monitorAt(Host.monitors,candidate.x,candidate.y);local lx,ly=M.localPoint(candidate,m,tipx,tipy);local inside=lx>=0 and ly>=0 and lx<candidate.w and ly<candidate.h;if candidate.kind=='dish' and not candidate.config.expanded then inside=(lx-118)^2+(ly-112)^2<91^2 end;if inside then target=candidate end end end
+ for _,candidate in ipairs(require('desktop_depth').ordered(s)) do if candidate.id~=o.id and T.vessel(s,candidate.entityId) and M.isVisible(s.desktop,candidate) then local m=M.monitorAt(Host.monitors,candidate.x,candidate.y);local lx,ly=M.localPoint(candidate,m,tipx,tipy);local inside=lx>=0 and ly>=0 and lx<candidate.w and ly<candidate.h;if candidate.kind=='dish' and not candidate.config.expanded then inside=(lx-118)^2+(ly-112)^2<91^2 end;if inside then target=candidate end end end
  return target
 end
 function Host.click(o,x,y)
@@ -133,14 +134,15 @@ end
 function Host.render(force)
  local s=Host.state();if not s or not s.desktop then return end
  for _,station in ipairs(s.desktop.objects) do if station.kind=='workstation' then require('workshop_docking').layout(s,station,Host.monitors) end end
- table.sort(s.desktop.objects,function(a,b) return a.layer<b.layer end)
- for _,o in ipairs(s.desktop.objects) do local win=Host.windows[o.id]
+ local stack={}
+ for _,o in ipairs(require('desktop_depth').ordered(s)) do local win=Host.windows[o.id]
   if win then if M.isVisible(s.desktop,o) then
    local mon=M.monitorAt(Host.monitors,o.x,o.y);local factor=o.scale*mon.dpi/96
    local canvas,data=Art.render(s,o,factor,Host.canvases[o.id]);Host.canvases[o.id]=canvas
-   Native.present(win,data,o.x,o.y,s.desktop.settings.alwaysOnTop,o.layer)
+   Native.present(win,data,o.x,o.y,s.desktop.settings.alwaysOnTop,o.layer);stack[#stack+1]=win
   else Native.hide(win) end end
  end
+ Native.order(stack,s.desktop.settings.alwaysOnTop)
 end
 function Host.update(dt)
  if Host.context then require('physical_cells').ensure(Host.state()) end

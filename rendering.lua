@@ -20,8 +20,8 @@ local function build(a,frame,method)
  end
  local img=love.graphics.newImage(data);img:setFilter('nearest','nearest');return {image=img,x=map.x,y=map.y,pose=pose}
 end
-function R.draw(o,x,y,scale,t,layer,selected)
- local a=o.anatomy;if a.anatomicalVersion==2 then return require('reconstruction_rendering').draw(o,x,y,scale,t,layer,selected) end;if a.anatomicalVersion then return require('anatomical_rendering').draw(o,x,y,scale,t,layer,selected) end;if a.version~=3 then return Legacy.draw(o,x,y,scale,t,layer,selected) end
+function R.draw(o,x,y,scale,t,layer,selected,top)
+ local a=o.anatomy;if a.anatomicalVersion==2 and a.growthModel and a.growthModel.progress<.23 then local state=require('embryology').evaluate(a.seed or 1,a.growthModel.progress);return require('embryology').draw(state,x,y,math.max(.4,scale*2)) end;if a.anatomicalVersion==2 then return require('reconstruction_rendering').draw(o,x,y,scale,t,layer,selected,top) end;if a.anatomicalVersion then return require('anatomical_rendering').draw(o,x,y,scale,t,layer,selected) end;if a.version~=3 then return Legacy.draw(o,x,y,scale,t,layer,selected) end
  if not next(Legacy.tiles) then Legacy.init() end
  layer=layer or 'External';local animate=layer=='External' and o.alive and o.behavior~='Resting' and a.caps.locomotion~='stationary';local method=animate and (o.caps and o.caps.locomotion or a.caps.locomotion) or nil
  local frame=animate and math.floor((t or 0)*3+(o.phase or 0))%4+1 or 1;local key=(method or 'static')..frame;local cache=R.cache[a];if not cache then cache={};R.cache[a]=cache end
@@ -63,6 +63,7 @@ function R.draw(o,x,y,scale,t,layer,selected)
  love.graphics.pop();love.graphics.setColor(1,1,1);love.graphics.setLineWidth(1)
 end
 function R.drawTopDown(o,x,y,scale,t)
+ if o.anatomy.anatomicalVersion==2 and o.anatomy.growthModel and o.anatomy.growthModel.progress<.23 then return R.draw(o,x,y,scale,t,'External') end
  if o.anatomy.anatomicalVersion==2 then return require('reconstruction_rendering').draw(o,x,y,scale,t,'External',nil,true) end
  if o.anatomy.anatomicalVersion then return require('anatomical_rendering').draw(o,x,y,scale,t,'External',nil,true) end
  love.graphics.push();love.graphics.translate(x,y);love.graphics.rotate(o.angle or 0)

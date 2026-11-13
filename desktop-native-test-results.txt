@@ -1,0 +1,68 @@
+PASS Desktop object identities and common properties
+PASS Petri drag across negative-coordinate and mixed-DPI monitors
+PASS Locked object rejects dragging
+PASS Monitor disconnection uses visible fallback without losing preferred position
+PASS Resolution and DPI changes preserve logical offsets and clamp on-screen
+PASS Layout restoration preserves dimensions, locks and identities
+PASS Hiding laboratory preserves equipment, samples and independent habitat visibility
+PASS Dropper withdraws counted sample, then adds it to the same persistent destination
+PASS No unlimited cells from repeated collection or arbitrary loose-cell quantity
+PASS Empty, closed and frozen sources reject sample collection
+PASS Incompatible destination rejects transfer without losing loaded sample
+PASS Full, closed, frozen and unsuitable targets reject without mutation
+PASS Cross-contamination follows reused dropper, sterilization removes residue
+PASS Cultures progress while laboratory is hidden; frozen cultures suspend
+PASS Vessel temperature and contamination change biological growth
+PASS Genome Undo restores both alleles and provenance
+PASS Forge dosage and regulation have real expression effects, support undo
+PASS Forge splice, archive and exact installation retain canonical genome
+PASS Genome editor callbacks still preview, archive and incubate viable edited organism
+PASS Habitat movement uses same organism identity, genome, anatomy and memories
+PASS Aquariums keep distinct water chemistry and physiological exposure
+PASS Partitioned worlds do not duplicate age increments or organisms
+PASS World queues retain embryos through development without ID duplication
+PASS Research records refer to the same organisms used by habitat simulation
+PASS Versioned envelope preserves layout, containers, loaded samples and editor draft
+PASS Version-4 manual saves migrate without discarding cells, embryos or old cultures
+PASS Invalid and future saves are rejected
+PASS Procedural equipment has transparent exteriors and visible culture interiors
+PASS New UI defaults to desktop mode and opens every equipment record without classic rendering
+PASS New Cultures UI uses counted dropper samples and has no loose-cell inventory actions
+PASS Forge previews and archives while physical workshop installation and container incubation conserve cells
+PASS Classic interface can only be enabled through its explicit Settings action
+PASS Genome dosage and regulation survive two-parent inheritance
+PASS Each container panel is fixed to its own ID, with no inventory or vial selectors
+PASS Changing one vial through its buttons leaves another vial unchanged
+PASS ID-bound vial operations survive vessel list reordering
+PASS Deleted container actions fail safely instead of falling through to another vial
+PASS DNA vials show one fixed record and send that exact DNA to the Forge
+PASS Container isolation, labels and contents persist through save restoration
+PASS Old container browser settings migrate without changing biological records
+PASS One PC second counts once, independent of frame count or clock observation frequency
+PASS Hidden laboratory still advances by actual PC time
+PASS Sleep and stalled frames are not clamped to a tenth of a second
+PASS Backward PC clock changes never reverse life or duplicate elapsed seconds
+PASS Offline elapsed time is queued in full instead of using the old five-minute cap
+PASS Pending elapsed time survives saving during catch-up without being counted twice
+PASS Old save migration preserves progress and starts PC tracking on upgrade
+PASS Fed Petri cells divide automatically with a real countdown and no start or harvest loop
+PASS Food exhaustion stops growth and adding food resumes automatically
+PASS Continuous culture does not hit an invisible old batch replication counter
+PASS Capacity and freezing stop growth without creating or losing cells
+PASS Embryos, gametes and organism ages all follow real elapsed time
+PASS Countdown formatting uses actual elapsed durations rather than simulated-hour labels
+PASS Native tray and independent layered windows initialize
+INFO Native move targeted actual second monitor.
+PASS Native Petri dish moves using signed Windows screen coordinates
+PASS Explicit context-menu sample action transfers real quantities without taking over right click
+PASS Native hide and restore keeps all IDs, handles, locks, layouts and sample quantities
+PASS Native message pump receives input for our own objects only
+PASS Transparent Petri corners pass native hit testing while culture pixels receive input
+PASS Petri, vial, dropper, workstation and Forge move through real native down/move/up events
+PASS Native container drag attaches to the visible workshop dock without changing its sample
+PASS Right-click menus remain available on every item after a saved dropper selection
+PASS Workstation, Forge and culture controls operate in their own desktop windows
+PASS Real HWND depth keeps both workshop vials visible after resize, hide and reorder
+PASS Atomic desktop save and restart decode preserve real state
+PASS Native cleanup removes every equipment HWND and tray icon
+67 result lines; 0 failures.

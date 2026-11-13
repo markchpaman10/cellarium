@@ -1,0 +1,14 @@
+PASS 1000 unfiltered genomes use the imported branch and include naturally immobile organisms
+PASS Zero muscle or disconnected motor nerves cannot receive an artificial minimum speed
+PASS Mass, limited joints and asymmetric contact change locomotion
+PASS Walking pose respects generated joint limits and preserves canonical anatomy
+PASS Limbless motion uses flexible axial support instead of leg animation
+PASS Imported physiology consumes energy and oxygen and produces recoverable fatigue
+PASS Live game displacement and gait phase stop at exhaustion
+PASS Live gait phase follows actual displacement and preserves organism identity
+PASS Growth branch early embryology, tissue shapes and animations render through game interfaces
+PASS Imported development releases viable tissue only after its organs are functional
+PASS Anatomy viewer exposes imported actions without altering live laboratory time
+PASS Depth controls apply to all item types and keep docked vessels above the station
+PASS Overlapping dropper targets follow the actual desktop depth order
+13 groups; 0 failures.

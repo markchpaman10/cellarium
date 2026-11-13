@@ -1,0 +1,3 @@
+local E={names={'Air respiration','Aquatic respiration','Exchange efficiency','Moisture retention','Water resistance','Buoyancy','Body density','Weight bearing','Swimming surfaces','Lift surfaces','Aerodynamic control','Thermal tolerance','Salinity tolerance','Keratinization','Mineralization','Cover flexibility','Plate segmentation','Cover thickness','Repair capacity','Projection growth','Projection sharpness','Feeding specialization','Regional expression','Membrane economy'}}
+function E.expression(g) local e={};for i,name in ipairs(E.names) do local l=g.chromosomes[i].loci[3];local v=l and require('gene_expression').value(g,i,3) or .5;e[i]=v;e[name]=v end;return e end
+return E

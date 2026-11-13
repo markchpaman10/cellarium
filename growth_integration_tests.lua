@@ -1,0 +1,53 @@
+local G=require('genome');local A=require('anatomy');local S=require('persistence');local B=require('biology');local L=require('locomotion');local R=require('rendering');local Test={}
+function Test.run()
+ local root=love.filesystem.isFused() and love.filesystem.getSourceBaseDirectory() or love.filesystem.getSource();local lines,failed,n={},0,0
+ local function write(path,text) local f=assert(io.open(root..'/'..path,'wb'));f:write(text);f:close() end
+ local function test(name,fn) n=n+1;local ok,why=xpcall(fn,debug.traceback);lines[#lines+1]=(ok and 'PASS ' or 'FAIL ')..name;if not ok then failed=failed+1;lines[#lines+1]=why end end
+ local report={count=1000,viable=0,immobile=0,modes={},viableModes={},viableImmobile=0,errors={},samples={}};local moving,limbless
+ for i=1,1000 do local seed=(20261112+i*104729)%2147483647;local ok,a=pcall(A.generate,G.new(G.rng(seed)),{seed=seed,nutrition=1,oxygen=1,temperature=37});if not ok then report.errors[#report.errors+1]={seed=seed,error=tostring(a)} else
+  local p=a.caps.locomotionProfile;report.viable=report.viable+(a.viable and 1 or 0);report.immobile=report.immobile+(not p.canMove and 1 or 0);report.modes[p.mode]=(report.modes[p.mode] or 0)+1;if a.viable then report.viableModes[p.mode]=(report.viableModes[p.mode] or 0)+1;if not p.canMove then report.viableImmobile=report.viableImmobile+1 end end
+  report.samples[#report.samples+1]={seed=seed,viable=a.viable,mode=p.mode,speed=p.speed,balance=p.balance,appendages=a.appendageCount,heads=a.headCount,failures=a.failures}
+  if a.viable and p.canMove and not moving then moving={a=a,g=G.new(G.rng(seed)),seed=seed} end
+  if p.mode=='undulation' and not limbless then limbless={a=a,g=G.new(G.rng(seed)),seed=seed} end
+ end end
+ test('1000 unfiltered genomes use the imported branch and include naturally immobile organisms',function() assert(#report.errors==0,S.encode(report.errors));assert(report.immobile>0 and report.immobile<1000 and report.viableImmobile>0 and moving and limbless);assert(moving.a.sourceCommit==require('growth_lab_provenance').commit) end)
+ test('Zero muscle or disconnected motor nerves cannot receive an artificial minimum speed',function() local a=G.copy(moving.a);for _,c in ipairs(a.components) do if c.type=='Muscle' then c.condition=0 end end;local c=A.capabilities(a,moving.g);assert(c.speed==0 and c.landSpeed==0);a=G.copy(moving.a);a.nerves={};assert(A.capabilities(a,moving.g).landSpeed==0) end)
+ test('Mass, limited joints and asymmetric contact change locomotion',function() local a=G.copy(moving.a);local before=a.caps.landSpeed;for _,c in ipairs(a.components) do c.mass=c.mass*8 end;assert(A.capabilities(a,moving.g).landSpeed<before);a=G.copy(moving.a);for _,part in ipairs(a.components) do part.cx=part.cx+99999 end;assert(A.capabilities(a,moving.g).locomotionProfile.balance==0);a=G.copy(moving.a);for _,j in ipairs(a.joints) do j.condition=0 end;assert(A.capabilities(a,moving.g).landSpeed==0) end)
+ test('Walking pose respects generated joint limits and preserves canonical anatomy',function() local a=moving.a;local before=S.encode(a.regions);for i=0,12 do local p=L.pose(a,i/12,nil,a.caps.locomotionProfile);for _,j in ipairs(p.joints) do assert(j.playbackAngle>=j.minimum and j.playbackAngle<=j.maximum) end;assert(p.motionContacts and #p.motionContacts>0);for _,contact in ipairs(p.motionContacts) do local tip=p.regions[contact.partId];local old=a.regions[contact.partId];local angle=tip.orientation-old.orientation;assert(math.abs(contact.actualX-(tip.cx-math.sin(angle)*old.thickness*.5))<1e-6);assert(math.abs(contact.actualZ-(tip.cz-math.cos(angle)*old.thickness*.5))<1e-6) end end;assert(S.encode(a.regions)==before) end)
+ test('Limbless motion uses flexible axial support instead of leg animation',function() assert(#limbless.a.caps.locomotionProfile.legs==0);local p=L.pose(limbless.a,.2,nil,limbless.a.caps.locomotionProfile);assert(p.motionMode=='undulation') end)
+ test('Imported physiology consumes energy and oxygen and produces recoverable fatigue',function() local c={energy=1,hydration=1,oxygen=1,fatigue=0,tissue=1};require('physiology').advance(c,10,1);assert(c.energy<1 and c.oxygen<1 and c.fatigue>0);local before=c.fatigue;require('physiology').advance(c,10,0);assert(c.fatigue<before) end)
+ test('Live game displacement and gait phase stop at exhaustion',function() local s=B.new(1);s.clock={integrationStepSeconds=.05};local o=assert(B.spawn(s,moving.g,'moving fixture',0,.5,.5,G.copy(moving.a)));o.energy=0;o.oxygen=0;local x,y=o.x,o.y;B.update(s,.01);assert(o.x==x and o.y==y);assert(o.motion and not o.motion.active and o.motion.phase==0) end)
+ test('Live gait phase follows actual displacement and preserves organism identity',function()
+  local s=B.new(1);s.clock={integrationStepSeconds=.05};for _,cell in ipairs(s.habitat.cells) do cell.kind='land';cell.obstacle=false;cell.elevation=0;cell.oxygen=1 end
+  local o=assert(B.spawn(s,moving.g,'movement test',0,.5,.5,G.copy(moving.a)));o.x=.5;o.y=.5;local x,y=o.x,o.y;local id,hash=o.id,G.hash(o.genome);B.update(s,.01)
+  local distance=math.sqrt((o.x-x)^2+(o.y-y)^2)*L.worldInches;assert(distance>0 and o.motion.phase>0 and o.motion.distance>=distance-1e-8);assert(o.id==id and G.hash(o.genome)==hash);assert(o.energy<90 and o.motion.fatigue>0)
+ end)
+ test('Growth branch early embryology, tissue shapes and animations render through game interfaces',function() local a=moving.a;local copy=G.copy(a);local canvas=love.graphics.newCanvas(1200,900);love.graphics.push('all');love.graphics.setCanvas(canvas);love.graphics.clear(.04,.07,.09);love.graphics.setFont(love.graphics.newFont(13))
+  for i,t in ipairs({0,.1,.22,.4,.65,1}) do require('anatomical_development').setProgress(copy,t);copy.caps=A.capabilities(copy,moving.g);local x,y=200+((i-1)%3)*400,150+math.floor((i-1)/3)*430;local scale=R.fitScale(a,350,260,2);R.draw({anatomy=copy,alive=true,behavior='Resting'},x,y,scale,0,'External');love.graphics.setColor(.8,.9,.86);love.graphics.print(string.format('%.0f%% / seed %d',t*100,moving.seed),x-120,y+150) end
+  love.graphics.setCanvas();write('docs/GROWTH_LAB_INTEGRATION.png',canvas:newImageData():encode('png'):getString());love.graphics.pop()
+  for _,layer in ipairs(R.layers) do R.draw({anatomy=a,alive=true,behavior='Resting'},0,0,1,0,layer) end
+  for _,animation in ipairs(require('motion').names) do local pose=require('motion').pose(a,animation,.2,{energy=1,oxygen=1,fatigue=0});R.draw({anatomy=pose,alive=true,behavior='Resting'},0,0,1,0,'Skeleton') end
+ end)
+ test('Imported development releases viable tissue only after its organs are functional',function()
+  local e=require('development').new(1,moving.g,'test',0,{nutrition=1,temperature=37,oxygen=1});local root=e.anatomy.regions[1];local result
+  for i=1,2000 do result=require('development').update(e,.1);if result~=nil then break end end
+  assert(result==true,table.concat(e.anatomy.failures,'; '));assert(e.anatomy.regions[1]==root and e.anatomy.growth<1 and e.anatomy.growth>.64 and e.anatomy.embryology.cellCount>1)
+ end)
+ test('Anatomy viewer exposes imported actions without altering live laboratory time',function()
+  local U=require('anatomy_dev_ui');U.generate(moving.seed);U.showMotion=true;local buttons={};local canvas=love.graphics.newCanvas(1440,900);love.graphics.push('all');love.graphics.setCanvas(canvas)
+  local function draw() buttons={};U.draw(B.new(1),{text=function(t,x,y,size) love.graphics.setFont(love.graphics.newFont(size or 12));love.graphics.setColor(.8,.9,.88);love.graphics.print(t,x,y) end,card=function(x,y,w,h) love.graphics.setColor(.04,.08,.1);love.graphics.rectangle('fill',x,y,w,h) end,button=function(label,x,y,w,h,fn,active,disabled) buttons[label]={fn=fn,disabled=disabled};love.graphics.setColor(disabled and .2 or .3,.4,.4);love.graphics.rectangle('line',x,y,w,h);love.graphics.print(label,x+4,y+7) end,register=function() end}) end
+  draw();assert(buttons.Walking and not buttons.Walking.disabled);buttons.Walking.fn();U.update(.3);draw();assert(U.animationTime>.29 and U.animation=='Walking');buttons.Pause.fn();local t=U.animationTime;U.update(1);assert(U.animationTime==t);buttons.Stop.fn();draw();assert(not U.animation);love.graphics.setCanvas();write('docs/GROWTH_LAB_VIEWER.png',canvas:newImageData():encode('png'):getString());love.graphics.pop()
+ end)
+ test('Depth controls apply to all item types and keep docked vessels above the station',function() local M=require('desktop_model');local Z=require('desktop_depth');local s=B.new(1);M.ensure(s);local station=M.add(s,'workstation','w');local vial=M.add(s,'vial',1);local dish=M.add(s,'dish',2);vial.config.workshop=station.id;vial.config.dockSlot='input';vial.layer=-20
+  local function check() local order=Z.ordered(s);local index={};for i,o in ipairs(order) do index[o.id]=i end;assert(index[vial.id]>index[station.id]) end
+  for _,id in ipairs({station.id,vial.id,dish.id}) do for _,mode in ipairs({'front','back','raise','lower'}) do assert(Z.move(s,id,mode));check() end end
+  local saved=assert(S.decode('return '..S.encode(s),B));assert(S.encode(Z.ordered(saved))==S.encode(Z.ordered(s)))
+ end)
+ test('Overlapping dropper targets follow the actual desktop depth order',function()
+  local M=require('desktop_model');local Z=require('desktop_depth');local Host=require('desktop_host');local V=require('vessels');local s=B.new(1);V.ensure(s);M.ensure(s);local dropper=M.add(s,'dropper','dropper');local a=M.add(s,'vial',s.vessels[1].id);local b=M.add(s,'vial',s.vessels[2].id)
+  dropper.x,dropper.y=100,0;a.x,a.y=100,100;b.x,b.y=100,100;local old=Host.context;local monitors=Host.monitors;Host.monitors={{id='test',x=0,y=0,w=1920,h=1080,dpi=96}};Host.context={getState=function() return s end};assert(Host.targetAtTip(dropper)==b);Z.move(s,a.id,'front');assert(Host.targetAtTip(dropper)==a);Host.context=old;Host.monitors=monitors
+ end)
+ report.movingFixture=moving and moving.seed;report.limblessFixture=limbless and limbless.seed;write('growth-lab-movement-audit.lua','return '..S.encode(report));write('docs/GROWTH_LAB_MOVEMENT_AUDIT.md','# Unfiltered movement audit\n\n1,000 genomes; seed = (20261112 + i * 104729) mod 2147483647, i=1..1000. No retries.\n\n'..S.encode({viable=report.viable,immobile=report.immobile,viableImmobile=report.viableImmobile,viableModes=report.viableModes,modes=report.modes,technicalErrors=#report.errors,movingFixture=report.movingFixture,limblessFixture=report.limblessFixture})..'\n')
+ lines[#lines+1]=string.format('%d groups; %d failures.',n,failed);local result=table.concat(lines,'\n');write('growth-integration-test-results.txt',result);assert(failed==0,result);return result
+end
+return Test
