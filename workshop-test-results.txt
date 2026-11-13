@@ -23,5 +23,7 @@ PASS Existing gamete-bank records gain physical vials without changing haploid a
 PASS Physical fertilization consumes the actual egg/sperm records and removes emptied specimen vessels
 PASS Installed cell begins existing incubation from its own container and is consumed once
 PASS Docked group movement and negative-coordinate monitor layout preserve fixed attachment identities
+PASS Container labels target persistent IDs, survive save/load and cannot change genomes or counts
+PASS Label editor supports spaces, Unicode backspace, cancel and immediate save by container ID
 PASS Direct workshop UI and taskbar purchase/frozen menus expose only the agreed functions
-26 groups executed; 0 failures.
+28 groups executed; 0 failures.

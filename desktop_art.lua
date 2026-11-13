@@ -14,7 +14,7 @@ local function glass(x,y,w,h,r)
 end
 local function tag(o,title,subtitle,x,y,w)
  color(.025,.055,.065,.94);rect('fill',x,y,w,35,4);color(.48,.82,.75);rect('fill',x,y,3,35,1)
- label(title,x+9,y+4,11);label(subtitle or o.id,x+9,y+19,9,{.5,.68,.70,1})
+ A.fonts[11]=A.fonts[11] or love.graphics.newFont(11);label(require('container_labels').fit(title,A.fonts[11],w-23),x+9,y+4,11);label(subtitle or o.id,x+9,y+19,9,{.5,.68,.70,1})
  if o.locked then label('L',x+w-12,y+4,10,{1,.72,.35,1}) end
 end
 local function dish(s,o)
@@ -46,7 +46,7 @@ local function tube(s,o)
  for i=1,5 do color(.9,.96,1,.6);love.graphics.line(55,61+i*14,64,61+i*14) end
  color(.87,.89,.84,.92);rect('fill',24,78,46,39,2);label(dna and 'DNA' or 'CELLS',29,81,10,{.16,.22,.24,1});label('#'..o.entityId,29,96,11,{.15,.25,.25,1})
  if v and v.frozen then label('FROZEN',23,145,9,{.7,.92,1,1}) end
- tag(o,(dna and 'ARCHIVE' or (v and V.count(v)..' eq.' or 'EMPTY')),dna and 'genome' or 'suspension',9,157,78)
+ tag(o,(dna and (dna.label or 'ARCHIVE') or (v and (v.label or V.count(v)..' eq.') or 'EMPTY')),dna and 'genome' or 'suspension',9,157,78)
 end
 local function flask(s,o)
  local v=T.vessel(s,o.entityId);local pts={59,33,91,33,94,76,137,177,132,197,18,197,13,177,56,76}
@@ -54,12 +54,12 @@ local function flask(s,o)
  local pop=v and V.count(v) or 0;color(.27,.65,.46,.6);love.graphics.polygon('fill',27,153,121,153,135,178,129,192,21,192,17,178)
  for i=1,pop do color(.8,.91,.57,.35);love.graphics.circle('fill',31+i*19%88,163+i*13%23,2) end
  steel(52,18,45,24,5);color(1,1,1,.5);love.graphics.line(54,82,25,176)
- tag(o,'CULTURE '..o.entityId,pop..' / 32 cell eq.',14,121,122)
+ tag(o,v and v.label or 'CULTURE '..o.entityId,pop..' / 32 cell eq.',14,121,122)
 end
 local function plate(s,o)
  local v=T.vessel(s,o.entityId);glass(12,17,216,126,13)
  for row=0,1 do for column=0,3 do local x,y=43+column*51,49+row*51;color(.22,.5,.44,.3);love.graphics.circle('fill',x,y,21);color(.8,.92,.9,.5);love.graphics.circle('line',x,y,21) end end
- tag(o,'CULTURE PLATE '..o.entityId,(v and V.count(v) or 0)..' cell eq. / shared culture',24,110,192)
+ tag(o,v and v.label or 'CULTURE PLATE '..o.entityId,(v and V.count(v) or 0)..' cell eq. / shared culture',24,110,192)
 end
 local function dropper(s,o)
  local p=s.desktop.pipette;color(.01,.02,.025,.25);love.graphics.ellipse('fill',47,218,14,5)

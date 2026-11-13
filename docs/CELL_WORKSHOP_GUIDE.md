@@ -24,6 +24,10 @@ If this build restores an existing experiment, your previous specimens are prese
 
 The docks reference those same physical containers. The workshop holds no cells of its own and has no global container or cell selector. Moving the workshop moves its docked containers together. Dragging a docked container away, or pressing its Detach button, releases the attachment without changing its contents. Each container can occupy only one slot on one workshop.
 
+## Label individual containers
+
+Right-click any vial, flask, Petri dish, culture plate, cryovial or DNA vial and choose **Label container…**. You can also click **Label…** in its expanded controls. Type a name (up to 40 characters) and press Enter or Save label. Escape/Cancel retains the old label; Clear label restores its default display. Ctrl+A replaces the whole name. Labels appear on physical desktop containers and workshop docks, and persist with the experiment. Narrow tags shorten long names with an ellipsis; open the container to see/edit the full label. DNA vial labels do not rename or modify the archived genome.
+
 ## The processing controls
 
 | Operation | Input | Result | Cost in cells |
@@ -74,3 +78,5 @@ Source commands:
 ```
 
 Run `--desktop-native-test` in an interactive Windows session for tray/HWND tests. They create and clean up their own test windows. Results are included in workshop-test-results.txt, desktop-test-results.txt and reconstruction-test-results.txt.
+
+Label revision verification: 28 workshop groups and 53 headless desktop groups passed. Label text entry and persistence are checked through actual UI callbacks; native physical keyboard entry was not separately manually certified. Earlier native docking results describe the preceding workshop revision.

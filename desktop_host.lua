@@ -71,7 +71,7 @@ end
 function Host.objectMenu(o)
  local Controls=require('desktop_controls')
  if Controls.isContainer(o) then
-  local s=Host.state();local items={{label='Show contents',action=function() Controls.expand(s,o);Host.render(true) end}}
+  local s=Host.state();local items={{label='Show contents',action=function() Controls.expand(s,o);Host.render(true) end},{label='Label container...',action=function() Host.open('label',o.id) end}}
   if T.vessel(s,o.entityId) then items[#items+1]={label=s.desktop.pipette.sample and 'Add held sample here' or 'Take sample from this container',action=function() if s.desktop.pipette.sample then Host.beginDispense(o) else local _,why=T.collect(s,o.entityId);Host.message(why) end end} end
   items[#items+1]={label=o.locked and 'Unlock position' or 'Lock position',checked=o.locked,action=function() o.locked=not o.locked end}
   items[#items+1]={label='Put away this container',action=function() o.stored=true end}

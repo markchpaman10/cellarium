@@ -16,10 +16,14 @@ Read the [complete workshop guide](docs/CELL_WORKSHOP_GUIDE.md) for docking, the
 
 ![Workshop with physical attached vials](docs/desktop/Cellarium-Workshop.png)
 
+## Label your containers
+
+Right-click a vial, flask, dish or plate > **Label container…**, or use its **Label…** button. Enter saves; Escape cancels; Clear label restores the default. Labels persist and appear on the desktop.
+
 ## Compatibility and verification
 
 Existing specimens are preserved and moved from loose stock into physical vials. Existing organism anatomy is retained. If an older save restores stock, use Settings > Start a new experiment to see the new cell-free starting state. Desktop persistence, PC-linked life timing, Fahrenheit display and right-click context menus remain.
 
-Executed: **26 workshop groups, 65 desktop/native groups, and 30 reconstruction regression groups passed**. The native checks include actual Windows-event docking and direct workshop operations. The old monolithic tests.lua baseline assertion documented in prior revisions is not included among these passes.
+Latest label revision: **28 workshop groups and 53 desktop regression groups passed**. Earlier workshop verification also includes 65 desktop/native and 30 reconstruction groups. The native checks include actual Windows-event docking and direct workshop operations. The old monolithic tests.lua baseline assertion documented in prior revisions is not included among these passes.
 
 Anatomical research and its historical development artifacts remain in the repository. The current cell-workshop instructions supersede older descriptions of loose-cell inventories and workshop cultivation controls.

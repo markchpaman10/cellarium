@@ -5,7 +5,7 @@ function UI.draw(s,o,ui)
  for _,slot in ipairs({'input','output'}) do local r=slots[slot];local v,object=D.container(s,o.id,slot);local shade=slot=='input' and {.25,.76,.67} or {.9,.69,.3}
   love.graphics.setColor(.07,.12,.14);love.graphics.rectangle('fill',r.x,r.y,r.w,r.h,12);love.graphics.setColor(shade);love.graphics.setLineWidth(2);love.graphics.rectangle('line',r.x+1,r.y+1,r.w-2,r.h-2,12)
   text(slot=='input' and 'INPUT / CELL SOURCE' or 'OUTPUT / EMPTY CONTAINER',r.x+10,82,13,shade)
-  text(v and ('Container #'..v.id..' / '..V.count(v)..' cell(s)') or 'DRAG A CONTAINER HERE',r.x+12,r.y+17,13,shade)
+  text(v and (require('container_labels').fit(v.label or ('Container #'..v.id),love.graphics.getFont(),150)..' / '..V.count(v)..' cell(s)') or 'DRAG A CONTAINER HERE',r.x+12,r.y+17,13,shade)
   if not v then text(slot=='input' and 'Must contain a cell.' or 'Must be empty.',r.x+26,r.y+150,14,{.6,.73,.73}) end
   if v then text(v.contents[1] and F.label(v.contents[1].cell) or 'Ready for processed cells',r.x+10,r.y+r.h-28,12,{.7,.84,.82});button('Detach '..slot..' container',r.x,474,r.w,35,function() D.detach(s,object.id);W.log(s,o.id,'Container #'..v.id..' detached; contents unchanged.') end) end
  end

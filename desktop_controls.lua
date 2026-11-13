@@ -75,7 +75,7 @@ function C.draw(s,o)
  elseif o.kind=='dna' then
   local dna;for _,record in ipairs(s.materials) do if record.id==o.entityId then dna=record;break end end
   if not dna then text('This vial is unavailable.',26,90,19);return true end
-  text((dna.name or 'DNA template'):sub(1,32),26,84,19)
+  C.fonts[19]=C.fonts[19] or love.graphics.newFont(19);text(require('container_labels').fit(dna.label or dna.name or 'DNA template',C.fonts[19],260),26,84,19);button('Label...',300,82,116,28,function() require('desktop_host').open('label',o.id) end)
   text('One stored genome template',26,124,15,{.56,.77,.75})
   text('Genome '..G.hash(dna.genome)..' / '..G.marker(dna.genome),26,163,13)
   text('DNA material — not a living cell culture.',26,199,13,{.56,.77,.75})
@@ -83,7 +83,7 @@ function C.draw(s,o)
  else
   local vessel=T.vessel(s,o.entityId);if not vessel then text('This container is unavailable.',26,90,19);return true end
   local bucket=vessel.contents[1];local growing=V.types[vessel.kind].growth>0
-  text((vessel.label or V.types[vessel.kind].name):sub(1,30),26,82,19)
+  C.fonts[19]=C.fonts[19] or love.graphics.newFont(19);text(require('container_labels').fit(vessel.label or V.types[vessel.kind].name,C.fonts[19],260),26,82,19);button('Label...',300,82,116,28,function() require('desktop_host').open('label',o.id) end)
   text(bucket and (V.count(vessel)..' / '..V.types[vessel.kind].capacity..' '..require('physical_cells').label(bucket.cell)) or 'Empty',26,118,17,{.56,.82,.75})
   text(bucket and (bucket.cell.name or 'Strain '..bucket.cell.strain):sub(1,40) or 'Add a sample using the dropper.',26,152,13)
   text((growing and ('Food '..math.floor(vessel.nutrients*100)..'% / ') or '')..V.timerText(vessel),26,176,12,{.56,.77,.75})

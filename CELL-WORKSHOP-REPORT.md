@@ -1,3 +1,9 @@
+# Container labeling update
+
+Added right-click Label container and direct Label controls for all physical cell containers and DNA vials. A focused label screen provides Save, Clear and Cancel plus Enter/Escape/Ctrl+A. Custom names persist on canonical container IDs, appear on desktop tags and workshop docks, and do not alter cell contents or genome archives. Long tags fit safely with an ellipsis; text entry supports spaces and Unicode.
+
+Executed for this revision: 28 workshop groups and all 53 headless desktop regression groups passed. The packaged executable also passes the workshop suite. Native physical keyboard interaction with the label screen was not separately manually certified; callback, rendering and save/load behavior are tested. The preceding revision's native results are retained below as historical verification.
+
 # Cell workshop delivery report
 
 Target branch: desktop-laboratory-dev, based on d9c2839242740cfd085011c8034ec274bd183a16. Changes concern desktop cell handling and the workshop; existing anatomical generator/growth modules are retained.
