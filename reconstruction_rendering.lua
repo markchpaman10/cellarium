@@ -91,19 +91,30 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
  for _,c in ipairs(a.components) do if c.volume>.0000000001 then
   local xx,yy=point(c,top);local color=colors[c.type] or {.58,.69,.71};local isSupport=c.type=='Bone' or c.type=='Support' or c.type=='Carapace'
   if on('Skeleton') and isSupport then
-   -- Rib arches and girdles are transverse 3-D structures. Their top-view
-   -- outlines collapse into overlapping spikes in the side projection.
-   -- Render those structures in plan view only until a dedicated lateral
-   -- rib/girdle silhouette is available. Never reuse top-view geometry
-   -- as if it were a side-view bone.
-   local transverse=c.anatomicalName=='protective rib arch'
-      or c.anatomicalName=='shoulder / axial girdle'
-      or c.anatomicalName=='pelvic girdle'
-      or c.anatomicalName=='orbital rim'
+   -- Each camera needs its own projection. A transverse rib, girdle or
+   -- paired support cannot be drawn as a lateral bone by projecting its
+   -- complete plan-view path: doing so produces the false stacked bars
+   -- and the apparent top-down skeleton on the side-view organism.
+   local name=c.anatomicalName or ''
+   local transverse=name=='protective rib arch'
+     or name=='shoulder / axial girdle'
+     or name=='pelvic girdle'
+     or name=='orbital rim'
+     or name=='paired distal support'
    if top or not transverse then
-    boneShape(c.path or {},top,math.max(.55,(c.thickness or .1)*23),color)
+     boneShape(c.path or {},top,math.max(.55,(c.thickness or .1)*23),color)
+     -- A connector is meaningful only if both supports are visible in
+     -- this projection. Never draw a hidden transverse support's link.
+     if c.parent then
+       local p=a.components[c.parent]
+       if p then
+         local px,py=point(p,top)
+         love.graphics.setColor(color[1],color[2],color[3],.4)
+         love.graphics.setLineWidth(.45)
+         love.graphics.line(px,py,xx,yy)
+       end
+     end
    end
-   if c.parent then local p=a.components[c.parent];local px,py=point(p,top);love.graphics.setColor(color[1],color[2],color[3],.4);love.graphics.setLineWidth(.45);love.graphics.line(px,py,xx,yy) end
   elseif on('Muscle') and c.type=='Muscle' then
    local p,q=a.components[c.origin],a.components[c.insertion];local px,py=point(p,top);local qx,qy=point(q,top);local width=math.sqrt(c.volume*32^3/math.max(1,math.sqrt((px-qx)^2+(py-qy)^2))*math.pi)*.6
    muscleShape(px,py,xx,yy,qx,qy,width*.58)
