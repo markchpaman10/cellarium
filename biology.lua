@@ -58,11 +58,11 @@ function B.precursor(s,index,kind)
 end
 function B.fertilize(s,eggId,spermId)
  local egg,sperm,ei,si;for i,h in ipairs(s.gametes) do if h.id==eggId then egg=h;ei=i end;if h.id==spermId then sperm=h;si=i end end
- if not egg or not sperm or egg==sperm or egg.kind~='Egg' or sperm.kind~='Sperm' or egg.progress<1 or sperm.progress<1 then return false,'Select one mature egg and one mature sperm.' end
+ if not egg or not sperm or egg==sperm or egg.kind~='Egg' or sperm.kind~='Sperm' or egg.frozen or sperm.frozen or egg.progress<1 or sperm.progress<1 then return false,'Select one mature egg and one mature sperm.' end
  local g=G.fertilize(egg,sperm);if not g then return false,'Incompatible chromosome data.' end
  local r={kind='fertilization',inputs={G.copy(egg),G.copy(sperm)},genome=G.copy(g),conditions={nutrition=1,temperature=37},outcome='Developing',time=s.time};s.experiments[#s.experiments+1]=r
  B.queue(s,g,egg.source..' + '..sperm.source,math.max(egg.generation,sperm.generation)+1,r.conditions,#s.experiments)
- table.remove(s.gametes,math.max(ei,si));table.remove(s.gametes,math.min(ei,si));B.log(s,'Fertilization: one haploid set from each source.');return true,'Zygote created.'
+ table.remove(s.gametes,math.max(ei,si));table.remove(s.gametes,math.min(ei,si));if egg.physical then require('physical_cells').consumeGamete(s,egg.id) end;if sperm.physical then require('physical_cells').consumeGamete(s,sperm.id) end;B.log(s,'Fertilization: one haploid set from each source.');return true,'Zygote created.'
 end
 function B.breed(s,a,b)
  local ok,why=R.compatible(a,b);if not ok then return false,why end
@@ -72,7 +72,7 @@ end
 local function step(s,dt,environment)
  H.ensure(s);V.update(s,dt);s.time=s.time+dt;for _,c in ipairs(s.cells) do c.age=c.age+dt end;s.habitat.environment=environment or s.habitat.environment
  for _,d in ipairs(s.dishes) do K.update(d,dt) end
- for _,h in ipairs(s.gametes) do h.progress=math.min(1,h.progress+dt/8);h.stage=h.progress>=1 and h.kind or 'Gamete precursor' end
+ for _,h in ipairs(s.gametes) do if not h.frozen then h.progress=math.min(1,h.progress+dt/8);if h.progress>=1-1e-9 then h.progress=1 end;h.stage=h.progress>=1 and h.kind or 'Gamete precursor' end end
  for i=#s.eggs,1,-1 do local e=s.eggs[i];local viable,failures=D.update(e,dt);if viable~=nil then
   local record=e.record and s.experiments[e.record]
   if viable then local o,spawnError=B.spawn(s,e.genome,e.parents,e.generation,e.birthLocation and e.birthLocation.x,e.birthLocation and e.birthLocation.y,e.anatomy);if not o then if record then record.outcome='No breathable habitat';record.failures={spawnError} end;B.log(s,'Juvenile could not be released: '..tostring(spawnError));table.remove(s.eggs,i) else o.parentIds=e.parentIds or {};o.ancestry=e.ancestry or {};o.inbreeding=e.inbreeding or 0;s.lineages[o.id].parentIds=G.copy(o.parentIds)

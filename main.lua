@@ -44,14 +44,15 @@ local function loadSave()
  msg('Save could not load: '..tostring(why));return false
 end
 function love.load()
+ for _,v in ipairs(arg or {}) do if v=='--workshop-test' then local ok,r=xpcall(function() return require('workshop_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
  for _,v in ipairs(arg or {}) do if v=='--anatomy-test' or v=='--test' or v=='--reconstruction-test' then local ok,r=xpcall(function() return require('reconstruction_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
  for _,a in ipairs(arg or {}) do if a=='--anatomy-baseline' then local ok,result=pcall(function() return require('anatomy_baseline_audit').run() end);print(result);love.event.quit(ok and 0 or 1);return end end
  for _,a in ipairs(arg or {}) do if a=='--desktop-test' or a=='--desktop-native-test' then local ok,result=xpcall(function() return require('desktop_tests').run(B,a=='--desktop-native-test') end,debug.traceback);local f=assert(io.open((love.filesystem.isFused() and love.filesystem.getSourceBaseDirectory() or love.filesystem.getSource())..'/desktop-test-results.txt','w'));f:write(result);f:close();love.event.quit(ok and 0 or 1);return end end
  for _,a in ipairs(arg or {}) do if a=='--audit' or a=='--ecology-audit' then local ok,result=pcall(function() return require(a=='--ecology-audit' and 'ecology_audit' or 'audit').run(B) end);if not ok then local f=io.open(love.filesystem.getSource()..'/audit-error.txt','w');if f then f:write(tostring(result));f:close() end end;love.event.quit(ok and result and 0 or 1);return end end
  for _,a in ipairs(arg or {}) do if a=='--historical-test' then local an=require('anatomy');local generate=an.generate;an.generate=function(g,c) c=G.copy(c or {});c.generator='procedural';return generate(g,c) end;local ok,result=pcall(require('tests'),B);an.generate=generate;local f=io.open(love.filesystem.getSource()..'/test-results.txt','w');if f then f:write(ok and result or tostring(result));f:close() end;love.event.quit(ok and 0 or 1);return end end
  for _,n in ipairs({11,12,13,14,16,18,20,24,28,32,40}) do fonts[n]=love.graphics.newFont(n) end
- R.init();love.graphics.setBackgroundColor(C.bg);s=B.new();B.collect(s);tab=1;donors={};medium=1;environment=1;toastTime=0
- V.ensure(s);B.log(s,'New experiment. Select a strain to begin cultivation. Load restores a manual save.')
+ R.init();love.graphics.setBackgroundColor(C.bg);s=B.new();tab=1;donors={};medium=1;environment=1;toastTime=0
+ V.ensure(s);B.log(s,'New experiment. Buy a cell in its vial from the Cellarium tray menu.')
  for _,a in ipairs(arg or {}) do
   if a=='--ui-test' then uiTest=true;developmentRun=true;s=B.new(34);B.collect(s);toastTime=0 end
   if a:find('smoke') then smoke=true;developmentRun=true;toastTime=0;s=B.new(42);B.collect(s)
@@ -63,7 +64,7 @@ function love.load()
  if enable then
   Host.init({B=B,getState=function() return s end,setState=function(value) s=value end,msg=msg,setDesktopActive=function(v) desktopActive=v end,
    classic=function() tab=6;Host.inspector=nil;Host.mode='settings' end,
-   newExperiment=function() s=B.new();B.collect(s);V.ensure(s);require('desktop_model').ensure(s);require('desktop_worlds').ensure(s);RealClock.start(s);Host.saveBlocked=false;donors={};selected=nil;Host.sync();DesktopApp.page='Lab';msg('New desktop experiment started.') end,
+   newExperiment=function() s=B.new();V.ensure(s);require('desktop_model').ensure(s);require('desktop_worlds').ensure(s);RealClock.start(s);Host.saveBlocked=false;donors={};selected=nil;Host.sync();DesktopApp.page='Lab';msg('New desktop experiment started.') end,
    openGenome=function(value) if not s.desktop.settings.classicUI then DesktopApp.openGenome(value) else require('genome_editor').begin(value);U.view='Genome Edit';tab=5 end;Host.panelVisible=true;require('native_windows').panel(true) end,
    open=function(mode,id)
     selected=nil
@@ -109,7 +110,7 @@ local function header()
  text('C E L L A R I U M',32,23,24);text('L I V I N G   L A B O R A T O R Y',34,57,11,C.muted)
  text('EXPERIMENT  /  001',1030,26,12,C.muted);text(RealClock.wallTime(),1030,47,20,C.mint)
  button('Save',1180,26,76,36,save);button('Load',1264,26,76,36,function() if not loadSave() then msg('No saved experiment yet.') end end)
- button('New',1348,26,60,36,function() s=B.new();B.collect(s);V.ensure(s);tab=1;selected=nil;donors={};Library.filter=0;Library.page=1;Library.favoritesOnly=false;medium=1;environment=1;U.index=1;U.compare=nil;msg('New experiment started. Manual save has not been overwritten.') end)
+ button('New',1348,26,60,36,function() s=B.new();V.ensure(s);tab=1;selected=nil;donors={};Library.filter=0;Library.page=1;Library.favoritesOnly=false;medium=1;environment=1;U.index=1;U.compare=nil;msg('New experiment started. Manual save has not been overwritten.') end)
  local names={'01   Cell workstations','02   Genome forge','03   Living habitat','04   Cryobank & records','05   Research'}
  for i,n in ipairs(names) do button(n,32+(i-1)*277,94,265,43,function() tab=i;selected=nil end,tab==i) end
  local alive=0;for _,o in ipairs(s.organisms) do if o.alive then alive=alive+1 end end

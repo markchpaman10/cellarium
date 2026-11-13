@@ -55,6 +55,7 @@ function E.export()
  local name='engineered-genome-'..os.time()..'.lua';local ok,why=love.filesystem.write(name,'return '..require('persistence').encode(E.draft));return ok,ok and ('Exported to '..love.filesystem.getSaveDirectory()..'/'..name) or why
 end
 function E.incubate(s,B)
+ if s.desktop and s.desktop.physicalStockVersion then return false,'Install DNA in the cell workshop, then choose Begin development on its output container.' end
  if not E.draft or not G.valid(E.draft) then return false,'Open a valid genome draft first.' end
  if s.desktop then s.desktop.blankCells=s.desktop.blankCells or 6;if s.desktop.blankCells<1 then return false,'Restock blank developmental cells at the workstation.' end end
  local g=G.copy(E.draft);g.mutations=g.mutations or {};for _,h in ipairs(E.history) do if h.side then g.mutations[#g.mutations+1]={locus=h.chromosome,site=h.site,side=h.side,from=h.old,to=h.new,stage='Direct genome editing',effect='Targeted allele modification'} end end
@@ -93,6 +94,7 @@ function E.draw(s,c)
  end)
  button('Save DNA copy',1090,776,290,34,function() local ok,why=E.commit(s,c.B);msg(why) end)
  button('Incubate exact edited genome',1090,816,290,30,function()
+  if s.desktop and s.desktop.physicalStockVersion then msg('Install this DNA at the cell workshop, then begin development from its output container.');return end
   if not G.valid(E.draft) then msg('Invalid genome.');return end
   if s.desktop then s.desktop.blankCells=s.desktop.blankCells or 6;if s.desktop.blankCells<1 then msg('No blank developmental cells. Restock at the workstation inspector.');return end end
   local g=G.copy(E.draft);g.mutations=g.mutations or {};for _,h in ipairs(E.history) do if h.side then g.mutations[#g.mutations+1]={locus=h.chromosome,site=h.site,side=h.side,from=h.old,to=h.new,stage='Direct genome editing',effect='Targeted allele modification'} end end

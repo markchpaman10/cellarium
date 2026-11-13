@@ -1,63 +1,25 @@
-# Cellarium: Anatomical Reconstruction Laboratory
+# Cellarium: Physical Cell Workshop
 
-This is the **desktop-laboratory-dev** reconstruction revision. It builds connected skeletal structures and layered tissues with persistent, continuously growing anatomy. Main and the previous anatomy-dev branch remain preserved.
+Desktop laboratory development branch. The cell workshop now processes physical attached containers, with a terminal for results and no internal cell inventory.
 
-Download the [complete Windows build](builds/Cellarium-Reconstruction-Dev-Windows.zip), extract it, and run **Cellarium-Reconstruction-Dev.exe**. Keep its DLLs beside it and exit older Cellarium builds through the tray first.
+[Download the complete Windows build](builds/Cellarium-Cell-Workshop-Windows.zip). Extract it and open **Cellarium-Cell-Workshop.exe** with the DLLs beside it. Exit any older Cellarium desktop build through its tray icon first.
 
-Open **Settings > Anatomy Generator / developer tool**. Read the [reconstruction guide](docs/RECONSTRUCTION_USER_GUIDE.md), [architecture and migration](docs/RECONSTRUCTION_ARCHITECTURE.md), [before-change audit](docs/RECONSTRUCTION_AUDIT.md), [1,000-genome results](docs/RECONSTRUCTION_AUDIT_1000.md), [contact sheet](docs/RECONSTRUCTION_CONTACT_SHEET.png) and [growth sequence](docs/RECONSTRUCTION_GROWTH_SEQUENCE.png).
+## Use the new system
 
-Actual verification: 30 reconstruction groups and 53 desktop regression groups passed. The unfiltered 1,000-genome run produced 431 viable organisms, 569 biological failures and no technical generation errors. This is experimental; viability fell from the previous anatomy version's 590/1,000, and failures are retained. Native Windows interaction tests could not launch because Computer Use app approval timed out; they are unverified for this revision.
+1. A new experiment starts with no cells. Right-click the Cellarium tray/taskbar icon > **Buy supplies…**.
+2. Buy one ordinary or blank cell for **1 credit**, supplied in its own vial. Separately purchased containers arrive empty.
+3. Click the workstation to open its desktop controls. Drag a cell container onto **INPUT** and an empty container onto **OUTPUT**.
+4. Extract DNA into the genome archive, install archived DNA using one blank cell, or prepare one egg/sperm precursor using one stem cell. Results go to the attached output; messages appear on the terminal. Extraction retains its source and needs no physical output.
+5. Cultivate inside the containers and transfer with the dropper. Freeze a loaded dropper's contents through its context menu. Retrieve samples into containers through the tray/dropper frozen-storage menu.
 
-The [delivery report](RECONSTRUCTION-REPORT.md) lists actual results and limitations. The original [main desktop](https://github.com/markchpaman10/cellarium/tree/main) and [anatomy-dev baseline](https://github.com/markchpaman10/cellarium/tree/anatomy-dev) remain separate. This executable has its own save identity.
+Read the [complete workshop guide](docs/CELL_WORKSHOP_GUIDE.md) for docking, the Forge-to-workshop workflow, incubation, preservation and migration. The [delivery report](CELL-WORKSHOP-REPORT.md) records actual tests and limitations.
 
-## How to use the new system
+![Workshop with physical attached vials](docs/desktop/Cellarium-Workshop.png)
 
-Start with the **[Desktop Laboratory User Guide](docs/USER_GUIDE.md)**. It explains the current controls, individual containers, sample transfers, workstation, Forge, saving and recovery. Each physical vial shows only its own contents; source selectors belong to central tools, not vial panels.
+## Compatibility and verification
 
-![Simplified individual container](docs/desktop/Cellarium-Container-Preview.png)
+Existing specimens are preserved and moved from loose stock into physical vials. Existing organism anatomy is retained. If an older save restores stock, use Settings > Start a new experiment to see the new cell-free starting state. Desktop persistence, PC-linked life timing, Fahrenheit display and right-click context menus remain.
 
-## Launch
+Executed: **26 workshop groups, 65 desktop/native groups, and 30 reconstruction regression groups passed**. The native checks include actual Windows-event docking and direct workshop operations. The old monolithic tests.lua baseline assertion documented in prior revisions is not included among these passes.
 
-Exit any older desktop laboratory through its tray menu first. Extract the entire Windows ZIP, then open `Cellarium-Reconstruction-Dev.exe`. Keep the DLLs beside it. No administrator privileges, installation, network service or separate command-line launcher is needed. Windows 10 or newer, x64.
-
-The laboratory launches as individual transparent equipment windows and a real system-tray icon. It does not open the classic UI. Right-click the tray icon for Research & Cryobank, Genome Database, Organism Records, visibility, saved layout, Settings and Exit. Open Settings or a workstation when you need precise controls. Closing the detailed window returns to the tray. **Ctrl+Shift+L** hides equipment and opens recovery controls. **Ctrl+Q**, with the detailed window focused, exits.
-
-## First transfer
-
-1. A starting cell suspension is in the storage vial. Dishes start empty.
-2. Left-click and hold the dropper to drag it. Its whole visible body is a drag handle.
-3. Right-click the source vial and choose Take sample from this container. Alternatively, position the tip inside the source, right-click the dropper, and choose Collect sample beneath tip. Right-click always opens a context menu.
-4. Move the loaded tip into a Petri dish and release the left button. A droplet animation finishes the transfer; the source, sample and destination share real quantities. A failed transfer keeps the loaded sample.
-5. Click the dish without moving to expand its culture controls in its own desktop window. Each container shows only its own contents. Use Open/Close cap, Take sample and Add held sample. Food and a next-cell countdown appear for cultivation containers; freezing appears only on cryovials. Extra readings are under Details. There is no cell or vial browsing inside a container; use the workstation for preparing and introducing loose cells. Left-drag any visible part of a dish or vial to move it. Clicks on expanded buttons operate the controls. Containers reject closed/frozen/full/incompatible transfers. Sterilize the dropper from Lab before sampling another strain.
-
-Normal-scale dish dots represent culture colonies / cell equivalents. Records offers an explicitly magnified cell schematic.
-
-## Individual containers
-
-Every physical vial, dish, flask and plate is bound to its own persistent ID. Opening it never switches to a different vial or browses global stock. A DNA vial shows only its own archived genome; Use this DNA in the Forge explicitly sends a copy of that record. Existing cultures, labels and quantities are preserved when upgrading.
-
-## Forge and habitats
-
-Click the Forge to expand its controls on the desktop, select a DNA archive or cell, and load an editable copy. Click the workstation or a culture container to expand its own direct desktop controls. No context menu or separate records window is required for these operations. The new interface provides all 144 allele values, targeted edits, splice donors, dosage duplication/deletion/restoration, D12 activation/suppression links, undo/reset, named DNA archives, export, body forecast, installation into a finite blank-cell stock and exact incubation. Assembly supports 2–12 distinct donor cells with real recombination and development conditions. Prepare gamete precursors from stem cells in Cultures, then fertilize mature egg/sperm in Incubation. Organism Records supports selective breeding and tissue sampling.
-
-Terrestrial, freshwater and saltwater containers have separate environments. Organisms remain the same records when moved, released or recalled. Open Habitats for food, temperature, humidity, oxygen, environment refresh, selection and movement. Biological compatibility governs placement and survival; there is no combat. The terrestrial container retains the existing mixed mesocosm, including its drinking pool. Use Develop audited reference genome if you want a reproducible specimen to observe while learning the interface.
-
-## Persistence
-
-This desktop revision follows the overhaul's explicit exit-save / launch-restore requirement. It uses the separate identity `cellarium-desktop-laboratory-dev`. It does not overwrite the original ecology or engineering saves. Save Laboratory also writes explicitly. Saves are staged, validated, backed up and atomically replaced. Life uses elapsed PC time with no pause, speed or offline-cap controls. Cultures grow continuously while fed, viable and below capacity, with an estimated countdown to the next cell. The full time away is preserved and synchronized in background batches after restart. Frozen samples remain preserved. Older saves keep their existing progress and begin PC-time tracking on upgrade.
-
-Drop a previous `experiment.lua` onto the detail window to import through the existing migration path. Unsupported saves are rejected; an unreadable desktop save is retained and automatic overwrite is disabled. Genome exports are written to this edition's LÖVE save directory.
-
-## Build and tests
-
-Install the official LÖVE 11.5 Windows x64 runtime for source development. From PowerShell:
-
-```powershell
-& .\build-desktop.ps1 -Runtime 'C:\Program Files\LOVE' -Destination 'C:\path\to\Cellarium-Desktop-Laboratory'
-& 'C:\Program Files\LOVE\lovec.exe' . --desktop-test
-& 'C:\Program Files\LOVE\lovec.exe' . --desktop-native-test
-```
-
-The native test must run in an ordinary interactive Windows session. A restricted automation process may be unable to add a shell tray icon. The supplied acceptance run used a fused executable launched in the interactive session. Tests target their own windows and use a separate test window class. They do not save over the player's laboratory.
-
-See `DESKTOP-IMPLEMENTATION.md` for architecture, verified results, exact test limits and the remaining manual acceptance checklist. This is a development build; the entire 28-step manual Windows workflow has not been certified.
+Anatomical research and its historical development artifacts remain in the repository. The current cell-workshop instructions supersede older descriptions of loose-cell inventories and workshop cultivation controls.

@@ -27,8 +27,8 @@ PASS Version-4 manual saves migrate without discarding cells, embryos or old cul
 PASS Invalid and future saves are rejected
 PASS Procedural equipment has transparent exteriors and visible culture interiors
 PASS New UI defaults to desktop mode and opens every equipment record without classic rendering
-PASS New Cultures UI introduces a counted cell through its real callback
-PASS New Forge UI previews, archives, installs and incubates without the old editor
+PASS New Cultures UI uses counted dropper samples and has no loose-cell inventory actions
+PASS Forge previews and archives while physical workshop installation and container incubation conserve cells
 PASS Classic interface can only be enabled through its explicit Settings action
 PASS Genome dosage and regulation survive two-parent inheritance
 PASS Each container panel is fixed to its own ID, with no inventory or vial selectors
@@ -51,4 +51,17 @@ PASS Continuous culture does not hit an invisible old batch replication counter
 PASS Capacity and freezing stop growth without creating or losing cells
 PASS Embryos, gametes and organism ages all follow real elapsed time
 PASS Countdown formatting uses actual elapsed durations rather than simulated-hour labels
-53 result lines; 0 failures.
+PASS Native tray and independent layered windows initialize
+INFO Native move targeted actual second monitor.
+PASS Native Petri dish moves using signed Windows screen coordinates
+PASS Explicit context-menu sample action transfers real quantities without taking over right click
+PASS Native hide and restore keeps all IDs, handles, locks, layouts and sample quantities
+PASS Native message pump receives input for our own objects only
+PASS Transparent Petri corners pass native hit testing while culture pixels receive input
+PASS Petri, vial, dropper, workstation and Forge move through real native down/move/up events
+PASS Native container drag attaches to the visible workshop dock without changing its sample
+PASS Right-click menus remain available on every item after a saved dropper selection
+PASS Workstation, Forge and culture controls operate in their own desktop windows
+PASS Atomic desktop save and restart decode preserve real state
+PASS Native cleanup removes every equipment HWND and tray icon
+66 result lines; 0 failures.

@@ -91,12 +91,12 @@ function P.draw(s,c)
   local dna;for _,vial in ipairs(s.materials) do if vial.id==o.entityId then dna=vial end end;if not dna then return end
   text(dna.name or 'Archived DNA',423,373,25);text('DNA is a genome record, not a living culture.\nGenome '..G.hash(dna.genome)..' / marker '..G.marker(dna.genome)..'\n144 alleles / '..#dna.genome.mutations..' recorded mutations',423,425,16,C.muted)
   button('Send to Forge / edit a copy',423,550,410,42,function() Host.context.openGenome(dna) end)
-  button('Prepare developmental cell',855,550,510,42,function() d.blankCells=d.blankCells or 6;if d.blankCells<1 then msg('No blank developmental cells remain; restock at workstation.') else local cell=c.B.cell(s,1,dna.genome,'DNA '..dna.id,0);s.cells[#s.cells+1]=cell;d.blankCells=d.blankCells-1;msg('Genome installed into one blank developmental cell. Find it in the cell library.') end end)
-  text('Blank developmental cells: '..(d.blankCells or 6)..' / rack placement: drag vial onto a rack.',423,625,14,C.muted)
+  button('Use DNA at cell workshop',855,550,510,42,function() for _,station in ipairs(s.desktop.objects) do if station.kind=='workstation' then station.config.genomeId=dna.id;station.stored=false;station.visible=true;require('desktop_controls').expand(s,station);break end end;msg('Attach a blank-cell vial and empty output to the workshop.') end)
+  text('Blank cells are physical specimens. Purchase one with its vial from the tray menu.',423,625,14,C.muted)
  else
   text('Physical '..o.kind,423,380,25);text('Click the instrument body to open its existing detailed workspace.\nNo biological records are copied when a desktop object moves or hides.',423,435,16,C.muted)
   button('Open detailed workspace',423,534,440,40,function() Host.open(o.kind=='forge' and 'forge' or 'workstation',o.id) end)
-  button('Restock 6 blank cells / 8 credits',889,534,475,40,function() if s.credits<8 then msg('Insufficient credits.') else s.credits=s.credits-8;d.blankCells=(d.blankCells or 6)+6;msg('Six blank developmental cells acquired.') end end)
+  text('Buy single cells and empty containers from the Cellarium tray menu.',423,603,14,C.muted)
  end
  if P.naming then panel(480,415,600,150);text('Label / Enter accepts, Esc cancels',500,437,16,C.mint);text(P.name..'_',500,490,24) end
 end

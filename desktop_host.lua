@@ -4,7 +4,7 @@ function Host.state() return Host.context.getState() end
 function Host.message(text) Host.notice=text;if Host.context then Host.context.msg(text) end;if not Host.panelVisible and Native.tray and not Host.testing and (not Host.lastNotice or love.timer.getTime()-Host.lastNotice>2) then Native.notify(text);Host.lastNotice=love.timer.getTime() end end
 local function vesselKind(v) return ({'dish','flask','plate','vial','cryovial'})[v.kind] end
 function Host.sync()
- local s=Host.state();local d=M.ensure(s);V.ensure(s);Worlds.ensure(s)
+ local s=Host.state();local d=M.ensure(s);V.ensure(s);Worlds.ensure(s);require('physical_cells').ensure(s)
  local present={};for _,o in ipairs(d.objects) do present[o.kind..'/'..tostring(o.entityId)]=o end
  local function add(kind,id,group,x,y) if not present[kind..'/'..tostring(id)] then local o=M.add(s,kind,id,group,x,y);M.restore(o,Host.monitors);M.remember(o,Host.monitors);present[kind..'/'..tostring(id)]=o end end
  local primary=Host.monitors[1];local x,y=primary.x+25,primary.y+25
@@ -28,11 +28,7 @@ function Host.init(context)
  local restored,why=Store.load(context.B)
  if restored then context.setState(restored);Host.message(restored.desktop.recovery or 'Desktop laboratory restored.') elseif love.filesystem.getInfo('desktop-laboratory.lua') then Host.message('Saved laboratory could not load: '..tostring(why)..'. Original retained; automatic overwrites disabled.');Host.saveBlocked=true end
  local s=Host.state();M.ensure(s);require('realtime').start(s);s.desktop.tool=nil;Worlds.ensure(s);V.ensure(s)
- if not s.desktop.starterPrepared then
-  local emptyVial=s.vessels[5];if emptyVial and #s.cells>0 then T.seed(s,emptyVial.id,1) end
-  if #s.materials==0 and #s.cells>0 then context.B.extract(s,1) end
-  s.desktop.starterPrepared=true
- end
+ s.desktop.starterPrepared=true
  Host.sync()
  for _,o in ipairs(s.desktop.objects) do M.restore(o,Host.monitors) end
  Host.context.setDesktopActive(true);Native.panel(false);Host.panelVisible=false
@@ -69,6 +65,7 @@ function Host.tray()
   {label='Restore Objects from Storage',action=function() for _,o in ipairs(d.objects) do if not o.archivedEntity then o.stored=false;o.visible=true end end end},
   {separator=true},{label='Settings & Object Manager',action=function() Host.open('settings') end},{label='About Cellarium',action=function() Native.alert('Cellarium / Windows Desktop Laboratory\nLocal procedural artwork and biological simulation.\nCtrl+Shift+L hides equipment and opens recovery controls.\nRight-click equipment for actions. No administrator privileges required.') end},
   {label='Exit Cellarium',action=function() Host.exiting=true;love.event.quit() end}}
+ table.insert(items,1,{label='Buy supplies...',action=function() require('desktop_supply_menus').buy(Host.state()) end});table.insert(items,2,{label='Retrieve frozen cells...',action=function() require('desktop_supply_menus').frozen(Host.state()) end})
  local action=Native.menu(items);if action then action() end
 end
 function Host.objectMenu(o)
@@ -89,6 +86,7 @@ function Host.objectMenu(o)
   table.insert(items,1,{label='Use dropper: '..(s.desktop.pipette.sample and 'dispense here' or 'collect 1 cell eq.'),action=function() if s.desktop.pipette.sample then Host.beginDispense(o) else local _,why=T.collect(s,v.id);Host.message(why) end end})
   items[#items+1]={label=v.closed and 'Open container' or 'Close container',action=function() v.closed=not v.closed end}
  elseif o.kind=='dropper' then
+  items[#items+1]={label='Freeze contents into storage',action=function() local _,why=T.freezeLoaded(s);Host.message(why) end};items[#items+1]={label='Retrieve frozen cells...',action=function() require('desktop_supply_menus').frozen(s) end}
   items[#items+1]={label='Collect sample beneath tip',action=function() local target=Host.targetAtTip(o);if target then local _,why=T.collect(s,target.entityId);Host.message(why) else Host.message('Position the tip inside an open cell container first.') end end}
   items[#items+1]={label='Sterilize dropper',action=function() local _,why=T.clean(s);Host.message(why) end};items[#items+1]={label='Discard loaded sample...',action=function() if Native.confirm('Dispose of the loaded biological sample?') then s.desktop.pipette.sample=nil;Host.message('Sample discarded. Sterilize before reuse.') end end}
  end
@@ -115,7 +113,7 @@ function Host.event(e)
  elseif o then
   local monitor=M.monitorAt(Host.monitors,o.x,o.y);local factor=o.scale*monitor.dpi/96;local x,y=(e.x or 0)/factor,(e.y or 0)/factor
   if e.type=='down' then local control=require('desktop_controls').hit(o,x,y);Host.pressed={id=o.id,x=e.cursor.x,y=e.cursor.y,moved=false,control=control};s.desktop.selectedObject=o.id;s.desktop.tool=nil;if not control and not M.beginDrag(o,e.cursor) then Host.message('Position is locked. Right-click and choose Unlock position.') end
-  elseif e.type=='move' and Host.pressed and Host.pressed.id==o.id then if math.abs(e.cursor.x-Host.pressed.x)+math.abs(e.cursor.y-Host.pressed.y)>5 then Host.pressed.moved=true end;if o.drag and Host.pressed.moved then M.drag(o,e.cursor);Native.move(Host.windows[o.id],o.x,o.y) end
+  elseif e.type=='move' and Host.pressed and Host.pressed.id==o.id then if math.abs(e.cursor.x-Host.pressed.x)+math.abs(e.cursor.y-Host.pressed.y)>5 then Host.pressed.moved=true end;if o.drag and Host.pressed.moved then if o.config.workshop then require('workshop_docking').detach(s,o.id) end;M.drag(o,e.cursor);Native.move(Host.windows[o.id],o.x,o.y);if o.kind=='workstation' then require('workshop_docking').layout(s,o,Host.monitors);for _,child in ipairs(s.desktop.objects) do if child.config.workshop==o.id and Host.windows[child.id] then Native.move(Host.windows[child.id],child.x,child.y) end end end end
   elseif e.type=='up' then
    local pressed=Host.pressed;Host.pressed=nil;M.endDrag(o,Host.monitors)
    if pressed and pressed.control then local current=require('desktop_controls').hit(o,x,y);if not pressed.moved and current and current.id==pressed.control.id then if not require('realtime').sync(s,require('biology').update) then Host.message('Synchronizing elapsed PC time. Please wait before changing biology.') else pressed.control.fn() end;Host.render(true) end
@@ -123,8 +121,9 @@ function Host.event(e)
    elseif o.kind=='dropper' and s.desktop.pipette.sample then
     local target=Host.targetAtTip(o)
     if target then Host.beginDispense(target) end
-   elseif o.kind=='dna' or o.kind=='vial' or o.kind=='cryovial' then
-    for _,rack in ipairs(s.desktop.objects) do if rack.kind=='rack' then local rw,rh=M.dimensions(rack,M.monitorAt(Host.monitors,rack.x,rack.y));if e.cursor.x>=rack.x and e.cursor.x<rack.x+rw and e.cursor.y>=rack.y and e.cursor.y<rack.y+rh then o.config.rack=rack.id;o.config.slot=math.max(1,math.min(8,math.floor((e.cursor.x-rack.x)/rw*8)+1));break else o.config.rack=nil end end end
+   elseif require('desktop_controls').isContainer(o) then
+    local hit,ok,why=require('workshop_docking').drop(s,o,e.cursor,Host.monitors);if hit then Host.message(why);Host.render(true);return end
+    if o.kind=='vial' or o.kind=='cryovial' or o.kind=='dna' then for _,rack in ipairs(s.desktop.objects) do if rack.kind=='rack' then local rw,rh=M.dimensions(rack,M.monitorAt(Host.monitors,rack.x,rack.y));if e.cursor.x>=rack.x and e.cursor.x<rack.x+rw and e.cursor.y>=rack.y and e.cursor.y<rack.y+rh then o.config.rack=rack.id;o.config.slot=math.max(1,math.min(8,math.floor((e.cursor.x-rack.x)/rw*8)+1));break else o.config.rack=nil end end end end
    end
   elseif e.type=='objectMenu' then
    if Host.pressed then local moving=M.find(s,Host.pressed.id);if moving then M.endDrag(moving,Host.monitors) end;Host.pressed=nil end;Native.endPointer();s.desktop.tool=nil;Host.objectMenu(o)
@@ -133,6 +132,7 @@ function Host.event(e)
 end
 function Host.render(force)
  local s=Host.state();if not s or not s.desktop then return end
+ for _,station in ipairs(s.desktop.objects) do if station.kind=='workstation' then require('workshop_docking').layout(s,station,Host.monitors) end end
  table.sort(s.desktop.objects,function(a,b) return a.layer<b.layer end)
  for _,o in ipairs(s.desktop.objects) do local win=Host.windows[o.id]
   if win then if M.isVisible(s.desktop,o) then
@@ -143,6 +143,7 @@ function Host.render(force)
  end
 end
 function Host.update(dt)
+ if Host.context then require('physical_cells').ensure(Host.state()) end
  if not Host.context then return end
  for _,e in ipairs(Native.pump()) do Host.event(e) end
  local s=Host.state();local d=M.ensure(s)

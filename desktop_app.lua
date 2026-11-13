@@ -40,7 +40,7 @@ function A.keypressed(key)
 end
 local function lab(s)
  heading('Desktop laboratory','Physical equipment is the workspace. This window contains records and precise controls.')
- local metrics={{'Persistent containers',#s.vessels},{'Loose specimens',#s.cells},{'Living organisms',countLiving(s)},{'Lab credits',s.credits}}
+ local metrics={{'Persistent containers',#s.vessels},{'Frozen samples',#s.frozen},{'Living organisms',countLiving(s)},{'Lab credits',s.credits}}
  for i,m in ipairs(metrics) do local x=250+(i-1)*290;card(x,182,270,112);text(m[1],x+18,201,13,palette.muted);text(m[2],x+18,228,32,palette.teal) end
  card(250,318,562,252);text('The pipette',274,339,22);local p=s.desktop.pipette
  text(p.sample and 'LOADED / '..p.sample.quantity..' cell equivalent' or p.clean and 'STERILE / empty' or 'USED / empty',274,380,16,palette.teal)
@@ -58,9 +58,7 @@ local function cultures(s)
  heading('Cultures & cell engineering','Every quantity below belongs to a persistent physical container or a real specimen.')
  card(250,177,310,646)
  for i,v in ipairs(s.vessels) do if i<=10 then button((v.label or V.types[v.kind].name)..' #'..v.id..'  /  '..V.count(v),267,196+(i-1)*43,276,36,function() A.vessel=i end,A.vessel==i) end end
- button('Buy Petri dish / 12 credits',267,665,276,34,function() result(V.add(s,1));Host.sync() end)
- button('Buy cell vial / 8 credits',267,710,276,34,function() result(V.add(s,4));Host.sync() end)
- button('Buy cryovial / 16 credits',267,755,276,34,function() result(V.add(s,5));Host.sync() end)
+ text('Purchase supplies from the\nCellarium tray context menu.\n\nCell + supplied vial: 1 credit.\nSeparate containers arrive empty.',267,680,13,palette.muted)
  local v=s.vessels[A.vessel];if not v then return end
  card(580,177,810,270);text(v.label or V.types[v.kind].name,602,198,24);local b=v.contents[1]
  button(A.editing=='vessel' and (A.name..'_') or 'Label container',1170,197,196,31,function() A.name=v.label or 'Culture '..v.id;A.editing='vessel';A.labelVessel=v.id end)
@@ -71,26 +69,14 @@ local function cultures(s)
  button(v.closed and 'Open container' or 'Close container',602,367,173,32,function() v.closed=not v.closed end)
  button('Add food',786,367,173,32,function() result(V.feed(s,A.vessel)) end)
  button('Refresh medium',970,367,173,32,function() v.nutrients=1;v.waste=0;Host.message('Medium refreshed; contents retained.') end)
- button('Withdraw cell',1154,367,212,32,function() result(V.withdraw(s,A.vessel)) end)
+ text('Use dropper to transfer.',1154,375,12,palette.muted)
  button('- 4 F',602,407,87,27,function() v.temperature=math.max(15,v.temperature-4/1.8) end);button('+ 4 F',698,407,87,27,function() v.temperature=math.min(60,v.temperature+4/1.8) end)
  button(v.frozen and 'Thaw' or 'Freeze',798,407,164,27,function() if v.frozen then result(V.thaw(s,A.vessel)) else result(V.freeze(s,A.vessel)) end end)
  button('Collect sample',974,407,173,27,function() result(T.collect(s,v.id)) end)
  button('Dispense sample',1158,407,208,27,function() for _,o in ipairs(s.desktop.objects) do if o.entityId==v.id then Host.beginDispense(o);break end end end)
- card(580,466,810,357);local cell=s.cells[A.cell];text('Loose specimen / developmental cell',602,484,21)
- button(cell and ('#'..cell.id..' / '..require('biology').types[cell.type]..' / '..cell.name..' >') or 'No loose specimens',602,526,764,34,function() A.cell=A.cell%math.max(1,#s.cells)+1 end)
- button('Introduce into container',602,575,245,32,function() result(T.seed(s,v.id,A.cell)) end)
- button('Edit genome copy',861,575,245,32,function() if cell then A.openGenome(cell) end end)
- button('Extract DNA',1120,575,246,32,function() result(require('biology').extract(s,A.cell));Host.sync() end)
- button('Egg precursor',602,619,180,32,function() result(require('biology').precursor(s,A.cell,'Egg')) end)
- button('Sperm precursor',794,619,180,32,function() result(require('biology').precursor(s,A.cell,'Sperm')) end)
- button('Preserve cell',986,619,180,32,function() result(require('biology').freeze(s,A.cell)) end)
- button('Sell cell / 3',1178,619,188,32,function() result(V.sellCell(s,A.cell)) end)
- button('Collect wild specimens',602,663,245,32,function() if #s.cells<180 then require('biology').collect(s) end end)
- button('Restock 6 blank cells / 8',861,663,245,32,function() if s.credits>=8 then s.credits=s.credits-8;s.desktop.blankCells=(s.desktop.blankCells or 6)+6 else Host.message('Not enough credits.') end end)
- button('Specialize epithelium',1120,663,246,32,function() if cell and cell.type==4 then cell.subtype='Digestive';cell.differentiation='digestive epithelium';Host.message('Digestive tissue specialization applied.') else Host.message('Select an epithelial specimen.') end end)
- text('Blank developmental cells: '..(s.desktop.blankCells or 6)..'  /  1 new cell is consumed per exact genome installation.',602,716,13,palette.muted)
- if #s.dishes>0 then button('Harvest ready legacy batch',602,754,370,32,function() local found=false;for i=#s.dishes,1,-1 do if s.dishes[i].progress>=1 then require('biology').harvest(s,i);found=true end end;Host.message(found and 'Ready batches harvested into the library.' or 'Legacy batches are still developing.') end) end
- button('Dispose culture...',996,754,370,32,function() if require('native_windows').confirm('Dispose of all contents and clean this vessel?') then result(V.discard(s,A.vessel)) end end,false,true)
+ card(580,466,810,357);text('Cells live in physical containers',602,484,24)
+ text('Buy one cell in its own vial from the Cellarium tray menu.\nBuy empty containers there separately.\n\nDrag a cell container onto the workshop input dock.\nAttach an empty output container for installation or precursor prep.\nUse the dropper for transfers; cultures grow in their own dishes.\nFreeze loaded dropper contents from its context menu.\nRetrieve frozen samples through the tray/dropper storage menu.',602,535,16,palette.muted)
+ button('Show cell workshop',602,764,764,35,function() for _,o in ipairs(s.desktop.objects) do if o.kind=='workstation' then o.visible=true;o.stored=false;require('desktop_controls').expand(s,o);Host.render(true);break end end end)
 end
 local function forge(s)
  heading('Genome Forge','Copy editing, 24 chromosome pairs, 72 loci. Changes affect development through the actual expression model.')
@@ -99,7 +85,7 @@ local function forge(s)
  button(source and ((source.name or 'DNA')..' #'..source.id..' >') or 'No source records',472,173,495,34,function() A.source=A.source%math.max(1,#sources)+1 end)
  button('Open editable copy',981,173,199,34,function() if source then A.openGenome(source) end end)
  button('Name: '..A.name,1192,173,198,34,function() A.editing='name' end)
- if not E.draft then card(250,234,1140,440);text('Choose a DNA archive or cell above, then open an editable copy.',280,270,21);text('Use Cultures to extract DNA or prepare living samples. Archived DNA remains distinct from living cells.',280,317,14,palette.muted);return end
+ if not E.draft then card(250,234,1140,440);text('Choose a DNA archive or cell above, then open an editable copy.',280,270,21);text('Use the cell workshop to extract DNA and prepare living samples. Archived DNA remains distinct from living cells.',280,317,14,palette.muted);return end
  for i,name in ipairs({'Primary','Development','Ecology'}) do button(name,250+(i-1)*180,224,168,32,function() E.site=i end,E.site==i) end
  local names=E.site==1 and G.loci or E.site==2 and require('development_genes').names or require('environment_genes').names
  for i=1,24 do local x=250+math.floor((i-1)/12)*580;local y=273+(i-1)%12*34;local l=E.draft.chromosomes[i].loci[E.site];local n=type(names[i])=='table' and names[i].name or names[i]
@@ -114,7 +100,7 @@ local function forge(s)
  button('Reset from source',1108,720,282,33,function() if source then E.begin(source) end end)
  button('Preview body',250,768,175,36,function() local ok,a=pcall(require('anatomy').generate,E.draft,{nutrition=1,temperature=37,oxygen=1,minerals=1});if ok then E.forecast=a;A.preview=true;Host.message((a.viable and 'Viable' or 'Nonviable')..' / '..#a.regions..' body regions / '..(a.appendageCount or 0)..' appendages / '..a.caps.locomotion) else Host.message(tostring(a)) end end)
  button('Archive genome',438,768,175,36,function() local ok,why=E.commit(s,require('biology'));if ok then s.materials[#s.materials].name=A.name end;result(ok,why);Host.sync() end)
- button('Install developmental cell',626,768,220,36,function() local d=s.desktop;d.blankCells=d.blankCells or 6;if d.blankCells<1 then Host.message('Restock blank developmental cells in Cultures.');return end;local cell=require('biology').cell(s,1,E.draft,'Genome Forge',0);cell.name=A.name;s.cells[#s.cells+1]=cell;d.blankCells=d.blankCells-1;Host.message('Genome installed into one blank cell. It is ready in Cultures.') end)
+ button('Use in cell workshop',626,768,220,36,function() local ok,why=E.commit(s,require('biology'));if ok then local dna=s.materials[#s.materials];for _,o in ipairs(s.desktop.objects) do if o.kind=='workstation' then o.config.genomeId=dna.id;o.stored=false;o.visible=true;require('desktop_controls').expand(s,o);break end end;Host.sync() end;Host.message(ok and 'Attach a blank-cell vial and an empty output container to install this DNA.' or why) end)
  button('Incubate exact genome',859,768,220,36,function() result(E.incubate(s,require('biology'))) end)
  button('Export genome',1092,768,145,36,function() result(E.export()) end)
  button('Assembly >',1250,768,140,36,function() A.page='Assembly' end)
@@ -199,7 +185,7 @@ local function records(s,cryobank,research)
   button('Inspect / edit genome copy',625,465,735,35,function() A.openGenome(v) end)
   button('Pin genome comparison',625,516,352,35,function() A.pinned=G.copy(v.genome);Host.message('Genome pinned for comparison.') end)
   if A.pinned then text('Allele similarity: '..string.format('%.1f%%',G.similarity(v.genome,A.pinned)*100),996,525,15,palette.teal) end
-  if cryobank then button('Thaw into cell library',625,576,735,35,function() result(require('biology').thaw(s,A.record)) end) elseif v.type then button('Preserve this cell',625,576,352,35,function() result(require('biology').freeze(s,A.record)) end);button('Extract DNA',996,576,364,35,function() result(require('biology').extract(s,A.record));Host.sync() end) end
+  if cryobank then button('Retrieve into a container...',625,576,735,35,function() require('desktop_supply_menus').destination(s,v.id) end) elseif v.type then button('Preserve this cell',625,576,352,35,function() result(require('biology').freeze(s,A.record)) end);button('Extract DNA',996,576,364,35,function() result(require('biology').extract(s,A.record));Host.sync() end) end
   if v.type then button('Magnified cell inspection',625,632,735,35,function() A.microscope=v end) end
   button('Mutation history & regulation',625,686,735,35,function() A.historyRecord=v;A.historyPage=1;A.page='History' end)
  end

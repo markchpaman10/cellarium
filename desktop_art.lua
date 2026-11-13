@@ -81,7 +81,7 @@ local function instrument(s,o)
  else for i=1,4 do color(.37,.73,.64,.55);love.graphics.circle('fill',48+i*19,110,7);color(.65,.91,.82);love.graphics.circle('line',48+i*19,110,10) end end
  color(.045,.08,.095);love.graphics.circle('fill',195,106,26);color(.62,.76,.77);love.graphics.circle('line',195,106,24);color(.36,.84,.72);love.graphics.line(195,106,208,92)
  for i=1,5 do color(.05,.09,.11);rect('fill',171+i*10,144,4,17,1) end
- tag(o,forge and 'GENOME FORGE' or 'CELL WORKSTATION',forge and 'sequence / assemble / install' or 'culture / prepare / inspect',29,o.h-53,o.w-58)
+ tag(o,forge and 'GENOME FORGE' or 'CELL WORKSTATION',forge and 'sequence / assemble / install' or 'click for cell-processing docks',29,o.h-53,o.w-58)
  color(.32,.94,.63);love.graphics.circle('fill',o.w-35,43,3)
 end
 local envColors={land={.12,.21,.13},freshwater={.08,.28,.31},saltwater={.09,.22,.35}}

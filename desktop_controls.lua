@@ -8,6 +8,7 @@ local function say(o,value) o.config.notice=value;require('desktop_host').messag
 local function result(o,ok,why) say(o,why or (ok and 'Done.' or 'Unavailable.')) end
 function C.isContainer(o) return ({dish=true,flask=true,plate=true,vial=true,cryovial=true,dna=true})[o.kind]==true end
 function C.prepare(o)
+ if o.kind=='workstation' and o.config.workshopUI~=1 then o.config.workshopUI=1;o.config.cell=nil;o.config.vessel=nil;o.config.dna=nil;if o.config.expanded then o.w=1050;o.h=640 end end
  if not C.isContainer(o) or o.config.containerUI==4 then return end
  o.config.containerUI=4;o.config.cell=nil;o.config.source=nil;o.config.sourceType=nil;o.config.vessel=nil;o.config.details=false
  if o.config.expanded then o.w=440;o.h=354 end
@@ -16,7 +17,7 @@ function C.expand(s,o)
  C.prepare(o)
  if o.config.expanded then return end
  o.config.collapsed={w=o.w,h=o.h};o.config.expanded=true
- if o.kind=='forge' then o.w=970;o.h=700 elseif o.kind=='workstation' then o.w=720;o.h=470 else o.w=440;o.h=354 end
+ if o.kind=='forge' then o.w=970;o.h=700 elseif o.kind=='workstation' then o.w=1050;o.h=640 else o.w=440;o.h=354 end
  M.restore(o,require('desktop_host').monitors,true);M.remember(o,require('desktop_host').monitors)
 end
 function C.collapse(s,o)
@@ -63,31 +64,14 @@ function C.draw(s,o)
   for i,operation in ipairs({'duplicate','delete','restore','regulate','splice'}) do button(operation,24+(i-1)*108,505,98,33,function() result(o,E.operation(operation,source)) end) end
   button('Forecast',24,559,144,35,function() local ok,a=pcall(require('anatomy').generate,E.draft,{nutrition=1,temperature=37,minerals=1,oxygen=1});if ok then E.forecast=a;cfg.preview=true;say(o,(a.viable and 'Viable' or 'Nonviable')..' / '..a.caps.locomotion..' / '..#a.regions..' regions') else say(o,tostring(a)) end end)
   button('Archive DNA',180,559,144,35,function() result(o,E.commit(s,B));require('desktop_host').sync() end)
-  button('Install cell',336,559,144,35,function() s.desktop.blankCells=s.desktop.blankCells or 6;if s.desktop.blankCells<1 then say(o,'Restock blank cells at the workstation.');return end;s.cells[#s.cells+1]=B.cell(s,1,E.draft,'Desktop Forge',0);s.desktop.blankCells=s.desktop.blankCells-1;say(o,'Genome installed into one real developmental cell.') end)
+  button('Use in workshop',336,559,144,35,function() local ok,why=E.commit(s,B);if ok then local dna=s.materials[#s.materials];for _,station in ipairs(s.desktop.objects) do if station.kind=='workstation' then station.config.genomeId=dna.id;station.visible=true;station.stored=false;C.expand(s,station);break end end;require('desktop_host').sync() end;say(o,ok and 'Genome sent to workshop. Attach a blank-cell vial and an empty output.' or why) end)
   button('Incubate exact',492,559,144,35,function() result(o,E.incubate(s,B)) end)
   button('Export genome',648,559,144,35,function() result(o,E.export()) end)
   button(cfg.preview==false and 'Show specimen' or 'Hide specimen',804,559,142,35,function() if E.forecast then cfg.preview=cfg.preview==false else say(o,'Run Forecast first.') end end)
-  text('Blank cells: '..(s.desktop.blankCells or 6)..' / changes affect the real developmental expression model.',26,624,13,{.56,.77,.75})
+  text('Install DNA at the cell workshop using an attached blank-cell vial.',26,624,13,{.56,.77,.75})
   if E.forecast and cfg.preview~=false then R.draw({anatomy=E.forecast,caps=E.forecast.caps,maturity=1,alive=true,behavior='Resting',angle=0},760,459,R.fitScale(E.forecast,330,146,2),0,'External') end
  elseif o.kind=='workstation' then
-  cfg.cell=math.max(1,math.min(cfg.cell or 1,math.max(1,#s.cells)));cfg.vessel=math.max(1,math.min(cfg.vessel or 1,#s.vessels));cfg.dna=math.max(1,math.min(cfg.dna or 1,math.max(1,#s.materials)))
-  local cell=s.cells[cfg.cell];local vessel=s.vessels[cfg.vessel];local dna=s.materials[cfg.dna]
-  button(cell and ('Cell #'..cell.id..' / '..B.types[cell.type]..' >') or 'No loose cells',24,80,430,35,function() cfg.cell=cfg.cell%math.max(1,#s.cells)+1 end)
-  button('Collect wild cells',467,80,228,35,function() if #s.cells<180 then B.collect(s) end end)
-  button(vessel and ((vessel.label or V.types[vessel.kind].name)..' #'..vessel.id..' / '..V.count(vessel)..' >') or 'No vessels',24,132,430,35,function() cfg.vessel=cfg.vessel%#s.vessels+1 end)
-  button('Introduce cell',467,132,228,35,function() if vessel then result(o,T.seed(s,vessel.id,cfg.cell)) end end)
-  button('Feed selected culture',24,184,212,35,function() result(o,V.feed(s,cfg.vessel)) end)
-  button('Extract DNA',248,184,212,35,function() result(o,B.extract(s,cfg.cell));require('desktop_host').sync() end)
-  button('Send to Forge',472,184,223,35,function() if cell then openForge(s,cell);say(o,'Cell genome opened in the desktop Forge.') end end)
-  button(dna and ('DNA: '..(dna.name or dna.id)..' >') or 'No archived DNA',24,239,430,35,function() cfg.dna=cfg.dna%math.max(1,#s.materials)+1 end)
-  button('Install into blank cell',467,239,228,35,function() s.desktop.blankCells=s.desktop.blankCells or 6;if not dna then say(o,'Extract or archive a genome first.');return end;if s.desktop.blankCells<1 then say(o,'No blank developmental cells.');return end;s.cells[#s.cells+1]=B.cell(s,1,dna.genome,'Desktop workstation',0);s.desktop.blankCells=s.desktop.blankCells-1;say(o,'DNA installed into one blank cell.') end)
-  button('Buy 6 blanks / 8 credits',24,292,212,35,function() if s.credits>=8 then s.credits=s.credits-8;s.desktop.blankCells=(s.desktop.blankCells or 6)+6;say(o,'Six blank cells restocked.') else say(o,'Not enough credits.') end end)
-  button('Preserve selected cell',248,292,212,35,function() result(o,B.freeze(s,cfg.cell)) end)
-  button('Withdraw cultured cell',472,292,223,35,function() result(o,V.withdraw(s,cfg.vessel)) end)
-  button('Egg precursor',24,346,212,35,function() result(o,B.precursor(s,cfg.cell,'Egg')) end)
-  button('Sperm precursor',248,346,212,35,function() result(o,B.precursor(s,cfg.cell,'Sperm')) end)
-  button('Buy Petri dish / 12',472,346,223,35,function() result(o,V.add(s,1));require('desktop_host').sync() end)
-  text('Blank cells '..(s.desktop.blankCells or 6)..' / credits '..s.credits..' / loose specimens '..#s.cells,26,407,15,{.56,.77,.75})
+  require('cell_workshop_ui').draw(s,o,{text=text,button=button,result=result})
  elseif o.kind=='dna' then
   local dna;for _,record in ipairs(s.materials) do if record.id==o.entityId then dna=record;break end end
   if not dna then text('This vial is unavailable.',26,90,19);return true end
@@ -100,7 +84,7 @@ function C.draw(s,o)
   local vessel=T.vessel(s,o.entityId);if not vessel then text('This container is unavailable.',26,90,19);return true end
   local bucket=vessel.contents[1];local growing=V.types[vessel.kind].growth>0
   text((vessel.label or V.types[vessel.kind].name):sub(1,30),26,82,19)
-  text(bucket and (V.count(vessel)..' / '..V.types[vessel.kind].capacity..' '..B.types[bucket.cell.type]..' cell equivalents') or 'Empty',26,118,17,{.56,.82,.75})
+  text(bucket and (V.count(vessel)..' / '..V.types[vessel.kind].capacity..' '..require('physical_cells').label(bucket.cell)) or 'Empty',26,118,17,{.56,.82,.75})
   text(bucket and (bucket.cell.name or 'Strain '..bucket.cell.strain):sub(1,40) or 'Add a sample using the dropper.',26,152,13)
   text((growing and ('Food '..math.floor(vessel.nutrients*100)..'% / ') or '')..V.timerText(vessel),26,176,12,{.56,.77,.75})
   button(vessel.closed and 'Open cap / lid' or 'Close cap / lid',24,199,392,34,function() local own=T.vessel(s,o.entityId);if own then own.closed=not own.closed end end)
@@ -108,7 +92,7 @@ function C.draw(s,o)
   button('Add held sample',226,245,190,34,function() require('desktop_host').beginDispense(o) end)
   if vessel.kind==5 then button(vessel.frozen and 'Thaw this vial' or 'Freeze this vial',24,293,190,32,function() local own=T.vessel(s,o.entityId);if own then result(o,T.action(s,o.entityId,own.frozen and 'thaw' or 'freeze')) end end)
   elseif growing then button('Add food',24,293,190,32,function() result(o,T.action(s,o.entityId,'feed')) end) end
-  button(cfg.details and 'Less detail' or 'Details',226,293,190,32,function() cfg.details=not cfg.details;o.h=cfg.details and 466 or 354;M.restore(o,require('desktop_host').monitors,true);M.remember(o,require('desktop_host').monitors) end)
+  if bucket and bucket.cell.developmentalCell then button('Begin development',226,293,190,32,function() result(o,require('physical_cells').beginDevelopment(s,o.entityId)) end) else button(cfg.details and 'Less detail' or 'Details',226,293,190,32,function() cfg.details=not cfg.details;o.h=cfg.details and 466 or 354;M.restore(o,require('desktop_host').monitors,true);M.remember(o,require('desktop_host').monitors) end) end
   if cfg.details then
    text(require('units').temperature(vessel.temperature or 37)..' / nutrients '..math.floor(vessel.nutrients*100)..'%',26,342,13,{.56,.77,.75})
    text('Health '..math.floor((vessel.health or 1)*100)..'% / contamination '..string.format('%.1f%%',vessel.contamination*100),26,370,13,{.56,.77,.75})

@@ -26,7 +26,7 @@ function V.add(s,kind,free)
 end
 local function count(v) local n=0;for _,b in ipairs(v.contents) do n=n+b.count end;return n end
 V.count=count
-local function compatible(a,b) return a.type==b.type and require('persistence').encode(a.genome)==require('persistence').encode(b.genome) end
+local function compatible(a,b) return a.type==b.type and a.sampleKind==b.sampleKind and a.gameteId==b.gameteId and require('persistence').encode(a.genome)==require('persistence').encode(b.genome) end
 function V.transfer(s,source,destination,amount)
  local v=s.vessels[destination];if not v or v.frozen then return false,'Select an unfrozen vessel.' end
  local cell=type(source)=='number' and s.cells[source] or source
@@ -43,6 +43,7 @@ function V.transfer(s,source,destination,amount)
  return true,'Transferred into '..V.types[v.kind].name..'.'
 end
 function V.withdraw(s,index)
+ if s.desktop and s.desktop.physicalStockVersion then return false,'Use the dropper to move cells between physical containers.' end
  local v=s.vessels[index];if not v or v.frozen or #v.contents==0 then return false,'No accessible cells.' end
  local b=v.contents[1];local c=G.copy(b.cell);c.id=id(s);s.cells[#s.cells+1]=c;b.count=b.count-1
  if b.count==0 then v.contents={};v.progress=0 end
@@ -51,11 +52,12 @@ end
 function V.freeze(s,index)
  local v=s.vessels[index];if not v or v.kind~=5 or count(v)==0 then return false,'Freeze a filled cryovial.' end
  if v.frozen then return false,'Already frozen.' end
- v.frozen=true;return true,'Whole cryovial frozen.'
+ v.frozen=true;for _,b in ipairs(v.contents) do if b.cell.gameteId then local h=require('physical_cells').gamete(s,b.cell.gameteId);if h then h.frozen=true end end end;return true,'Whole cryovial frozen.'
 end
 function V.thaw(s,index)
  local v=s.vessels[index];if not v or not v.frozen then return false,'Select a frozen cryovial.' end
  v.frozen=false
+ for _,b in ipairs(v.contents) do if b.cell.gameteId then local h=require('physical_cells').gamete(s,b.cell.gameteId);if h then h.frozen=false end end end
  for _,b in ipairs(v.contents) do b.cell.viability=math.max(0,b.cell.viability*.96) end
  return true,'Cryovial thawed; viability assessed.'
 end
@@ -69,6 +71,8 @@ function V.growthInfo(v)
  local def=V.types[v.kind];local n=count(v);local b=v.contents[1]
  if v.frozen then return {status='Frozen'} end
  if not b or n<=0 then return {status='Empty'} end
+ if b.cell.sampleKind=='blank' then return {status='Blank cell / awaiting DNA installation'} end
+ if b.cell.sampleKind=='gamete' then return {status=(b.cell.gameteKind or 'Gamete')..((b.cell.gameteProgress or 0)>=1 and ' / mature' or ' / maturing')} end
  if def.growth==0 then return {status='Stored sample'} end
  if n>=def.capacity then return {status='Full'} end
  if (v.nutrients or 0)<.025 then return {status='Needs food'} end
@@ -125,7 +129,7 @@ end
 function V.sellVessel(s,index)
  local v=s.vessels[index];if not v then return false,'Select a vessel.' end
  if v.contamination>.2 then return false,'Contaminated cultures require disposal.' end
- local n=count(v);local price=math.floor(V.types[v.kind].price*.4)+n*2
+ local n=count(v);local price=math.floor(V.types[v.kind].price*.4)+n*2;if v.suppliedCellPurchase then price=math.min(price,1) end
  table.remove(s.vessels,index);s.credits=(s.credits or 0)+price
  return true,'Vessel and contents sold for '..price..' credits.'
 end

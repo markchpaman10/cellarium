@@ -1,0 +1,27 @@
+PASS New physical-stock session starts with zero ordinary, blank or frozen cells
+PASS Each ordinary and blank purchase costs one credit and supplies exactly one cell in its own vial
+PASS Insufficient-credit purchase leaves money, IDs and stock unchanged
+PASS Separately purchased containers are empty
+PASS One-credit supplied vials cannot be immediately resold for a profit or withdrawn into new free packaging
+PASS Docking is exclusive ID-based attachment and never copies biological contents
+PASS Empty input and populated output are rejected without replacing another attachment
+PASS DNA extraction archives exact DNA, retains source and writes only to this workshop terminal
+PASS DNA extraction works without an output container because its result is an archive record
+PASS Blank/haploid inputs cannot be used as ordinary DNA extraction sources
+PASS Installation consumes exactly one physical blank and outputs one cell with exact selected DNA
+PASS Missing genome/output, wrong input and closed/frozen containers cannot consume cells
+PASS Egg preparation consumes one stem and creates one physical precursor linked to actual haploid genetics
+PASS Sperm preparation and eight-minute maturation use the real PC-rate biological update
+PASS Unsuitable cell type and poor viability reject preparation without creating or consuming stock
+PASS Blank cells and haploid precursors cannot multiply as ordinary cultures
+PASS Freeze loaded dropper contents conserves quantity and leaves the physical dropper usable
+PASS Frozen storage stops gamete maturation; retrieval resumes in the chosen container
+PASS Rejected frozen retrieval preserves the stored sample and target contents
+PASS Frozen packet and attached container IDs survive save/load and restore without duplicates
+PASS Existing loose and blank stock migrates once into physical vials without loss
+PASS Existing gamete-bank records gain physical vials without changing haploid alleles
+PASS Physical fertilization consumes the actual egg/sperm records and removes emptied specimen vessels
+PASS Installed cell begins existing incubation from its own container and is consumed once
+PASS Docked group movement and negative-coordinate monitor layout preserve fixed attachment identities
+PASS Direct workshop UI and taskbar purchase/frozen menus expose only the agreed functions
+26 groups executed; 0 failures.
