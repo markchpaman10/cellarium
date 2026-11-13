@@ -92,6 +92,64 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
  local external=on('External') or on('Skin');if external and o.alive and o.behavior and o.behavior~='Resting' then a=require('anatomical_rendering').pose(a,t or 0) end;local tint=require('rendering_legacy').pigment(a.pigment)
  love.graphics.push('all');love.graphics.translate(x,y);if top then love.graphics.rotate(o.angle or 0) end;love.graphics.scale(scale)
  require('tissue_surface').draw(a,tint,top,external and 1 or .09)
+ -- Joint cartilage is rendered FIRST, behind all bones. Only small
+ -- pads at true articulated anchors are drawn; no broad blue overlays.
+ if on('Skeleton') then
+  for _,j in ipairs(a.joints) do
+   if (j.growth or 0)>.02 then
+    local parent=a.components[j.parent]
+    local child=a.components[j.child]
+    if parent and child and parent.volume>0 and child.volume>0 then
+     local x,y=point(j,top)
+     local px,py=point(parent,top)
+     local cx,cy=point(child,top)
+     local dx,dy=cx-px,cy-py
+     local dist=math.sqrt(dx*dx+dy*dy)
+     if dist>.001 then
+      dx,dy=dx/dist,dy/dist
+     else
+      dx,dy=1,0
+     end
+     local nx,ny=-dy,dx
+     -- The pad width is limited by the smaller supporting bone, not
+     -- the overall body-region width.
+     local boneWidth=math.min(parent.thickness or .1,child.thickness or .1)
+     local halfWidth=math.max(.10,math.min(.38,boneWidth*6))
+     local halfGap=math.max(.08,math.min(.20,halfWidth*.45))
+     local growth=math.min(1,j.growth or 0)
+     love.graphics.setColor(.48,.59,.54,.68)
+     love.graphics.polygon('fill',
+      x-dx*halfGap-nx*halfWidth*growth,y-dy*halfGap-ny*halfWidth*growth,
+      x+dx*halfGap-nx*halfWidth*growth,y+dy*halfGap-ny*halfWidth*growth,
+      x+dx*halfGap+nx*halfWidth*growth,y+dy*halfGap+ny*halfWidth*growth,
+      x-dx*halfGap+nx*halfWidth*growth,y-dy*halfGap+ny*halfWidth*growth)
+    end
+   end
+  end
+  -- Intervertebral discs occupy the gap between consecutive axial
+  -- bone paths. Do not use component centers: those are not disc sites.
+  for _,c in ipairs(a.components) do
+   local name=c.anatomicalName or ''
+   if c.volume>0 and (name:match('^vertebra %d+$') or name:match('^cervical segment %d+$')) then
+    local p=c.parent and a.components[c.parent]
+    local pname=p and p.anatomicalName or ''
+    if p and (pname:match('^vertebra %d+$') or pname:match('^cervical segment %d+$'))
+      and p.regionId==c.regionId and p.path and c.path
+      and #p.path>0 and #c.path>0 then
+     local ax,ay=point(p.path[#p.path],top)
+     local bx,by=point(c.path[1],top)
+     local dx,dy=bx-ax,by-ay
+     local distance=math.sqrt(dx*dx+dy*dy)
+     local thickness=math.max(.12,math.min(.36,math.min(p.thickness or .1,c.thickness or .1)*6))
+     if distance<math.max(2,thickness*6) then
+      love.graphics.setColor(.47,.59,.53,.78)
+      love.graphics.setLineWidth(thickness*1.6)
+      love.graphics.line(ax,ay,bx,by)
+     end
+    end
+   end
+  end
+ end
  for _,c in ipairs(a.components) do if c.volume>.0000000001 then
   local xx,yy=point(c,top);local color=colors[c.type] or {.58,.69,.71};local isSupport=c.type=='Bone' or c.type=='Support' or c.type=='Carapace'
   if on('Skeleton') and isSupport then
@@ -106,29 +164,6 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
      or name=='orbital rim'
      or name=='paired distal support'
    if top or not transverse then
-    -- Small intervertebral discs sit behind the ivory bone surfaces.
-    if name:match('^vertebra %d+$') or name:match('^cervical segment %d+$') then
-     local previous=c.parent and a.components[c.parent]
-     local previousName=previous and previous.anatomicalName or ''
-     if previous and (previousName:match('^vertebra %d+$') or previousName:match('^cervical segment %d+$')) then
-      local ax,ay=point(previous,top)
-      local bx,by=point(c,top)
-      local vx,vy=bx-ax,by-ay
-      local dist=math.sqrt(vx*vx+vy*vy)
-      if dist>.05 and dist<math.max(3,(c.length or 1)*4) then
-       local ux,uy=vx/dist,vy/dist
-       local nx,ny=-uy,ux
-       local radius=math.max(.12,math.min(.65,(c.thickness or .1)*4))
-       local mx,my=(ax+bx)*.5,(ay+by)*.5
-       love.graphics.setColor(.38,.55,.53,.78)
-       love.graphics.polygon('fill',
-        mx-ux*.20-nx*radius,my-uy*.20-ny*radius,
-        mx+ux*.20-nx*radius,my+uy*.20-ny*radius,
-        mx+ux*.20+nx*radius,my+uy*.20+ny*radius,
-        mx-ux*.20+nx*radius,my-uy*.20+ny*radius)
-      end
-     end
-    end
     boneShape(c.path or {},top,math.max(.55,(c.thickness or .1)*23),color)
     if c.parent then
      local p=a.components[c.parent]
@@ -153,47 +188,6 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
  if on('Nervous') then for _,n in ipairs(a.nerves) do if (n.growth or 1)>.01 then local p,q=a.components[n.from],a.components[n.to];local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.74,.53,.97,.9);love.graphics.setLineWidth(.35+math.min(.45,n.efficiency*.5));love.graphics.line(px,py,(px+qx)/2,(py+qy)/2,qx,qy) end end end
  if on('Organs') then for _,v in ipairs(a.vessels) do local p,q=a.components[v.from],a.components[v.to];if p.growth>.01 and q.growth>.01 then local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.82,.22,.27,.5);love.graphics.setLineWidth(.4);love.graphics.line(px,py,qx,qy) end end end
  if external then for _,c in ipairs(a.surfaces) do local r=a.regions[c.regionId];if c.growth>.01 then local host=a.regions[r.parent or r.id];local xx,yy=point(r,top);local px,py=point(host,top);love.graphics.setColor(.42,.75,.73,.35);love.graphics.polygon('fill',px,py,xx,yy,xx+math.sin(r.orientation)*r.width,yy-math.cos(r.orientation)*r.width) end end end
- if on('Skeleton') then
-  -- Draw cartilage at the existing anatomical joint anchors. These are
-  -- connective tissues, not extra bones or decorative orange debug rings.
-  -- Growth and joint positions are inherited from the anatomy simulation.
-  for _,j in ipairs(a.joints) do
-   if j.growth>.02 then
-    local child=a.regions[j.partId]
-    local parent=child and child.parent and a.regions[child.parent]
-    if child and parent then
-     local x,y=point(j,top)
-     local cx,cy=point(child,top)
-     local px,py=point(parent,top)
-     local dx,dy=cx-px,cy-py
-     local length=math.sqrt(dx*dx+dy*dy)
-     if length<.0001 then dx,dy=1,0 else dx,dy=dx/length,dy/length end
-     local nx,ny=-dy,dx
-     local w=math.max(.12,math.min(.75,math.min(child.width or 1,parent.width or 1)*.065*j.growth))
-     local depth=math.max(.12,w*.50)
-     -- Flexible cartilage bridge with softly rounded articular ends.
-     love.graphics.setColor(.25,.41,.42,.50)
-     love.graphics.polygon('fill',
-       x-dx*depth-nx*w, y-dy*depth-ny*w,
-       x+dx*depth-nx*w, y+dy*depth-ny*w,
-       x+dx*depth+nx*w, y+dy*depth+ny*w,
-       x-dx*depth+nx*w, y-dy*depth+ny*w)
-     love.graphics.setColor(.46,.64,.64,.68)
-     love.graphics.ellipse('fill',x,y,depth,w)
-     love.graphics.setColor(.76,.84,.78,.35)
-     love.graphics.setLineWidth(math.max(.10,w*.15))
-     love.graphics.line(x-nx*w*.75,y-ny*w*.75,x+nx*w*.75,y+ny*w*.75)
-     -- Paired ligament edges retain a visual link without obscuring bone.
-     love.graphics.setColor(.65,.69,.59,.38)
-     love.graphics.setLineWidth(math.max(.12,w*.16))
-     for side=-1,1,2 do
-      love.graphics.line(x-dx*depth*1.4+nx*w*side,y-dy*depth*1.4+ny*w*side,
-        x+dx*depth*1.4+nx*w*side,y+dy*depth*1.4+ny*w*side)
-     end
-    end
-   end
-  end
- end
  if selected and a.regions[selected] then local r=a.regions[selected];love.graphics.setColor(.3,.95,.8,.9);love.graphics.setLineWidth(.5);love.graphics.line(r.x-4,r.y,r.x+4,r.y);love.graphics.line(r.x,r.y-4,r.x,r.y+4) end
  love.graphics.pop()
 end
