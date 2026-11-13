@@ -8,6 +8,7 @@ extern vec4 bodyBounds;
 extern vec3 pigment;
 extern float alpha;
 float covering;
+float patternType;
 float field(vec2 p) {
  float d=100000.0;
  for(int i=0;i<1024;i++) { if(i>=spanCount) break;
@@ -16,7 +17,7 @@ float field(vec2 p) {
   float r=mix(span.z,tip.z,t);
   float n=length(p-a-t*ab)-r;
   float k=min(2.4,r*.42);float h=max(k-abs(d-n),0.0)/max(.00001,k);
-  if(n<d) covering=span.w;d=min(d,n)-h*h*k*.25;
+  if(n<d) { covering=span.w;patternType=tip.w; } d=min(d,n)-h*h*k*.25;
  }
  return d;
 }
@@ -25,12 +26,32 @@ vec4 effect(vec4 color,Image tex,vec2 uv,vec2 screen) {
  float coverage=1.0-smoothstep(-.4,.4,d);if(coverage<=0.0) discard;
  float normal=field(p+vec2(0.0,-.7))-field(p+vec2(0.0,.7));
  float light=.76+normal*.13;float edge=smoothstep(-1.8,-.3,d);
- float plate=armor>.28 ? step(.76,fract((p.x+floor(p.y/3.0)*2.0)/5.0))*.12*armor : 0.0;vec3 c=pigment*light*(1.0-edge*.34-plate);
+ float plate=0.0;
+ if(armor>.16 && patternType>.5) {
+  if(patternType>1.5) {
+   vec2 cell=vec2(p.x/5.0+mod(floor(p.y/4.0),2.0)*.5,p.y/4.0);
+   vec2 local=abs(fract(cell)-.5);
+   float seam=step(.46,max(local.x,local.y));
+   plate=seam*.24*armor;
+  } else {
+   vec2 cell=vec2(p.x/2.6+mod(floor(p.y/2.4),2.0)*.5,p.y/2.4);
+   vec2 local=abs(fract(cell)-.5);
+   float rim=smoothstep(.31,.47,length(local));
+   plate=rim*.13*armor;
+  }
+ }
+ vec3 c=pigment*light*(1.0-edge*.34-plate);
  return vec4(c,coverage*alpha)*color;
 }
 ]]
 function M.geometry(a,top)
- local spans,tips={},{};local byRegion={};local armor={};for _,c in ipairs(a.skin) do if c.surface=='dorsal' then armor[c.regionId]=(c.armor or 0)*c.condition end end
+ local spans,tips={},{};local byRegion={};local armor={};local covering={}
+ for _,c in ipairs(a.skin) do
+  if c.surface=='dorsal' then
+   armor[c.regionId]=(c.armor or 0)*(c.condition or 1)
+   covering[c.regionId]=c.covering=='plates' and 2 or c.covering=='scales' and 1 or 0
+  end
+ end
  local function add(x,y,bx,by,ra,rb,armor,depth) if #spans>=1024 then return end;spans[#spans+1]={x,y,math.max(.00001,ra),armor or 0};tips[#tips+1]={bx,by,math.max(.00001,rb),depth or 0} end
  for _,r in ipairs(a.regions) do
   local volume=0;for _,v in pairs(r.tissues) do volume=volume+v end
@@ -39,7 +60,7 @@ function M.geometry(a,top)
    local x,y=r.cx,top and r.cy or -r.cz;local angle=top and r.start and r.finish and math.atan2(r.finish.y-r.start.y,r.finish.x-r.start.x) or top and 0 or r.orientation
    local extent=r.length*.34;if top and r.start and r.finish then extent=math.sqrt((r.finish.x-r.start.x)^2+(r.finish.y-r.start.y)^2)*.34 end
    local dx,dy=math.cos(angle)*extent,math.sin(angle)*extent;local taper=r.partType=='claw' or r.partType=='tail' or r.partType=='horn' or r.partType=='spike'
-   add(x-dx,y-dy,x+dx,y+dy,radius,radius*(taper and .15 or r.partType=='snout' and .55 or .9),armor[r.id] or 0,r.cy);byRegion[r.id]={x=x,y=y,radius=radius}
+   add(x-dx,y-dy,x+dx,y+dy,radius,radius*(taper and .15 or r.partType=='snout' and .55 or .9),armor[r.id] or 0,covering[r.id] or 0);byRegion[r.id]={x=x,y=y,radius=radius}
    local parent=r.parent and byRegion[r.parent]
    if parent then
     local at=r.attachment or {x=0,y=0,z=0}

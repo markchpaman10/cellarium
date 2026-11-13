@@ -146,7 +146,8 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
  end end
  if on('Nervous') then TissuePaths.draw(a,a.nerves,top,'nerve') end
  if on('Organs') then TissuePaths.draw(a,a.vessels,top,'vessel') end
- if external then for _,c in ipairs(a.surfaces) do local r=a.regions[c.regionId];if c.growth>.01 then local host=a.regions[r.parent or r.id];local xx,yy=point(r,top);local px,py=point(host,top);love.graphics.setColor(.42,.75,.73,.35);love.graphics.polygon('fill',px,py,xx,yy,xx+math.sin(r.orientation)*r.width,yy-math.cos(r.orientation)*r.width) end end end
+ -- Membranes and fins are not rendered as arbitrary translucent
+ -- triangles. Their future mesh must follow real edge attachments.
  if selected and a.regions[selected] then local r=a.regions[selected];love.graphics.setColor(.3,.95,.8,.9);love.graphics.setLineWidth(.5);love.graphics.line(r.x-4,r.y,r.x+4,r.y);love.graphics.line(r.x,r.y-4,r.x,r.y+4) end
  love.graphics.pop()
 end
