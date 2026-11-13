@@ -20,8 +20,10 @@ end
 function W.install(s,id)
  local input,output,why=D.validatePair(s,id);if not input then return finish(s,id,false,why) end
  local cell=input.contents[1].cell;if cell.sampleKind~='blank' then return finish(s,id,false,'DNA installation requires a purchased blank developmental cell in the input container.') end
- local genomeId=D.station(s,id).config.genomeId;local dna;for _,record in ipairs(s.materials) do if record.id==genomeId then dna=record;break end end
- if not dna or not G.valid(dna.genome) then return finish(s,id,false,'Select a valid archived genome on the workshop.') end
+ local station=D.station(s,id);local dna
+ if station.config.docks.dna then dna=D.dna(s,id);if not dna then return finish(s,id,false,'The attached DNA vial is unavailable. Detach it or attach a valid DNA vial.') end
+ else for _,record in ipairs(s.materials) do if record.id==station.config.genomeId then dna=record;break end end end
+ if not dna or not G.valid(dna.genome) then return finish(s,id,false,'Attach a DNA vial to the purple DNA dock, or choose an archived genome.') end
  local result=B.cell(s,1,G.copy(dna.genome),'Workshop DNA '..dna.id,0);result.developmentalCell=true;output.contents={{cell=result,count=1}};consume(input)
  return finish(s,id,true,'One blank cell consumed. Installed cell delivered to container #'..output.id..'.')
 end

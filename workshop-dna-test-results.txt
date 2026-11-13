@@ -1,0 +1,6 @@
+PASS Dropping DNA onto a collapsed machine opens a separate DNA dock without replacing its cell input
+PASS Physical attached DNA installs its exact genome and consumes only the blank cell
+PASS Occupied DNA docks and wrong or unavailable records reject without changing attachments or cells
+PASS DNA dock references and exact genome survive save/load and detach cleanly
+PASS DNA dock is visible in the real workshop controls and can be detached directly
+5 checks; 0 failures.

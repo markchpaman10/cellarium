@@ -51,10 +51,10 @@ end
 local function flask(s,o)
  local v=T.vessel(s,o.entityId);local pts={59,33,91,33,94,76,137,177,132,197,18,197,13,177,56,76}
  color(.27,.53,.61,.24);love.graphics.polygon('fill',pts);color(.7,.88,.94,.8);love.graphics.setLineWidth(2);love.graphics.polygon('line',pts)
- local pop=v and V.count(v) or 0;color(.27,.65,.46,.6);love.graphics.polygon('fill',27,153,121,153,135,178,129,192,21,192,17,178)
+ local pop=v and V.count(v) or 0;if pop>0 then color(.27,.65,.46,.6);love.graphics.polygon('fill',27,153,121,153,135,178,129,192,21,192,17,178) end
  for i=1,pop do color(.8,.91,.57,.35);love.graphics.circle('fill',31+i*19%88,163+i*13%23,2) end
  steel(52,18,45,24,5);color(1,1,1,.5);love.graphics.line(54,82,25,176)
- tag(o,v and v.label or 'CULTURE '..o.entityId,pop..' / 32 cell eq.',14,121,122)
+ tag(o,v and v.label or 'CULTURE '..o.entityId,(pop==0 and 'Empty / 0 cells' or pop..' / 32 cell eq.'),14,121,122)
 end
 local function plate(s,o)
  local v=T.vessel(s,o.entityId);glass(12,17,216,126,13)
@@ -71,8 +71,9 @@ local function dropper(s,o)
  label(p.sample and 'LOADED' or (p.clean and 'STERILE' or 'USED'),18,222,9,p.sample and {.55,1,.7,1} or {.6,.76,.77,1})
 end
 local function rack(o)
- steel(8,44,302,55,9);for i=1,8 do color(.025,.04,.045);love.graphics.ellipse('fill',20+i*32,54,12,7);color(.52,.67,.69);love.graphics.ellipse('line',20+i*32,54,12,7) end
- color(.13,.22,.24);rect('fill',23,86,13,23,3);rect('fill',280,86,13,23,3);label('CELLARIUM / SAMPLE RACK',32,71,11)
+ local Rack=require('desktop_rack');steel(8,44,o.w-16,64,9)
+ for i=1,Rack.capacity do local x=Rack.padding+(i-1)*(o.config.slotSpacing or Rack.spacing);color(.025,.04,.045);love.graphics.ellipse('fill',x,Rack.slotY,24,9);color(.52,.67,.69);love.graphics.ellipse('line',x,Rack.slotY,24,9) end
+ color(.13,.22,.24);rect('fill',23,100,13,25,3);rect('fill',o.w-40,100,13,25,3);label('CELLARIUM / SAMPLE RACK',32,88,11)
 end
 local function instrument(s,o)
  local forge=o.kind=='forge';steel(13,44,o.w-26,o.h-59,13);steel(22,22,o.w-44,42,9)

@@ -44,6 +44,8 @@ local function loadSave()
  msg('Save could not load: '..tostring(why));return false
 end
 function love.load()
+ for _,v in ipairs(arg or {}) do if v=='--workshop-dna-test' then local ok,r=xpcall(function() return require('workshop_dna_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
+ for _,v in ipairs(arg or {}) do if v=='--equipment-test' then local ok,r=xpcall(function() return require('equipment_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
  for _,v in ipairs(arg or {}) do if v=='--growth-source-test' then local ok,r=xpcall(function() require('growth_lab_smoke');require('growth_lab_validate');return 'Upstream growth source checks passed.' end,debug.traceback);local root=love.filesystem.isFused() and love.filesystem.getSourceBaseDirectory() or love.filesystem.getSource();local f=assert(io.open(root..'/growth-source-test-results.txt','wb'));f:write(tostring(r));f:close();print(r);love.event.quit(ok and 0 or 1);return end end
  for _,v in ipairs(arg or {}) do if v=='--growth-integration-test' then local ok,r=xpcall(function() return require('growth_integration_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end
  for _,v in ipairs(arg or {}) do if v=='--workshop-test' then local ok,r=xpcall(function() return require('workshop_tests').run() end,debug.traceback);print(r);love.event.quit(ok and 0 or 1);return end end

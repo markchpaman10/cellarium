@@ -9,13 +9,18 @@ function UI.draw(s,o,ui)
   if not v then text(slot=='input' and 'Must contain a cell.' or 'Must be empty.',r.x+26,r.y+150,14,{.6,.73,.73}) end
   if v then text(v.contents[1] and F.label(v.contents[1].cell) or 'Ready for processed cells',r.x+10,r.y+r.h-28,12,{.7,.84,.82});button('Detach '..slot..' container',r.x,474,r.w,35,function() D.detach(s,object.id);W.log(s,o.id,'Container #'..v.id..' detached; contents unchanged.') end) end
  end
- love.graphics.setColor(.015,.033,.035);love.graphics.rectangle('fill',282,86,486,225,8);love.graphics.setColor(.22,.45,.4);love.graphics.rectangle('line',282.5,86.5,485,224,8)
+ love.graphics.setColor(.015,.033,.035);love.graphics.rectangle('fill',282,86,334,225,8);love.graphics.setColor(.22,.45,.4);love.graphics.rectangle('line',282.5,86.5,333,224,8)
  text('CELL WORKSHOP / TERMINAL',298,101,14,{.48,.92,.7});text('No cell inventory inside this machine.',298,126,12,{.48,.66,.61})
  local entries=o.config.terminal or {'Attach a cell container to INPUT.','Attach an empty container to OUTPUT.','Extraction archives DNA and keeps its source.','Installation and precursor prep use one input cell.'}
- local row=0;for i=1,#entries do local _,wrapped=love.graphics.getFont():getWrap('> '..tostring(entries[i]),450);for _,line in ipairs(wrapped) do if row<6 then text(line,298,155+row*23,12,{.52,.88,.69});row=row+1 end end;if row>=6 then break end end
+ local row=0;for i=1,#entries do local _,wrapped=love.graphics.getFont():getWrap('> '..tostring(entries[i]),300);for _,line in ipairs(wrapped) do if row<6 then text(line,298,155+row*23,12,{.52,.88,.69});row=row+1 end end;if row>=6 then break end end
+ local dnaRecord,dnaObject=D.dna(s,o.id);local r=slots.dna
+ love.graphics.setColor(.075,.07,.12);love.graphics.rectangle('fill',r.x,r.y,r.w,r.h,8);love.graphics.setColor(.69,.48,.89);love.graphics.rectangle('line',r.x+.5,r.y+.5,r.w-1,r.h-1,8)
+ text('DNA',r.x+9,r.y+10,13,{.79,.65,.95})
+ if dnaObject then button('Detach',r.x+76,r.y+6,54,23,function() D.detach(s,dnaObject.id);W.log(s,o.id,'DNA vial detached; archived genome retained.') end)
+ else text('DROP DNA VIAL\nON THE MACHINE',r.x+9,r.y+81,11,{.73,.65,.84}) end
  button('Extract DNA to genome archive',285,330,480,39,function() run(function() return W.extract(s,o.id) end) end)
- local dna;for _,record in ipairs(s.materials) do if record.id==o.config.genomeId then dna=record;break end end
- button(dna and ('DNA #'..dna.id..': '..(dna.name or 'Archived genome')..' / choose') or 'Choose an archived genome...',285,382,480,35,function() require('desktop_supply_menus').genome(s,o) end)
+ local dna=dnaRecord;for _,record in ipairs(s.materials) do if record.id==o.config.genomeId then if not dna then dna=record end;break end end
+ button(dna and ((dnaObject and 'Attached DNA #' or 'DNA #')..dna.id..': '..(dna.name or 'Archived genome')..(dnaObject and '' or ' / choose')) or 'Choose an archived genome...',285,382,480,35,function() if dnaObject then W.log(s,o.id,'Using attached DNA vial #'..dnaObject.entityId..'. Detach it to choose another archive record.') else require('desktop_supply_menus').genome(s,o) end end)
  button('Install selected DNA / uses 1 blank cell',285,430,480,39,function() run(function() return W.install(s,o.id) end) end)
  button('Prepare egg / uses 1 stem cell',285,485,233,43,function() run(function() return W.precursor(s,o.id,'Egg') end) end)
  button('Prepare sperm / uses 1 stem cell',532,485,233,43,function() run(function() return W.precursor(s,o.id,'Sperm') end) end)

@@ -1,0 +1,9 @@
+PASS Eight vial windows and their labels fit in separate rack slots
+PASS Mixed DPI, vial scale and rack scale preserve nonoverlapping alignment
+PASS Rack snapping uses exclusive nearest free slots and rejects a ninth vial
+PASS Old narrow racks and duplicate saved slots migrate without losing vial identities or contents
+PASS Rack depth groups keep all vials above the rack while moving together
+PASS Dragging a racked vial out detaches it instead of snapping back
+PASS Empty flasks render clear glass; adding a real cell draws suspension; emptying removes it
+PASS Render full-width eight-vial rack and empty/occupied flasks
+8 checks; 0 failures.

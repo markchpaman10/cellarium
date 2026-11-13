@@ -14,6 +14,7 @@ function C.prepare(o)
  if o.config.expanded then o.w=440;o.h=354 end
 end
 function C.expand(s,o)
+ if o.config.rack then require('desktop_rack').detach(o) end
  C.prepare(o)
  if o.config.expanded then return end
  o.config.collapsed={w=o.w,h=o.h};o.config.expanded=true

@@ -114,7 +114,7 @@ function Host.event(e)
  elseif o then
   local monitor=M.monitorAt(Host.monitors,o.x,o.y);local factor=o.scale*monitor.dpi/96;local x,y=(e.x or 0)/factor,(e.y or 0)/factor
   if e.type=='down' then local control=require('desktop_controls').hit(o,x,y);Host.pressed={id=o.id,x=e.cursor.x,y=e.cursor.y,moved=false,control=control};s.desktop.selectedObject=o.id;s.desktop.tool=nil;if not control and not M.beginDrag(o,e.cursor) then Host.message('Position is locked. Right-click and choose Unlock position.') end
-  elseif e.type=='move' and Host.pressed and Host.pressed.id==o.id then if math.abs(e.cursor.x-Host.pressed.x)+math.abs(e.cursor.y-Host.pressed.y)>5 then Host.pressed.moved=true end;if o.drag and Host.pressed.moved then if o.config.workshop then require('workshop_docking').detach(s,o.id) end;M.drag(o,e.cursor);Native.move(Host.windows[o.id],o.x,o.y);if o.kind=='workstation' then require('workshop_docking').layout(s,o,Host.monitors);for _,child in ipairs(s.desktop.objects) do if child.config.workshop==o.id and Host.windows[child.id] then Native.move(Host.windows[child.id],child.x,child.y) end end end end
+  elseif e.type=='move' and Host.pressed and Host.pressed.id==o.id then if math.abs(e.cursor.x-Host.pressed.x)+math.abs(e.cursor.y-Host.pressed.y)>5 then Host.pressed.moved=true end;if o.drag and Host.pressed.moved then if o.config.workshop then require('workshop_docking').detach(s,o.id) end;if o.config.rack then require('desktop_rack').detach(o) end;M.drag(o,e.cursor);Native.move(Host.windows[o.id],o.x,o.y);if o.kind=='workstation' then require('workshop_docking').layout(s,o,Host.monitors);for _,child in ipairs(s.desktop.objects) do if child.config.workshop==o.id and Host.windows[child.id] then Native.move(Host.windows[child.id],child.x,child.y) end end end end
   elseif e.type=='up' then
    local pressed=Host.pressed;Host.pressed=nil;M.endDrag(o,Host.monitors)
    if pressed and pressed.control then local current=require('desktop_controls').hit(o,x,y);if not pressed.moved and current and current.id==pressed.control.id then if not require('realtime').sync(s,require('biology').update) then Host.message('Synchronizing elapsed PC time. Please wait before changing biology.') else pressed.control.fn() end;Host.render(true) end
@@ -124,7 +124,7 @@ function Host.event(e)
     if target then Host.beginDispense(target) end
    elseif require('desktop_controls').isContainer(o) then
     local hit,ok,why=require('workshop_docking').drop(s,o,e.cursor,Host.monitors);if hit then Host.message(why);Host.render(true);return end
-    if o.kind=='vial' or o.kind=='cryovial' or o.kind=='dna' then for _,rack in ipairs(s.desktop.objects) do if rack.kind=='rack' then local rw,rh=M.dimensions(rack,M.monitorAt(Host.monitors,rack.x,rack.y));if e.cursor.x>=rack.x and e.cursor.x<rack.x+rw and e.cursor.y>=rack.y and e.cursor.y<rack.y+rh then o.config.rack=rack.id;o.config.slot=math.max(1,math.min(8,math.floor((e.cursor.x-rack.x)/rw*8)+1));break else o.config.rack=nil end end end end
+    local rackHit,_,rackMessage=require('desktop_rack').drop(s,o,e.cursor,Host.monitors);if rackHit then Host.message(rackMessage);Host.render(true) end
    end
   elseif e.type=='objectMenu' then
    if Host.pressed then local moving=M.find(s,Host.pressed.id);if moving then M.endDrag(moving,Host.monitors) end;Host.pressed=nil end;Native.endPointer();s.desktop.tool=nil;Host.objectMenu(o)
@@ -133,6 +133,7 @@ function Host.event(e)
 end
 function Host.render(force)
  local s=Host.state();if not s or not s.desktop then return end
+ require('desktop_rack').layoutAll(s,Host.monitors)
  for _,station in ipairs(s.desktop.objects) do if station.kind=='workstation' then require('workshop_docking').layout(s,station,Host.monitors) end end
  local stack={}
  for _,o in ipairs(require('desktop_depth').ordered(s)) do local win=Host.windows[o.id]
@@ -154,7 +155,7 @@ function Host.update(dt)
  if Host.pressed and not Host.testing then
   local o=M.find(s,Host.pressed.id);if o then local cursor,held=Native.pointer();local event={type=held and 'move' or 'up',id=o.id,cursor=cursor,x=cursor.x-o.x,y=cursor.y-o.y};Host.event(event);if not held then Native.endPointer() end else Host.pressed=nil;Native.endPointer() end
  end
- for _,o in ipairs(d.objects) do if o.config.rack and not o.drag then local rack=M.find(s,o.config.rack);if rack and M.isVisible(d,rack) then local f=rack.scale*(M.monitorAt(Host.monitors,rack.x,rack.y).dpi/96);o.x=rack.x+(22+(o.config.slot or 1)*32)*f-47*o.scale;o.y=rack.y+53*f-160*o.scale end end end
+ require('desktop_rack').layoutAll(s,Host.monitors)
  for _,o in ipairs(d.objects) do if o.kind=='organism' and not o.drag then for _,v in ipairs(s.organisms) do if v.id==o.entityId and v.alive then local last=o.config.lastPosition or {x=v.x,y=v.y};o.x=o.x+(v.x-last.x)*1000;o.y=o.y+(v.y-last.y)*700;o.config.lastPosition={x=v.x,y=v.y};M.restore(o,Host.monitors,true) end end end end
  if Host.droplet then Host.droplet.time=Host.droplet.time+dt;d.animation={target=Host.droplet.target,progress=math.min(1,Host.droplet.time/Host.droplet.duration)};if Host.droplet.time>=Host.droplet.duration then local _,why=T.dispense(s,Host.droplet.entity);Host.message(why);Host.droplet=nil;d.animation=nil end end
  Host.timer=Host.timer+dt;Host.monitorTimer=Host.monitorTimer+dt

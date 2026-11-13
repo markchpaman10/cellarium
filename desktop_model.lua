@@ -1,7 +1,7 @@
 -- Persistent presentation records. Positions are signed physical desktop pixels;
 -- dimensions are device-independent pixels. Preferred placement survives unplugging.
 local M={version=1}
-M.sizes={dish={236,236},flask={150,220},plate={240,160},vial={94,190},cryovial={94,190},dna={94,190},dropper={88,238},rack={320,118},forge={268,210},workstation={270,205},terrarium={430,320},freshwater={390,300},saltwater={390,300},organism={150,150}}
+M.sizes={dish={236,236},flask={150,220},plate={240,160},vial={94,190},cryovial={94,190},dna={94,190},dropper={88,238},rack={882,130},forge={268,210},workstation={270,205},terrarium={430,320},freshwater={390,300},saltwater={390,300},organism={150,150}}
 local function copy(v) return require('genome').copy(v) end
 function M.ensure(s)
  s.desktop=s.desktop or {version=1,objects={},groups={laboratory=true,habitats=true,organisms=true},nextObject=1,settings={alwaysOnTop=false},pipette={capacity=1,clean=true},worlds={}}
