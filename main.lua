@@ -183,6 +183,14 @@ function love.draw()
     or 'Mature anatomy'
   printText('DEVELOPMENT  '..string.format('%5.1f%%',progress*100)..'     '..stage,20,689,font)
   printText('Genome seed '..seed..'   /   '..active..' active of '..(adult and #adult.regions or 0)..' anatomical regions',20,718,small,palette.muted)
+  if layer=='Skeleton' and embryo then
+    local strategy=embryo.supportStrategy or 'unknown support'
+    local label=strategy=='articulated endoskeleton' and 'Endoskeleton: internal bones'
+      or strategy=='segmented exoskeleton' and 'Exoskeleton: segmented armor'
+      or strategy=='hydrostatic axial framework' and 'Hydrostatic: flexible support'
+      or 'Support: '..tostring(strategy)
+    printText(label,33,166,small,palette.accent)
+  end
   if cellState then printText(cellState.stage..'  |  cells: '..cellState.cellCount..'  |  '..(cellState.individual and 'individual cells' or 'tissue populations'),640,689,small,palette.accent) end
   if selected and embryo and embryo.regions[selected] then
     local r=embryo.regions[selected]
