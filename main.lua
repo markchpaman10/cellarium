@@ -7,6 +7,7 @@ local Develop = require('anatomical_development')
 local Render = require('reconstruction_rendering')
 local Embryology = require('embryology')
 local Physiology = require('physiology')
+local Motion = require('motion')
 
 local WIDTH, HEIGHT = 1360, 860
 local seed, genome, adult, embryo = 20365841, nil, nil, nil
@@ -20,6 +21,10 @@ local viewPan={side={x=0,y=0},top={x=0,y=0}}
 local dragging=nil
 local showStats=false
 local statDetail=nil
+local showAnimations=false
+local animation=nil
+local animationTime=0
+local animationPaused=false
 local simulating=false
 local simulationTime=0
 local condition={energy=1,hydration=1,oxygen=1,temperature=37,tissue=1,fatigue=0}
@@ -60,6 +65,7 @@ local function setProgress(nextProgress)
   progress=math.max(0,math.min(1,nextProgress))
   Develop.setProgress(embryo,progress,{fatFraction=.7})
   cellState=Embryology.evaluate(seed,progress)
+  if progress<1 then animation=nil end
   dirty=true
 end
 local function generate(nextSeed)
@@ -75,6 +81,7 @@ local function generate(nextSeed)
   seed=newSeed;genome=result.genome;adult=result.adult;embryo=result.embryo
   progress=0;playing=false;selected=nil;dirty=true
   simulating=false;simulationTime=0
+  animation=nil;animationTime=0;animationPaused=false
   condition={energy=1,hydration=1,oxygen=1,temperature=37,tissue=1,fatigue=0}
   viewPan={side={x=0,y=0},top={x=0,y=0}};viewZoom={side=1,top=1}
   cellState=Embryology.evaluate(seed,0)
@@ -113,8 +120,9 @@ local function renderCanvas(top,w,h)
     if cellState and (cellState.individual or progress<.23) then
       Embryology.draw(cellState,w*.5,h*.5,math.min(w,h)/38)
     else
+    local preview=animation and progress>=1 and Motion.pose(embryo,animation,animationTime,condition) or embryo
     local ok,err=pcall(Render.draw,
-      {anatomy=embryo,genome=genome,alive=true,behavior='Resting',angle=0},
+      {anatomy=preview,genome=genome,alive=true,behavior='Resting',angle=0},
       x,y,zoom,0,layer,selected,top)
     if not ok then
       status='Render error: '..tostring(err)
@@ -155,6 +163,10 @@ function love.load()
   generate(seed)
 end
 function love.update(dt)
+  if animation and progress>=1 and not animationPaused then
+    animationTime=animationTime+dt
+    dirty=true
+  end
   if simulating and progress>=1 then
     local metrics=Physiology.evaluate(embryo,progress,condition)
     local effort=metrics.movementCapacity
@@ -224,32 +236,68 @@ function love.draw()
     button(name,x,807,160,35,function()layer=name;dirty=true end,layer==name)
     x=x+170
   end
-  button('Stats: '..(showStats and 'ON' or 'OFF'),1050,807,130,35,function()showStats=not showStats end,showStats)
-  button('Motion: '..(simulating and 'ON' or 'OFF'),1190,807,150,35,function()
-    if progress>=1 then simulating=not simulating else status='Mature organism required for motion simulation' end
+  button('Stats',1050,807,90,35,function()showStats=not showStats;showAnimations=false end,showStats and not showAnimations)
+  button('Animations',1145,807,110,35,function()showAnimations=not showAnimations;showStats=false end,showAnimations)
+  button('Exertion',1260,807,80,35,function()
+    if progress>=1 then simulating=not simulating else status='Adult required' end
   end,simulating)
   printText(status:sub(1,150),1060,689,small,palette.muted)
-  if showStats and embryo then
+  if showStats and embryo and not showAnimations then
     local metrics=Physiology.evaluate(embryo,progress,condition)
     panel(880,172,458,470)
     printText('LIVE BIOLOGICAL STATISTICS',895,185,font,palette.accent)
-    printText('STAT              POTENTIAL    CURRENT',895,214,small,palette.muted)
+    printText('GENETIC POTENTIAL      CURRENT',895,213,small,palette.muted)
     local names={'Strength','Defense','Dexterity','Intelligence','Vitality','Endurance','Speed'}
     for i,name in ipairs(names) do
-      local yy=234+(i-1)*29
-      printText(string.format('%-14s %6.1f       %6.1f',name,metrics.potential[name],metrics.current[name]),895,yy,small)
+      local yy=236+(i-1)*27
+      printText(name,895,yy,small)
+      printText(string.format('%5.1f',metrics.potential[name]),1100,yy,small,palette.muted)
+      printText(string.format('%5.1f',metrics.current[name]),1230,yy,small,palette.accent)
     end
-    printText('VITALS',895,451,font,palette.accent)
+    printText('VITALS',895,440,font,palette.accent)
     local v=metrics.vitals
-    printText(string.format('Energy %.0f%%  Water %.0f%%  Oxygen %.0f%%',v.Energy*100,v.Hydration*100,v.Oxygen*100),895,480,small)
-    printText(string.format('Tissue %.0f%%  Fatigue %.0f%%  Health %.0f%%',v.Tissue*100,v.Fatigue*100,v.Health*100),895,504,small)
-    printText(string.format('Temperature %.1f C  Mass index %.2f',v.Temperature,metrics.massIndex),895,528,small)
-    printText(string.format('Motion readiness %.0f%% | simulated %.1fs',metrics.movementCapacity*100,simulationTime),895,552,small)
-    printText('Select a stat: 1-7 while panel is open',895,583,small,palette.muted)
+    local function vital(label,value,x,y)
+      printText(label,x,y,small,palette.muted)
+      printText(value,x+108,y,small,palette.ink)
+    end
+    vital('Energy',string.format('%.0f%%',v.Energy*100),895,470)
+    vital('Hydration',string.format('%.0f%%',v.Hydration*100),1110,470)
+    vital('Oxygen',string.format('%.0f%%',v.Oxygen*100),895,498)
+    vital('Tissue',string.format('%.0f%%',v.Tissue*100),1110,498)
+    vital('Fatigue',string.format('%.0f%%',v.Fatigue*100),895,526)
+    vital('Health',string.format('%.0f%%',v.Health*100),1110,526)
+    vital('Temperature',string.format('%.1f C',v.Temperature),895,554)
+    vital('Mass index',string.format('%.2f',metrics.massIndex),1110,554)
+    printText('Keys 1-7: anatomical contribution',895,584,small,palette.muted)
     if statDetail then
       local name=names[statDetail]
-      printText(name..': '..metrics.sources[name],895,610,small,palette.accent)
+      printText(name..': '..metrics.sources[name],895,609,small,palette.accent)
     end
+  elseif showAnimations and embryo then
+    panel(880,172,458,470)
+    printText('ANIMATION PREVIEW',895,185,font,palette.accent)
+    local available,info=Motion.available(embryo)
+    printText('Motion type: '..info.mode,895,218,small,palette.muted)
+    printText('Select an applicable animation:',895,247,small,palette.muted)
+    for i,name in ipairs(Motion.names) do
+      local enabled=available[name]
+      local yy=278+(i-1)*43
+      if enabled then
+        button(name,895,yy,420,35,function()
+          animation=name;animationTime=0;animationPaused=false;dirty=true
+        end,animation==name)
+      else
+        printText(name..'   (anatomy not compatible)',905,yy+9,small,palette.muted)
+      end
+    end
+    printText('Current: '..(animation or 'None'),895,554,small,palette.accent)
+    button(animationPaused and 'Resume' or 'Pause',895,586,130,35,function()
+      animationPaused=not animationPaused
+    end,animationPaused)
+    button('Stop',1040,586,130,35,function()
+      animation=nil;animationTime=0;dirty=true
+    end)
+    printText('Preview only; no locomotion physics yet.',895,630,small,palette.muted)
   end
   love.graphics.pop()
 end
@@ -305,8 +353,9 @@ function love.keypressed(key)
     elseif key=='backspace' then seedText=seedText:sub(1,-2) end
     return
   end
-  if showStats and key>='1' and key<='7' then statDetail=tonumber(key);return end
-  if key=='tab' then showStats=not showStats;return end
+  if showStats and not showAnimations and key>='1' and key<='7' then statDetail=tonumber(key);return end
+  if key=='tab' then showStats=not showStats;showAnimations=false;return end
+  if key=='a' then showAnimations=not showAnimations;showStats=false;return end
   if key=='m' then if progress>=1 then simulating=not simulating end;return end
   if key=='space' then playing=not playing
   elseif key=='right' then playing=false;setProgress(progress+.025)

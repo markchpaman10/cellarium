@@ -1,12 +1,12 @@
 local V={};local colors={Bone={.89,.85,.68},Support={.63,.75,.70},Carapace={.7,.73,.59},Muscle={.74,.29,.35},Fat={.94,.78,.43},Heart={.83,.22,.31},Lung={.84,.57,.65},Stomach={.64,.57,.33},Brain={.72,.52,.86},Nerve={.66,.49,.96},Sensor={.92,.97,.75}}
 local function pos(p,top) return p.cx or p.x,top and (p.cy or 0) or -(p.cz or -p.y) end
-function V.pose(a,t)
+function V.pose(a,t,angleProvider)
  local G=require('genome');local regions,components,joints=G.copy(a.regions),G.copy(a.components),G.copy(a.joints);local transforms={};local byPart={}
  for _,j in ipairs(joints) do byPart[j.partId]=j end
  local function point(m,x,y) return m.c*x-m.s*y+m.x,m.s*x+m.c*y+m.y end
  for i,r in ipairs(regions) do
   local parent=r.parent and transforms[r.parent] or {c=1,s=0,x=0,y=0,angle=0};local m={c=parent.c,s=parent.s,x=parent.x,y=parent.y,angle=parent.angle};local j=byPart[i]
-  if j then local angle=math.max(j.minimum,math.min(j.maximum,math.sin(t*2+i*.7)*math.min(.16,j.range*.18)))*j.condition;local ax,ay=point(parent,j.cx,-j.cz);local c,s=math.cos(angle),math.sin(angle);m={c=c*parent.c-s*parent.s,s=s*parent.c+c*parent.s,x=ax+c*(parent.x-ax)-s*(parent.y-ay),y=ay+s*(parent.x-ax)+c*(parent.y-ay),angle=parent.angle+angle};j.playbackAngle=angle;j.x,j.y=ax,ay;j.cx,j.cz=ax,-ay end
+  if j then local requested=angleProvider and angleProvider(r,j) or math.sin(t*2+i*.7)*math.min(.16,j.range*.18);local angle=math.max(j.minimum,math.min(j.maximum,requested))*j.condition;local ax,ay=point(parent,j.cx,-j.cz);local c,s=math.cos(angle),math.sin(angle);m={c=c*parent.c-s*parent.s,s=s*parent.c+c*parent.s,x=ax+c*(parent.x-ax)-s*(parent.y-ay),y=ay+s*(parent.x-ax)+c*(parent.y-ay),angle=parent.angle+angle};j.playbackAngle=angle;j.x,j.y=ax,ay;j.cx,j.cz=ax,-ay end
   transforms[i]=m;r.x,r.y=point(m,r.x,r.y);r.cx,r.cz=r.x,-r.y;r.orientation=r.orientation+m.angle
   for _,key in ipairs({'start','finish'}) do if r[key] then local px,py=point(m,r[key].x,-r[key].z);r[key].x,r[key].z=px,-py end end
   if r.parent then local p=regions[r.parent];local source=a.regions[r.parent];local ax,ay=point(parent,source.cx+r.attachment.x,-source.cz-r.attachment.z);r.attachment.x,r.attachment.z=ax-p.cx,-ay-p.cz end
