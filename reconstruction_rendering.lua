@@ -113,11 +113,7 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
    local parent=a.components[j.parent]
    local child=a.components[j.child]
    if parent and child and parent.volume>0 and child.volume>0 and (j.growth or 0)>.02 then
-    local cx,cy,size=BoneShapes.jointAnchor(parent,child,j,top)
-    if cx then
-     love.graphics.setColor(.47,.55,.49,.64)
-     love.graphics.circle('fill',cx,cy,size*math.min(1,j.growth or 1))
-    end
+    BoneShapes.drawJoint(parent,child,j,top,colors.Bone or {.85,.79,.59})
    end
   end
  end

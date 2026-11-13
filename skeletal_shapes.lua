@@ -138,6 +138,43 @@ function B.draw(c,top,color)
   end
  end
 end
+-- Draw short anatomical connectors only when the generated endpoints
+-- are close enough to plausibly articulate. Never bridge distant bones.
+function B.drawJoint(parent,child,joint,top,color)
+ if parent.type~='Bone' or child.type~='Bone' then return end
+ if not parent.path or not child.path then return end
+ local jx,jy,jz=joint.cx or 0,joint.cy or 0,joint.cz or 0
+ local function nearest(path)
+  local best,dist
+  for _,p in ipairs(path) do
+   local dx=(p.x or 0)-jx
+   local dy=(p.y or 0)-jy
+   local dz=(p.z or 0)-jz
+   local d=dx*dx+dy*dy+dz*dz
+   if not dist or d<dist then best,dist=p,d end
+  end
+  return best,math.sqrt(dist or math.huge)
+ end
+ local p,pdist=nearest(parent.path)
+ local q,qdist=nearest(child.path)
+ if not p or not q then return end
+ local dx=(p.x or 0)-(q.x or 0)
+ local dy=(p.y or 0)-(q.y or 0)
+ local dz=(p.z or 0)-(q.z or 0)
+ local gap=math.sqrt(dx*dx+dy*dy+dz*dz)
+ local width=math.max(.12,math.min(1.2,math.min(parent.thickness or .1,child.thickness or .1)*4))
+ -- Relative to the region dimensions: distant or unrelated paths remain
+ -- disconnected rather than being disguised by a huge artificial bridge.
+ local limit=math.max(1.5,math.min(7,width*5))
+ if gap>limit or pdist>limit*1.5 or qdist>limit*1.5 then return end
+ local ax,ay=project(p,top)
+ local bx,by=project(q,top)
+ if gap>.12 then
+  strip(ax,ay,bx,by,width*.38,width*.38,color)
+ end
+ shade(color,.8,.88)
+ love.graphics.circle('fill',(ax+bx)*.5,(ay+by)*.5,width*.46)
+end
 -- Joint anchors use the generated parent and child bone paths.
 -- This is visual geometry only; development and physics remain unchanged.
 function B.jointAnchor(parent,child,joint,top)
