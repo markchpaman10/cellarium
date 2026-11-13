@@ -1,4 +1,0 @@
-ffd708f62ecdea7d026f92039547a01e6d34e80a4fc115ae50ae7a95dc2e3f83  Cellarium-Anatomy-Dev-Windows.zip
-d7a99cfd08858043e10f3f6f12737b496d99a9f1c452cae0d76bc52f4f1da4ab  Cellarium-Anatomy-Dev-Source.zip
-f021672d196ed10d714bf5c5307be87f07ff07c11f42c10252a7d223747aae93  Cellarium-Anatomy-Dev.exe
-a727d917f20246765ed8c3973a079acb747d505156cd59786d712fe65fb1aa4d  Cellarium-Anatomy-Dev.love

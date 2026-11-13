@@ -1,2 +1,0 @@
-b5af439a7ac2a54fea02e8371e0fb4d2df929bab9bee1aa461c55b0e7181cf23  Cellarium-Windows.zip
-bf3a26a85cbbf01c3a29fb3ffdffc496d6b91e4aea3c81de1ced938dfb26201b  Cellarium.love
