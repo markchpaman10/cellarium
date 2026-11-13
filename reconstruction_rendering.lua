@@ -39,30 +39,41 @@ local function boneShape(points,top,width,color)
   px,py=qx,qy
  end
 end
-local function muscleShape(px,py,mx,my,qx,qy,width)
+local function muscleAnchor(bone,target)
+ if not bone then return nil end
+ local best,dist
+ for _,p in ipairs(bone.path or {}) do
+  local dx=p.x-target.cx
+  local dy=p.y-target.cy
+  local dz=p.z-target.cz
+  local d=dx*dx+dy*dy+dz*dz
+  if not dist or d<dist then best,dist=p,d end
+ end
+ return best or bone
+end
+local function muscleShape(px,py,qx,qy,width,side)
  local dx,dy=qx-px,qy-py
  local length=math.sqrt(dx*dx+dy*dy)
- if length<.001 then return end
+ if length<.08 then return end
  local nx,ny=-dy/length,dx/length
- local w=math.max(.35,math.min(width,length*.55))
- local x1,y1=px+dx*.26,py+dy*.26
- local x2,y2=px+dx*.74,py+dy*.74
- love.graphics.setColor(.37,.075,.10,.95)
+ local w=math.max(.12,math.min(width,length*.19))
+ local shift=(side or 1)*w*.42
+ local x1,y1=px+dx*.24+nx*shift,py+dy*.24+ny*shift
+ local x2,y2=px+dx*.76+nx*shift,py+dy*.76+ny*shift
+ love.graphics.setColor(.36,.09,.12,.94)
  love.graphics.polygon('fill',px,py,x1+nx*w,y1+ny*w,x2+nx*w,y2+ny*w,qx,qy,x2-nx*w,y2-ny*w,x1-nx*w,y1-ny*w)
- love.graphics.setColor(.76,.22,.27,.98)
- love.graphics.polygon('fill',px,py,x1+nx*w*.76,y1+ny*w*.76,x2+nx*w*.76,y2+ny*w*.76,qx,qy,x2-nx*w*.76,y2-ny*w*.76,x1-nx*w*.76,y1-ny*w*.76)
- love.graphics.setColor(.98,.54,.49,.55)
- love.graphics.setLineWidth(math.max(.16,w*.065))
- for i=-2,2 do
-  local offset=i*w*.23
-  love.graphics.line(px+dx*.14+nx*offset*.25,py+dy*.14+ny*offset*.25,
-    px+dx*.5+nx*offset,py+dy*.5+ny*offset,
-    px+dx*.86+nx*offset*.25,py+dy*.86+ny*offset*.25)
+ love.graphics.setColor(.72,.22,.28,.96)
+ love.graphics.polygon('fill',px,py,x1+nx*w*.77,y1+ny*w*.77,x2+nx*w*.77,y2+ny*w*.77,qx,qy,x2-nx*w*.77,y2-ny*w*.77,x1-nx*w*.77,y1-ny*w*.77)
+ love.graphics.setColor(.94,.51,.48,.53)
+ love.graphics.setLineWidth(math.max(.12,w*.08))
+ for i=-1,1 do
+  local off=i*w*.35
+  love.graphics.line(x1+nx*off,y1+ny*off,x2+nx*off,y2+ny*off)
  end
- love.graphics.setColor(.94,.81,.68,.9)
- love.graphics.setLineWidth(math.max(.18,w*.12))
- love.graphics.line(px,py,px+dx*.14,py+dy*.14)
- love.graphics.line(px+dx*.86,py+dy*.86,qx,qy)
+ love.graphics.setColor(.90,.80,.66,.94)
+ love.graphics.setLineWidth(math.max(.10,w*.16))
+ love.graphics.line(px,py,x1,y1)
+ love.graphics.line(x2,y2,qx,qy)
 end
 local function fatLayer(a,r,volume,top)
  if not r or volume<=0 then return end
@@ -115,8 +126,14 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
    -- projected by skeletal_shapes. Never hide ribs to disguise bad projection.
    BoneShapes.draw(c,top,color)
   elseif on('Muscle') and c.type=='Muscle' then
-   local p,q=a.components[c.origin],a.components[c.insertion];local px,py=point(p,top);local qx,qy=point(q,top);local width=math.sqrt(c.volume*32^3/math.max(1,math.sqrt((px-qx)^2+(py-qy)^2))*math.pi)*.6
-   muscleShape(px,py,xx,yy,qx,qy,width*.58)
+   local p,q=a.components[c.origin],a.components[c.insertion]
+   if p and q then
+    local px,py=point(muscleAnchor(p,c),top)
+    local qx,qy=point(muscleAnchor(q,c),top)
+    local span=math.sqrt((px-qx)^2+(py-qy)^2)
+    local width=math.sqrt(math.max(0,c.volume)*32^3/math.max(1,span)*math.pi)*.24
+    muscleShape(px,py,qx,qy,width,c.muscleSide)
+   end
   elseif on('Fat') and c.type=='Fat' then
    local r=a.regions[c.regionId];fatLayer(a,r,c.volume,top)
   elseif on('Organs') and (c.type=='Heart' or c.type=='Lung' or c.type=='Stomach' or c.type=='Brain' or c.type=='Kidney' or c.type=='Gonad') then love.graphics.setColor(color);love.graphics.ellipse('fill',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry));love.graphics.setColor(.95,.94,.84,.7);love.graphics.setLineWidth(.3);love.graphics.ellipse('line',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry))
