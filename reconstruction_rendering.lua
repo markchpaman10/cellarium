@@ -1,8 +1,12 @@
 local V={};local colors={Bone={.92,.86,.67},Support={.44,.76,.70},Carapace={.68,.75,.56},Muscle={.76,.24,.32},Fat={.96,.76,.37},Heart={.9,.25,.32},Lung={.89,.57,.68},Stomach={.55,.74,.46},Brain={.77,.58,.94},Kidney={.68,.36,.32},Gonad={.85,.66,.39}}
 local function point(p,top)
+ -- Anatomy components have cx/cy/cz; bone path vertices have x/y/z.
+ -- The side view MUST use world Z, never world Y.
+ -- The previous fallback read p.y when p.z was available, projecting
+ -- the top-view bones over the side-view organism.
  local x=p.cx or p.x or 0
- local y=top and (p.cy or p.y or 0) or -(p.cz or (p.y and -p.y) or 0)
- return x,y
+ if top then return x,p.cy or p.y or 0 end
+ return x,-(p.cz or p.z or 0)
 end
 local function path(points,top,width,color)
  local coords={};for _,pt in ipairs(points) do coords[#coords+1]=pt.x;coords[#coords+1]=top and pt.y or -pt.z end
