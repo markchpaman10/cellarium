@@ -132,7 +132,47 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
  if on('Nervous') then for _,n in ipairs(a.nerves) do if (n.growth or 1)>.01 then local p,q=a.components[n.from],a.components[n.to];local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.74,.53,.97,.9);love.graphics.setLineWidth(.35+math.min(.45,n.efficiency*.5));love.graphics.line(px,py,(px+qx)/2,(py+qy)/2,qx,qy) end end end
  if on('Organs') then for _,v in ipairs(a.vessels) do local p,q=a.components[v.from],a.components[v.to];if p.growth>.01 and q.growth>.01 then local px,py=point(p,top);local qx,qy=point(q,top);love.graphics.setColor(.82,.22,.27,.5);love.graphics.setLineWidth(.4);love.graphics.line(px,py,qx,qy) end end end
  if external then for _,c in ipairs(a.surfaces) do local r=a.regions[c.regionId];if c.growth>.01 then local host=a.regions[r.parent or r.id];local xx,yy=point(r,top);local px,py=point(host,top);love.graphics.setColor(.42,.75,.73,.35);love.graphics.polygon('fill',px,py,xx,yy,xx+math.sin(r.orientation)*r.width,yy-math.cos(r.orientation)*r.width) end end end
- if on('Skeleton') then for _,j in ipairs(a.joints) do if j.growth>.02 then love.graphics.setColor(.97,.65,.25);love.graphics.setLineWidth(.45);love.graphics.circle('line',j.cx,top and j.cy or -j.cz,math.max(.3,1.3*j.growth)) end end end
+ if on('Skeleton') then
+  -- Draw cartilage at the existing anatomical joint anchors. These are
+  -- connective tissues, not extra bones or decorative orange debug rings.
+  -- Growth and joint positions are inherited from the anatomy simulation.
+  for _,j in ipairs(a.joints) do
+   if j.growth>.02 then
+    local child=a.regions[j.partId]
+    local parent=child and child.parent and a.regions[child.parent]
+    if child and parent then
+     local x,y=point(j,top)
+     local cx,cy=point(child,top)
+     local px,py=point(parent,top)
+     local dx,dy=cx-px,cy-py
+     local length=math.sqrt(dx*dx+dy*dy)
+     if length<.0001 then dx,dy=1,0 else dx,dy=dx/length,dy/length end
+     local nx,ny=-dy,dx
+     local w=math.max(.22,math.min(child.width or 1,parent.width or 1)*.20*j.growth)
+     local depth=math.max(.20,w*.45)
+     -- Flexible cartilage bridge with softly rounded articular ends.
+     love.graphics.setColor(.20,.39,.44,.82)
+     love.graphics.polygon('fill',
+       x-dx*depth-nx*w, y-dy*depth-ny*w,
+       x+dx*depth-nx*w, y+dy*depth-ny*w,
+       x+dx*depth+nx*w, y+dy*depth+ny*w,
+       x-dx*depth+nx*w, y-dy*depth+ny*w)
+     love.graphics.setColor(.51,.77,.79,.96)
+     love.graphics.ellipse('fill',x,y,depth,w)
+     love.graphics.setColor(.83,.94,.90,.62)
+     love.graphics.setLineWidth(math.max(.10,w*.15))
+     love.graphics.line(x-nx*w*.75,y-ny*w*.75,x+nx*w*.75,y+ny*w*.75)
+     -- Paired ligament edges retain a visual link without obscuring bone.
+     love.graphics.setColor(.70,.76,.66,.63)
+     love.graphics.setLineWidth(math.max(.12,w*.16))
+     for side=-1,1,2 do
+      love.graphics.line(x-dx*depth*1.4+nx*w*side,y-dy*depth*1.4+ny*w*side,
+        x+dx*depth*1.4+nx*w*side,y+dy*depth*1.4+ny*w*side)
+     end
+    end
+   end
+  end
+ end
  if selected and a.regions[selected] then local r=a.regions[selected];love.graphics.setColor(.3,.95,.8,.9);love.graphics.setLineWidth(.5);love.graphics.line(r.x-4,r.y,r.x+4,r.y);love.graphics.line(r.x,r.y-4,r.x,r.y+4) end
  love.graphics.pop()
 end
