@@ -1,4 +1,5 @@
 local BoneShapes=require('skeletal_shapes')
+local OrganShapes=require('organ_shapes')
 local V={};local colors={Bone={.92,.86,.67},Support={.44,.76,.70},Carapace={.68,.75,.56},Muscle={.76,.24,.32},Fat={.96,.76,.37},Heart={.9,.25,.32},Lung={.89,.57,.68},Stomach={.55,.74,.46},Brain={.77,.58,.94},Kidney={.68,.36,.32},Gonad={.85,.66,.39}}
 local function point(p,top)
  -- Anatomy components have cx/cy/cz; bone path vertices have x/y/z.
@@ -136,7 +137,8 @@ function V.draw(o,x,y,scale,t,layer,selected,top)
    end
   elseif on('Fat') and c.type=='Fat' then
    local r=a.regions[c.regionId];fatLayer(a,r,c.volume,top)
-  elseif on('Organs') and (c.type=='Heart' or c.type=='Lung' or c.type=='Stomach' or c.type=='Brain' or c.type=='Kidney' or c.type=='Gonad') then love.graphics.setColor(color);love.graphics.ellipse('fill',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry));love.graphics.setColor(.95,.94,.84,.7);love.graphics.setLineWidth(.3);love.graphics.ellipse('line',xx,yy,math.max(.1,c.rx),math.max(.1,c.ry))
+  elseif on('Organs') and (c.type=='Heart' or c.type=='Lung' or c.type=='Stomach' or c.type=='Brain' or c.type=='Kidney' or c.type=='Gonad') then
+   OrganShapes.draw(c,top)
   elseif on('Organs') and c.type=='Gill' then path({{x=c.cx-c.rx*.4,y=c.cy,z=c.cz},{x=c.cx+c.rx*.4,y=c.cy,z=c.cz}},top,.8,{.35,.75,.91}) end
   if (on('External') or on('Nervous')) and c.type=='Sensor' then local r=a.regions[c.regionId];if r.partType=='cranium' then love.graphics.setColor(.96,.97,.77);love.graphics.circle('fill',xx,yy,math.max(.15,1.5*c.growth));love.graphics.setColor(.035,.10,.13);love.graphics.circle('fill',xx+.3,yy,math.max(.1,.8*c.growth)) end end
   if c.condition<.7 then love.graphics.setColor(.8,.15,.17,.8);love.graphics.circle('fill',xx,yy,.8) end
